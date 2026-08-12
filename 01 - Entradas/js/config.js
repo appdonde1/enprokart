@@ -6,8 +6,8 @@
 window.PROKART_CONFIG = {
   SUPABASE_URL: "https://tgilgfwxtghcqskfyzif.supabase.co",
 
-  // Panel de Supabase > Project Settings > API > Project API keys > anon public
-  SUPABASE_ANON_KEY: "PEGAR_AQUI_LA_ANON_KEY",
+  SUPABASE_ANON_KEY:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaWxnZnd4dGdoY3Fza2Z5emlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0ODk5NjYsImV4cCI6MjEwMjA2NTk2Nn0.yzxMEEw8QezoKrJnNltue5bpcueTJUL2jB1T9Kvz2Kw",
 
   EVENT_SLUG: "noche-vip-fest",
 };
