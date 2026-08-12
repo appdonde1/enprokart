@@ -158,8 +158,7 @@ button:focus-visible,
   grid-template-areas:
     "badge"
     "title"
-    "desc"
-    "price";
+    "desc";
   gap: 9px;
   padding: 18px 18px 18px 22px;
 }
@@ -1031,4 +1030,129 @@ main.container:not(.editorial-page) .verify-card .hint {
   .area-card:hover,
   .btn--primary:not(:disabled):hover { transform: none; }
   .text-cta:hover span { transform: none; }
+}
+
+/* =========================================================
+   11 · Mini-plano en la tarjeta de área
+   El salón se ordena por cercanía a la tarima: Oro adelante,
+   Plata detrás y General al fondo. Mostrarlo acá evita que
+   alguien elija sin saber dónde termina sentado.
+   ========================================================= */
+
+/* La tarjeta pasa a tres columnas: qué es, dónde queda, cuánto sale. */
+@media (min-width: 720px) {
+  .area-card {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 26px;
+  }
+  .area-card > .area-card__body { padding-right: 0; }
+}
+
+.area-mapa {
+  display: grid;
+  gap: 3px;
+  width: 108px;
+  padding: 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, .28);
+  text-align: center;
+}
+
+/* La tarima da el punto de referencia: sin ella las bandas no dicen nada. */
+.area-mapa__tarima {
+  padding: 5px 0;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+  color: var(--black);
+  font: 800 .52rem/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.area-mapa__banda {
+  padding: 7px 0;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--dim);
+  background: rgba(255, 255, 255, .015);
+  font: 700 .56rem/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  transition: color .18s var(--ease), border-color .18s var(--ease);
+}
+
+/* La banda de esta tarjeta se pinta con el color de su nivel. */
+.area-mapa__banda--aqui {
+  border-color: var(--tier);
+  background: var(--tier-tint);
+  color: var(--tier);
+  box-shadow: inset 0 0 0 1px var(--tier);
+}
+
+/* Columna del precio */
+.area-card__precio {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding-left: 26px;
+  border-left: 1px solid var(--line-soft);
+}
+.area-card__precio .price {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+.area-card__ir {
+  color: var(--muted);
+  font: 700 .62rem/1 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  transition: color .18s var(--ease);
+}
+.area-card__ir b { display: inline-block; transition: transform .18s var(--ease); }
+.area-card:hover .area-card__ir { color: var(--accent); }
+.area-card:hover .area-card__ir b { transform: translate(3px, -3px); }
+
+/* El pill llevaba .56rem y decía "VIP" en dos niveles distintos: no
+   distinguía nada. Ahora nombra el nivel y toma el color de su filete. */
+.badge {
+  padding: 6px 11px;
+  font-size: .68rem;
+  letter-spacing: .14em;
+  font-weight: 800;
+}
+
+@media (max-width: 719px) {
+  /* En el teléfono la tarjeta se apila. El mapa y el precio son hermanos del
+     cuerpo, así que necesitan su mismo margen o quedarían pegados al borde. */
+  .area-mapa {
+    width: auto;
+    margin: 0 18px 0 22px;
+    grid-template-columns: auto 1fr 1fr 1fr;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .area-mapa__tarima {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    padding: 8px 5px;
+    letter-spacing: .1em;
+  }
+  .area-mapa__banda { display: grid; place-items: center; padding: 10px 2px; }
+
+  .area-card__precio {
+    margin: 14px 18px 18px 22px;
+    padding: 14px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line-soft);
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    justify-items: stretch;
+  }
+  .area-card__precio .price { white-space: normal; }
+  .area-card__ir { justify-self: end; }
 }

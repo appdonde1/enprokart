@@ -74,7 +74,7 @@
     // si no hay ninguno, se cae al configurado en config.js.
     let { data: event } = await db
       .from("events")
-      .select("id, slug, name, tagline, event_date, venue, cover_image")
+      .select("id, slug, name, tagline, description, event_date, venue, cover_image")
       .eq("status", "published")
       .eq("is_main", true)
       .maybeSingle();
@@ -82,7 +82,7 @@
     if (!event) {
       const alterno = await db
         .from("events")
-        .select("id, slug, name, tagline, event_date, venue, cover_image")
+        .select("id, slug, name, tagline, description, event_date, venue, cover_image")
         .eq("slug", EVENT_SLUG)
         .maybeSingle();
       event = alterno.data;
@@ -114,6 +114,7 @@
       state.tables = tables || [];
     }
 
+    pintarPrecioDesde();
     pintarAreas();
     suscribirRealtime();
   }
@@ -141,12 +142,27 @@
     lugar.textContent = event.venue || "";
     lugar.closest("span").hidden = !event.venue;
 
-    // El nombre y la fecha ya los dice la portada, así que la columna de la
-    // derecha no los repite: lleva la bajada y de qué se trata el evento.
+    // La portada ya dice nombre, bajada y fecha. La columna de la derecha no
+    // repite nada de eso: lleva el precio —lo que se busca después del
+    // nombre— y una ficha con los datos prácticos.
     document.querySelector(".feature__copy")?.classList.add("feature__copy--secundaria");
-    $("heroTitulo").textContent = event.tagline || event.name;
     $("heroSubtitulo").textContent =
       event.description || "Entradas por mesa, con tu lugar asegurado.";
+
+    const datos = [["Fecha", cuando], ["Lugar", event.venue]].filter(([, v]) => v);
+    $("heroDatos").innerHTML = datos
+      .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
+      .join("");
+  }
+
+  // El precio más bajo del evento. Se pinta al cargar las secciones, no antes.
+  function pintarPrecioDesde() {
+    if (!state.sections.length) return;
+    const desde = Math.min(...state.sections.map((s) => s.price_cents));
+    const conPlano = state.sections.some((s) => s.assignment_mode === "manual");
+    $("heroTitulo").textContent = conPlano
+      ? `Mesas desde ${money(desde)}`
+      : `Entradas desde ${money(desde)}`;
   }
 
   // ---------- portada: próximos eventos ----------
@@ -250,6 +266,8 @@
         detalle: "Elegís tu mesa en el plano del salón",
         precio: `Mesa desde ${money(desde)}`,
         tier: "oro",
+        zona: "ORO",
+        insignia: "Oro",
       });
     }
 
@@ -263,18 +281,41 @@
           : "Acceso de pie, sin mesa ni silla",
         precio: esPlata ? `Mesa ${money(s.price_cents)}` : `${money(s.price_cents)} por persona`,
         tier: esPlata ? "plata" : "general",
+        zona: esPlata ? "PLATA" : "GENERAL",
+        insignia: esPlata ? "Plata" : "General",
       });
     });
+
+    // El salón se ordena por cercanía a la tarima: Oro adelante, después Plata
+    // y General al fondo. Mostrarlo en cada tarjeta evita que alguien elija sin
+    // saber dónde termina sentado.
+    const ZONAS = [
+      { code: "ORO", nombre: "Oro" },
+      { code: "PLATA", nombre: "Plata" },
+      { code: "GENERAL", nombre: "General" },
+    ];
+
+    const miniMapa = (zonaActiva) => `
+      <div class="area-mapa" aria-hidden="true">
+        <span class="area-mapa__tarima">Tarima</span>
+        ${ZONAS.map((z) => `
+          <span class="area-mapa__banda${z.code === zonaActiva ? " area-mapa__banda--aqui" : ""}"
+                data-zona="${z.code}">${z.nombre}</span>
+        `).join("")}
+      </div>
+    `;
 
     $("areasGrid").innerHTML = tarjetas.map((t) => `
       <button type="button" class="area-card area-card--${t.tier}" data-area="${esc(t.code)}">
         <div class="area-card__body">
-          <span class="badge ${t.tier === "general" ? "badge--general" : "badge--vip"}">
-            ${t.tier === "general" ? "GENERAL" : "VIP"}
-          </span>
+          <span class="badge badge--${t.tier}">${esc(t.insignia)}</span>
           <h4>${esc(t.label)}</h4>
           <p>${esc(t.detalle)}</p>
+        </div>
+        ${miniMapa(t.zona)}
+        <div class="area-card__precio">
           <span class="price">${esc(t.precio)}</span>
+          <span class="area-card__ir">Elegir <b>↗</b></span>
         </div>
       </button>
     `).join("");

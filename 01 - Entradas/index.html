@@ -52,13 +52,14 @@
       <div class="feature__media">
         <div class="feature__grid" aria-hidden="true"></div>
 
-        <!-- Portada dinámica: app.js puede poblarla -->
+        <!-- Portada dinámica: acá vive la identidad del evento (nombre y fecha).
+             La columna de la derecha no las repite. -->
         <section class="evento" id="eventoPortada" hidden>
           <img id="eventoImagen" alt="" />
           <div class="evento__velo"></div>
           <div class="evento__texto">
             <p class="evento__tipo" id="eventoTagline"></p>
-            <h2 class="evento__nombre" id="eventoNombre"></h2>
+            <h1 class="evento__nombre" id="eventoNombre"></h1>
             <p class="evento__cuando">
               <span><i></i><span id="eventoFecha"></span></span>
               <span><i></i><span id="eventoLugar"></span></span>
@@ -73,19 +74,23 @@
       </div>
 
       <div class="feature__info">
-        <div class="eyebrow"><span></span> PRÓXIMO EVENTO</div>
+        <div class="eyebrow"><span></span> Próximo evento</div>
+
         <div class="feature__copy">
-          <p class="feature__kicker">PRO KART / 2026</p>
-          <h1 id="heroTitulo">Cargando evento...</h1>
+          <p class="feature__kicker">Pro Kart · 2026</p>
+          <!-- Con foto de portada acá va el precio, que es el dato que la
+               gente busca después del nombre. Sin foto, el nombre del evento. -->
+          <p class="feature__price" id="heroTitulo">Cargando evento...</p>
           <p id="heroSubtitulo" class="feature__sub">
             Experiencias, carreras y noches especiales en un solo lugar.
           </p>
+          <dl class="feature__datos" id="heroDatos"></dl>
         </div>
 
         <div class="feature__footer">
           <div class="feature__meta">
-            <span>01</span>
-            <span>EVENTO DESTACADO</span>
+            <span class="feature__meta-num">01</span>
+            <span>Evento destacado</span>
           </div>
           <button class="editorial-cta" id="btnComprar" type="button">
             Comprar entradas <span>↗</span>
