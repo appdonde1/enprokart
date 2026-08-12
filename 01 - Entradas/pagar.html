@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1117" />
+  <title>Pagar · Pro Kart</title>
+  <link rel="icon" href="Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/plano.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__brand">
+        <a href="index.html" class="brand-plate">
+          <img src="Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
+        </a>
+      </div>
+      <div class="topbar__steps steps-rail">
+        <div class="step-indicator done" data-step="1">
+          <span class="step-indicator__dot">1</span>
+          <span class="step-indicator__label">Lugar</span>
+        </div>
+        <div class="step-indicator active" data-step="2">
+          <span class="step-indicator__dot">2</span>
+          <span class="step-indicator__label">Pago</span>
+        </div>
+        <div class="step-indicator" data-step="3">
+          <span class="step-indicator__dot">3</span>
+          <span class="step-indicator__label">Entradas</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="step-panel active" id="cargando">
+      <p class="hint">Buscando tu compra...</p>
+    </div>
+
+    <!-- Pago pendiente -->
+    <section class="step-panel" id="panelPago">
+      <h2>Pagá con PIX</h2>
+
+      <div class="pay-layout">
+        <div class="pay-card">
+          <p class="pay-card__title">Tu pedido</p>
+          <div class="order-summary" id="orderSummary"></div>
+        </div>
+
+        <div class="pix-box">
+          <p class="pix-box__title">Escaneá el código con la app de tu banco</p>
+          <p class="pix-box__sub">El pago se acredita en segundos</p>
+
+          <div class="qr-frame">
+            <div id="qrcode" class="qrcode"></div>
+          </div>
+
+          <p class="pix-box__timer">Tu lugar queda reservado <span id="timer">15:00</span></p>
+
+          <label class="pix-copy-label">O copiá el código PIX</label>
+          <button type="button" class="pix-copy" id="btnCopyPix">
+            <span class="pix-copy__code" id="pixCodePreview">------</span>
+            <span class="pix-copy__icon" aria-hidden="true">📋</span>
+            <span class="pix-copy__label">Copiar</span>
+          </button>
+          <input type="hidden" id="pixCode" />
+
+          <button type="button" class="btn btn--primary btn--block" id="btnConfirmarPago">
+            Ya pagué, verificar
+          </button>
+          <p class="pago-estado" id="pagoEstado"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Entradas emitidas -->
+    <section class="step-panel" id="panelEntradas">
+      <h2>¡Pago confirmado!</h2>
+      <p class="hint" id="entradasIntro"></p>
+      <div id="entradas"></div>
+      <div class="actions">
+        <a class="btn btn--ghost" href="index.html">Comprar más entradas</a>
+      </div>
+    </section>
+
+    <!-- Expirada o cancelada -->
+    <section class="step-panel" id="panelError">
+      <div class="verify-card verify-card--invalida">
+        <div class="verify-card__icon">⌛</div>
+        <p class="verify-card__status" id="errorTitulo">La compra expiró</p>
+        <p class="hint" id="errorTexto"></p>
+      </div>
+      <div class="actions">
+        <a class="btn btn--primary" href="index.html">Volver a empezar</a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">© 2026 Pro Kart · Todos los derechos reservados</footer>
+
+  <script src="js/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/pagar.js"></script>
+</body>
+</html>

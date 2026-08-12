@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0f1117" />
-  <title>Venta de Entradas · Pro Kart</title>
+  <title>Entradas · Pro Kart</title>
   <link rel="icon" href="Logo Prokart.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,6 +12,7 @@
     href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/plano.css" />
 </head>
 <body>
 
@@ -25,15 +26,15 @@
       <div class="topbar__steps steps-rail" id="stepsIndicator">
         <div class="step-indicator active" data-step="1">
           <span class="step-indicator__dot">1</span>
-          <span class="step-indicator__label">Registro</span>
+          <span class="step-indicator__label">Área</span>
         </div>
         <div class="step-indicator" data-step="2">
           <span class="step-indicator__dot">2</span>
-          <span class="step-indicator__label">Pago</span>
+          <span class="step-indicator__label">Lugar</span>
         </div>
         <div class="step-indicator" data-step="3">
           <span class="step-indicator__dot">3</span>
-          <span class="step-indicator__label">Entrada</span>
+          <span class="step-indicator__label">Datos</span>
         </div>
       </div>
     </div>
@@ -54,20 +55,99 @@
         </p>
         <h1 id="heroTitulo">Cargando evento...</h1>
         <p class="hero__sub" id="heroSubtitulo"></p>
-        <button class="btn btn--primary btn--lg" id="btnComprar">Comprar entrada</button>
-        <ul class="hero__points">
-          <li>Pago instantáneo con PIX</li>
-          <li>Elegís tu mesa en el mapa</li>
-          <li>Entrada con QR al instante</li>
-        </ul>
+        <button class="btn btn--primary btn--lg" id="btnComprar">Reservar entrada</button>
       </div>
     </section>
 
-    <!-- PASO 1: REGISTRO + SELECCIÓN DE ÁREA -->
-    <section class="step-panel active" id="panel-1">
-      <h2>1. Datos del comprador</h2>
-      <form id="formRegistro" novalidate>
+    <!-- Portada del evento: nombre, fecha y lugar salen de la base -->
+    <section class="evento" id="eventoPortada" hidden>
+      <img id="eventoImagen" alt="" />
+      <div class="evento__velo"></div>
+      <div class="evento__texto">
+        <p class="evento__tipo" id="eventoTagline"></p>
+        <h2 class="evento__nombre" id="eventoNombre"></h2>
+        <p class="evento__cuando">
+          <span><i></i><span id="eventoFecha"></span></span>
+          <span><i></i><span id="eventoLugar"></span></span>
+        </p>
+      </div>
+    </section>
 
+    <!-- PASO 1: ÁREA -->
+    <section class="step-panel active" id="panel-1">
+      <h2>1. Elegí tu área</h2>
+      <div class="areas-grid" id="areasGrid">
+        <p class="hint">Cargando áreas disponibles...</p>
+      </div>
+      <span class="error" data-for="area"></span>
+    </section>
+
+    <!-- PASO 2: LUGAR (mapa o cantidad) -->
+    <section class="step-panel" id="panel-2">
+      <h2 id="tituloLugar">2. Elegí tu lugar</h2>
+
+      <div class="grupo" id="grupo" hidden>
+        <span class="grupo__dato" id="grupoDato"></span>
+        <button type="button" class="grupo__editar" id="grupoEditar">Cambiar</button>
+      </div>
+
+      <!-- Secciones con plano -->
+      <div id="planoWrap" hidden>
+        <div class="floor-scroll">
+          <div class="floor">
+            <div class="tarima">
+              <div class="tarima__focos"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="tarima__rotulo">
+                <b>TARIMA</b>
+                <small>Escenario principal</small>
+              </div>
+            </div>
+
+            <div class="mid">
+              <section class="zone">
+                <p class="zone__name">Sección A</p>
+                <div class="grid-3" id="zonaA"></div>
+              </section>
+              <div class="pasarela"><span>Pasarela</span></div>
+              <section class="zone">
+                <p class="zone__name">Sección B</p>
+                <div class="grid-3" id="zonaB"></div>
+              </section>
+            </div>
+
+            <section class="zone zone--c">
+              <p class="zone__name">Sección C</p>
+              <div class="fila-c" id="zonaC"></div>
+            </section>
+
+            <div class="legend">
+              <span><i class="swatch swatch--libre"></i> Disponible</span>
+              <span><i class="swatch swatch--sel"></i> Tu selección</span>
+              <span><i class="swatch swatch--tomado"></i> Reservada</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secciones sin plano: Plata y General -->
+      <div class="panel-simple" id="sinPlano" hidden>
+        <p id="sinPlanoTexto"></p>
+      </div>
+
+      <span class="error" data-for="lugar"></span>
+
+      <div class="actions">
+        <button type="button" class="btn btn--ghost" id="btnVolverArea">← Cambiar área</button>
+        <button type="button" class="btn btn--primary" id="btnIrDatos" disabled>Continuar</button>
+      </div>
+    </section>
+
+    <!-- PASO 3: DATOS DEL COMPRADOR -->
+    <section class="step-panel" id="panel-3">
+      <h2>3. Tus datos</h2>
+      <div class="resumen-compra" id="resumenCompra"></div>
+
+      <form id="formRegistro" novalidate>
         <div class="form-grid">
           <div class="field">
             <label for="nombre">Nombre</label>
@@ -91,115 +171,49 @@
           </div>
           <div class="field">
             <label for="email">Correo <span class="field__opcional">(opcional)</span></label>
-            <input type="email" id="email" name="email" placeholder="Para recibir el comprobante de pago" />
+            <input type="email" id="email" name="email" placeholder="Para recibir el comprobante" />
             <span class="error" data-for="email"></span>
           </div>
         </div>
 
-        <h3>Selecciona el área</h3>
-        <div class="areas-grid" id="areasGrid">
-          <p class="hint">Cargando áreas disponibles...</p>
-        </div>
-        <span class="error" data-for="area"></span>
-
-        <!-- Solo visible para ORO / PLATA: mapa referencial de mesas -->
-        <div class="seat-fields hidden" id="seatFields">
-          <h3>Elige tu mesa en el mapa del salón</h3>
-
-          <div class="venue-map">
-            <div class="venue-map__stage">ESCENARIO</div>
-            <div class="venue-map__grid" id="mesaGrid"></div>
-            <ul class="venue-map__legend">
-              <li><span class="legend-dot legend-dot--free"></span> Disponible</li>
-              <li><span class="legend-dot legend-dot--selected"></span> Tu mesa</li>
-              <li><span class="legend-dot legend-dot--occupied"></span> Ocupada</li>
-            </ul>
-          </div>
-
-          <div class="seats-panel hidden" id="seatsPanel">
-            <p class="seats-panel__title">Mesa <strong id="mesaSeleccionadaLabel"></strong> · Elige tu silla</p>
-            <div class="seats-panel__grid" id="sillaGrid"></div>
-          </div>
-
-          <p class="seleccion-actual" id="seleccionActual"></p>
-
-          <input type="hidden" id="mesa" name="mesa" />
-          <input type="hidden" id="silla" name="silla" />
-          <span class="error" data-for="mesa"></span>
-        </div>
-
-        <p class="hint hidden" id="generalHint">
-          El área <strong>General</strong> no tiene asiento asignado: el acceso es de pie.
-        </p>
-
         <div class="actions">
-          <button type="submit" class="btn btn--primary" id="btnContinuar">Continuar al pago</button>
+          <button type="button" class="btn btn--ghost" id="btnVolverLugar">← Volver</button>
+          <button type="submit" class="btn btn--primary" id="btnContinuar">Ir a pagar</button>
         </div>
       </form>
     </section>
 
-    <!-- Aviso inline: secciones asignadas por orden de llegada -->
-    <div class="aviso-overlay hidden" id="avisoModal">
-      <div class="aviso-card">
-        <p id="avisoTexto"></p>
-        <div class="aviso-card__actions">
-          <button type="button" class="btn btn--ghost" id="avisoCancelar">Cancelar</button>
-          <button type="button" class="btn btn--primary" id="avisoAceptar">Aceptar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- PASO 2: PAGO PIX (Mercado Pago, sin salir del sitio) -->
-    <section class="step-panel" id="panel-2">
-      <h2>2. Pago vía PIX</h2>
-
-      <div class="pay-layout">
-        <div class="pay-card">
-          <p class="pay-card__title">Tu pedido</p>
-          <div class="order-summary" id="orderSummary"></div>
-        </div>
-
-        <div class="pix-box">
-          <p class="pix-box__title">Escanea el código con la app de tu banco</p>
-          <p class="pix-box__sub">El pago se acredita en segundos</p>
-
-          <div class="qr-frame">
-            <div id="qrcode" class="qrcode"></div>
-          </div>
-
-          <p class="pix-box__timer">Tu lugar queda reservado <span id="timer">15:00</span></p>
-
-          <label class="pix-copy-label">O copia el código PIX</label>
-          <button type="button" class="pix-copy" id="btnCopyPix">
-            <span class="pix-copy__code" id="pixCodePreview">------</span>
-            <span class="pix-copy__icon" aria-hidden="true">📋</span>
-            <span class="pix-copy__label">Copiar</span>
-          </button>
-          <input type="hidden" id="pixCode" />
-
-          <button type="button" class="btn btn--primary btn--block" id="btnConfirmarPago">
-            Ya pagué, verificar
-          </button>
-          <p class="pago-estado" id="pagoEstado"></p>
-          <button type="button" class="btn btn--link" id="btnVolverRegistro">← Volver a editar datos</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- PASO 3: CONFIRMACIÓN / TICKET -->
-    <section class="step-panel" id="panel-3">
-      <h2>3. ¡Pago confirmado!</h2>
-      <div class="ticket" id="ticket"></div>
-      <div class="actions">
-        <button type="button" class="btn btn--ghost" id="btnNuevaCompra">Realizar nueva compra</button>
-      </div>
-    </section>
-
   </main>
+
+  <!-- Barra fija con el total -->
+  <div class="resumen" id="resumen" hidden>
+    <div class="resumen__detalle">
+      <p class="resumen__mesas" id="resumenMesas"></p>
+      <p class="resumen__aviso" id="resumenAviso"></p>
+    </div>
+    <div class="resumen__total">
+      <small>Total</small>
+      <strong id="total">R$ 0,00</strong>
+    </div>
+  </div>
+
+  <!-- Cuántas personas: se abre al primer toque sobre una mesa -->
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo" hidden>
+    <div class="modal__caja">
+      <h3 id="modalTitulo">¿Cuántas personas son?</h3>
+      <p id="modalSub">Con eso calculamos cuántas mesas necesitás.</p>
+      <div class="stepper">
+        <button type="button" id="menos" aria-label="Quitar una persona">−</button>
+        <output id="personas">2</output>
+        <button type="button" id="mas" aria-label="Agregar una persona">+</button>
+      </div>
+      <p class="modal__calculo" id="modalCalculo"></p>
+      <button type="button" class="modal__ok" id="modalOk">Continuar</button>
+    </div>
+  </div>
 
   <footer class="footer">© 2026 Pro Kart · Todos los derechos reservados</footer>
 
-  <script src="js/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/supabaseClient.js"></script>

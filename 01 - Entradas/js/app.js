@@ -1,11 +1,11 @@
 /* =========================================================
-   Flujo de venta de entradas - Pro Kart
-   Pasos: 1) Registro y selección de área
-          2) Pago vía PIX (Pagar.me)
-          3) Confirmación / Ticket
+   Venta de entradas · Pro Kart
 
-   La disponibilidad vive en Supabase y se sincroniza por Realtime:
-   lo que ve un comprador es lo que ven todos.
+   Tres pasos: área → lugar → datos. El cobro vive en pagar.html, así la
+   página de pago se puede recargar o compartir sin perder la compra.
+
+   Se vende por mesa: la mesa va completa y el precio de la sección es el de
+   una mesa. Un grupo de 7 necesita 2 mesas.
    ========================================================= */
 
 (function () {
@@ -14,697 +14,481 @@
   const db = window.supabaseClient;
   const EVENT_SLUG = window.PROKART_CONFIG.EVENT_SLUG;
 
-  // ---------- Estado ----------
   const state = {
-    nombre: "",
-    apellido: "",
-    documento: "",
-    whatsapp: "",
-    email: "",
-    section: null,
-    mesa: "",
-    silla: "",
-    orderId: "",
-    ticket: null,
-  };
-
-  const catalogo = {
+    event: null,
     sections: [],
-    tablesBySection: new Map(),
-    seatsByTable: new Map(),
-    tableById: new Map(),
+    tables: [],
+    seccion: null,      // sección elegida (o grupo de secciones del plano)
+    personas: 2,
+    grupoDefinido: false,
+    mesas: new Map(),   // code -> {code, seats, price_cents, section_code}
   };
 
-  let pollTimer = null;
-  let timerInterval = null;
   let realtimeChannel = null;
+  let alCerrarModal = null;
 
-  // ---------- Referencias DOM ----------
-  const hero = document.getElementById("hero");
-  const btnComprar = document.getElementById("btnComprar");
-  const panels = {
-    1: document.getElementById("panel-1"),
-    2: document.getElementById("panel-2"),
-    3: document.getElementById("panel-3"),
-  };
-  const stepIndicators = document.querySelectorAll(".step-indicator");
+  // Las secciones con plano se ofrecen juntas como "VIP Oro".
+  const AREA_ORO = "ORO";
 
-  const formRegistro = document.getElementById("formRegistro");
-  const areasGrid = document.getElementById("areasGrid");
-  const seatFields = document.getElementById("seatFields");
-  const generalHint = document.getElementById("generalHint");
-  const mesaInput = document.getElementById("mesa");
-  const sillaInput = document.getElementById("silla");
-  const mesaGrid = document.getElementById("mesaGrid");
-  const seatsPanel = document.getElementById("seatsPanel");
-  const sillaGrid = document.getElementById("sillaGrid");
-  const mesaSeleccionadaLabel = document.getElementById("mesaSeleccionadaLabel");
-  const seleccionActual = document.getElementById("seleccionActual");
-  const btnContinuar = document.getElementById("btnContinuar");
+  const $ = (id) => document.getElementById(id);
+  const money = (c) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  const orderSummary = document.getElementById("orderSummary");
-  const qrcodeContainer = document.getElementById("qrcode");
-  const pixCodeInput = document.getElementById("pixCode");
-  const pixCodePreview = document.getElementById("pixCodePreview");
-  const btnCopyPix = document.getElementById("btnCopyPix");
-  const timerEl = document.getElementById("timer");
-  const btnConfirmarPago = document.getElementById("btnConfirmarPago");
-  const btnVolverRegistro = document.getElementById("btnVolverRegistro");
-  const pagoEstado = document.getElementById("pagoEstado");
-  const ticketEl = document.getElementById("ticket");
-  const btnNuevaCompra = document.getElementById("btnNuevaCompra");
-  const avisoModal = document.getElementById("avisoModal");
-  const avisoTexto = document.getElementById("avisoTexto");
-  const avisoAceptar = document.getElementById("avisoAceptar");
-  const avisoCancelar = document.getElementById("avisoCancelar");
+  function setError(campo, mensaje) {
+    const el = document.querySelector(`.error[data-for="${campo}"]`);
+    if (el) el.textContent = mensaje || "";
+    const input = $(campo);
+    if (input) input.classList.toggle("invalid", Boolean(mensaje));
+  }
 
-  // ---------- Navegación ----------
-  function goToStep(step) {
-    Object.values(panels).forEach((p) => p.classList.remove("active"));
-    panels[step].classList.add("active");
-    hero.classList.toggle("hidden", step !== 1);
+  // ---------- navegación ----------
+  function irAPaso(n) {
+    document.querySelectorAll(".step-panel").forEach((p) => p.classList.remove("active"));
+    $(`panel-${n}`).classList.add("active");
 
-    stepIndicators.forEach((el) => {
+    document.querySelectorAll(".step-indicator").forEach((el) => {
       const s = Number(el.dataset.step);
-      el.classList.remove("active", "done");
-      if (s === step) el.classList.add("active");
-      else if (s < step) el.classList.add("done");
+      el.classList.toggle("active", s === n);
+      el.classList.toggle("done", s < n);
     });
+
+    $("hero").classList.toggle("hidden", n !== 1);
+    $("eventoPortada").hidden = n !== 1;
+    $("resumen").hidden = n === 1 || !haySeleccion();
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  btnComprar.addEventListener("click", () => {
-    panels[1].scrollIntoView({ behavior: "smooth" });
+  $("btnComprar").addEventListener("click", () => {
+    $("panel-1").scrollIntoView({ behavior: "smooth" });
   });
 
-  // ---------- Carga del catálogo ----------
-  function formatPrice(cents) {
-    return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
-  }
-
-  async function cargarCatalogo() {
-    const { data: event, error: eventError } = await db
+  // ---------- carga ----------
+  async function cargar() {
+    const { data: event } = await db
       .from("events")
-      .select("id, name, event_date, venue")
+      .select("id, name, tagline, event_date, venue, cover_image")
       .eq("slug", EVENT_SLUG)
       .maybeSingle();
 
-    if (eventError || !event) {
-      document.getElementById("heroTitulo").textContent = "Evento no disponible";
-      areasGrid.innerHTML =
-        '<p class="hint">No se pudo cargar el evento. Revisa la configuración de Supabase.</p>';
+    if (!event) {
+      $("heroTitulo").textContent = "Evento no disponible";
+      $("areasGrid").innerHTML = '<p class="hint">No se pudo cargar el evento.</p>';
       return;
     }
 
-    document.getElementById("heroTitulo").textContent = event.name;
+    state.event = event;
+    pintarEvento(event);
+
+    const { data: sections } = await db
+      .from("sections")
+      .select("id, code, label, price_cents, assignment_mode, capacity, notice, theme_color")
+      .eq("event_id", event.id)
+      .order("sort_order");
+    state.sections = sections || [];
+
+    const conPlano = state.sections.filter((s) => s.assignment_mode === "manual");
+    if (conPlano.length) {
+      const { data: tables } = await db
+        .from("tables_public")
+        .select("id, section_id, code, seat_count, label, available, pos_x, pos_y")
+        .in("section_id", conPlano.map((s) => s.id))
+        .order("code");
+      state.tables = tables || [];
+    }
+
+    pintarAreas();
+    suscribirRealtime();
+  }
+
+  function pintarEvento(event) {
+    $("heroTitulo").textContent = event.name;
     const cuando = event.event_date
       ? new Date(event.event_date).toLocaleString("es", {
         weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
       })
       : "";
-    document.getElementById("heroSubtitulo").textContent =
-      [cuando, event.venue].filter(Boolean).join(" · ");
+    $("heroSubtitulo").textContent = [cuando, event.venue].filter(Boolean).join(" · ");
 
-    const { data: sections } = await db
-      .from("sections")
-      .select("id, code, label, price_cents, has_seating, assignment_mode, capacity, notice")
-      .eq("event_id", event.id)
-      .order("sort_order");
+    if (event.cover_image) {
+      const img = $("eventoImagen");
+      img.src = event.cover_image;
+      img.alt = event.name;
+      $("eventoPortada").hidden = false;
+    }
+    $("eventoTagline").textContent = event.tagline || "";
+    $("eventoNombre").textContent = event.name;
+    $("eventoFecha").textContent = cuando;
+    $("eventoLugar").textContent = event.venue || "";
+  }
 
-    catalogo.sections = sections || [];
+  // ---------- paso 1: áreas ----------
+  function pintarAreas() {
+    const conPlano = state.sections.filter((s) => s.assignment_mode === "manual");
+    const sinPlano = state.sections.filter((s) => s.assignment_mode !== "manual");
 
-    const sectionIds = catalogo.sections.map((s) => s.id);
-    const { data: tables } = await db
-      .from("tables")
-      .select("id, section_id, number, seat_count, label")
-      .in("section_id", sectionIds)
-      .order("number");
+    const tarjetas = [];
 
-    catalogo.tablesBySection = new Map();
-    catalogo.tableById = new Map();
-    (tables || []).forEach((table) => {
-      if (!catalogo.tablesBySection.has(table.section_id)) {
-        catalogo.tablesBySection.set(table.section_id, []);
-      }
-      catalogo.tablesBySection.get(table.section_id).push(table);
-      catalogo.tableById.set(table.id, table);
+    if (conPlano.length) {
+      const desde = Math.min(...conPlano.map((s) => s.price_cents));
+      tarjetas.push({
+        code: AREA_ORO,
+        label: "VIP Oro",
+        detalle: "Elegís tu mesa en el plano del salón",
+        precio: `Mesa desde ${money(desde)}`,
+        tier: "oro",
+      });
+    }
+
+    sinPlano.forEach((s) => {
+      const esPlata = s.assignment_mode === "auto_fcfs";
+      tarjetas.push({
+        code: s.code,
+        label: s.label,
+        detalle: esPlata
+          ? "Mesa asignada por orden de llegada"
+          : "Acceso de pie, sin mesa ni silla",
+        precio: esPlata ? `Mesa ${money(s.price_cents)}` : `${money(s.price_cents)} por persona`,
+        tier: esPlata ? "plata" : "general",
+      });
     });
 
-    await cargarSillas();
-    renderAreas();
-    suscribirRealtime();
-  }
-
-  // Solo se traen las sillas de las secciones donde el comprador elige asiento;
-  // VIP Plata tiene 480 y no se dibuja nunca.
-  async function cargarSillas() {
-    const manualSections = catalogo.sections.filter((s) => s.assignment_mode === "manual");
-    const tableIds = manualSections.flatMap((s) =>
-      (catalogo.tablesBySection.get(s.id) || []).map((t) => t.id)
-    );
-    if (tableIds.length === 0) return;
-
-    const { data: seats } = await db
-      .from("seats_public")
-      .select("id, table_id, number, status")
-      .in("table_id", tableIds)
-      .order("number");
-
-    catalogo.seatsByTable = new Map();
-    (seats || []).forEach((seat) => {
-      if (!catalogo.seatsByTable.has(seat.table_id)) catalogo.seatsByTable.set(seat.table_id, []);
-      catalogo.seatsByTable.get(seat.table_id).push(seat);
-    });
-  }
-
-  function disponiblesEnMesa(tableId) {
-    const seats = catalogo.seatsByTable.get(tableId) || [];
-    return seats.filter((s) => s.status === "available").length;
-  }
-
-  // ---------- Áreas ----------
-  function renderAreas() {
-    areasGrid.innerHTML = "";
-
-    catalogo.sections.forEach((section) => {
-      const card = document.createElement("label");
-      card.className = `area-card area-card--${section.code.toLowerCase()}`;
-
-      const esVip = section.assignment_mode !== "none";
-      const detalle = section.assignment_mode === "manual"
-        ? "Mesa y silla asignada"
-        : section.assignment_mode === "auto_fcfs"
-        ? "Mesa asignada por orden de llegada"
-        : "Acceso de pie · Sin mesa ni silla asignada";
-
-      card.innerHTML = `
-        <input type="radio" name="area" value="${section.code}" />
+    $("areasGrid").innerHTML = tarjetas.map((t) => `
+      <button type="button" class="area-card area-card--${t.tier}" data-area="${esc(t.code)}">
         <div class="area-card__body">
-          <span class="badge ${esVip ? "badge--vip" : "badge--general"}">${esVip ? "VIP" : "GENERAL"}</span>
-          <h4>${section.label}</h4>
-          <p>${detalle}</p>
-          <span class="price">${formatPrice(section.price_cents)}</span>
+          <span class="badge ${t.tier === "general" ? "badge--general" : "badge--vip"}">
+            ${t.tier === "general" ? "GENERAL" : "VIP"}
+          </span>
+          <h4>${esc(t.label)}</h4>
+          <p>${esc(t.detalle)}</p>
+          <span class="price">${esc(t.precio)}</span>
         </div>
-      `;
+      </button>
+    `).join("");
 
-      card.querySelector("input").addEventListener("change", () => seleccionarArea(section));
-      areasGrid.appendChild(card);
+    $("areasGrid").querySelectorAll("[data-area]").forEach((btn) => {
+      btn.addEventListener("click", () => elegirArea(btn.dataset.area));
     });
   }
 
-  function limpiarSeleccionAsiento() {
-    mesaInput.value = "";
-    sillaInput.value = "";
-    seatsPanel.classList.add("hidden");
-    seleccionActual.textContent = "";
-    mesaGrid.innerHTML = "";
-    sillaGrid.innerHTML = "";
-  }
-
-  function seleccionarArea(section) {
-    // VIP Plata avisa antes de continuar: el comprador no elige su mesa.
-    if (section.assignment_mode === "auto_fcfs" && section.notice) {
-      mostrarAviso(section.notice, () => aplicarArea(section), () => deseleccionarArea());
-      return;
-    }
-    aplicarArea(section);
-  }
-
-  function aplicarArea(section) {
-    state.section = section;
-    limpiarSeleccionAsiento();
+  function elegirArea(code) {
+    state.mesas.clear();
+    state.grupoDefinido = false;
     setError("area", "");
-    setError("mesa", "");
+    setError("lugar", "");
 
-    const eligeAsiento = section.assignment_mode === "manual";
-    seatFields.classList.toggle("hidden", !eligeAsiento);
-    generalHint.classList.toggle("hidden", eligeAsiento);
+    if (code === AREA_ORO) {
+      state.seccion = { code: AREA_ORO, conPlano: true };
+      $("tituloLugar").textContent = "2. Elegí tu mesa";
+      $("planoWrap").hidden = false;
+      $("sinPlano").hidden = true;
+      pintarPlano();
+    } else {
+      const s = state.sections.find((x) => x.code === code);
+      if (!s) return;
+      state.seccion = { code: s.code, conPlano: false, section: s };
+      $("tituloLugar").textContent = `2. ${s.label}`;
+      $("planoWrap").hidden = true;
+      $("sinPlano").hidden = false;
+      $("sinPlanoTexto").innerHTML = s.notice
+        ? esc(s.notice)
+        : `Cada entrada de ${esc(s.label)} cuesta ${money(s.price_cents)}.`;
+      // Sin plano no hay nada que tocar: se pregunta la cantidad de una.
+      abrirModal(null);
+    }
 
-    if (eligeAsiento) {
-      renderMapaMesas(section);
-    } else if (section.notice) {
-      generalHint.innerHTML = `<strong>${section.label}:</strong> ${section.notice}`;
+    $("grupo").hidden = !state.grupoDefinido;
+    irAPaso(2);
+    pintarResumen();
+  }
+
+  $("btnVolverArea").addEventListener("click", () => irAPaso(1));
+  $("btnVolverLugar").addEventListener("click", () => irAPaso(2));
+
+  // ---------- plano ----------
+  function seccionDeMesa(code) {
+    const mesa = state.tables.find((m) => m.code === code);
+    if (!mesa) return null;
+    return state.sections.find((s) => s.id === mesa.section_id) || null;
+  }
+
+  function pintarPlano() {
+    const zonas = { A: $("zonaA"), B: $("zonaB"), C: $("zonaC") };
+    Object.values(zonas).forEach((z) => (z.innerHTML = ""));
+
+    // La Única vive en su propia sección pero se dibuja en el centro de C.
+    const enC = state.tables
+      .filter((m) => m.code.startsWith("C") || m.label)
+      .sort((a, b) => Number(a.pos_x || 0) - Number(b.pos_x || 0));
+
+    state.tables.forEach((mesa) => {
+      const letra = mesa.code[0];
+      const destino = zonas[letra] || zonas.C;
+      if (!destino) return;
+      destino.appendChild(crearMesa(mesa));
+    });
+
+    // Orden visual de la fila C por posición
+    if (zonas.C) {
+      const hijos = [...zonas.C.children].sort(
+        (a, b) => Number(a.dataset.posX || 0) - Number(b.dataset.posX || 0),
+      );
+      hijos.forEach((h) => zonas.C.appendChild(h));
     }
   }
 
-  function deseleccionarArea() {
-    state.section = null;
-    document.querySelectorAll('input[name="area"]').forEach((input) => (input.checked = false));
-    seatFields.classList.add("hidden");
-    generalHint.classList.add("hidden");
-    limpiarSeleccionAsiento();
+  function crearMesa(mesa) {
+    const seccion = state.sections.find((s) => s.id === mesa.section_id);
+    const libre = mesa.available;
+    const esUnica = Boolean(mesa.label);
+
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "mesa" + (esUnica ? " mesa--unica" : "");
+    b.dataset.code = mesa.code;
+    b.dataset.posX = mesa.pos_x || 0;
+    b.dataset.estado = libre ? "disponible" : "reservado";
+    b.dataset.badge = libre
+      ? `Disponible · ${mesa.seat_count} sillas · ${money(seccion?.price_cents ?? 0)}`
+      : "Reservada";
+    b.setAttribute("aria-pressed", "false");
+    b.disabled = !libre;
+    b.innerHTML = esUnica
+      ? `<b>${esc(mesa.label)}</b><small>${mesa.seat_count} sillas</small>`
+      : `${esc(mesa.code)}<small>${mesa.seat_count} sillas</small>`;
+
+    b.addEventListener("click", () => {
+      const alternar = () => {
+        if (state.mesas.has(mesa.code)) state.mesas.delete(mesa.code);
+        else {
+          state.mesas.set(mesa.code, {
+            code: mesa.code,
+            seats: mesa.seat_count,
+            price_cents: seccion?.price_cents ?? 0,
+          });
+        }
+        b.setAttribute("aria-pressed", state.mesas.has(mesa.code) ? "true" : "false");
+        pintarResumen();
+      };
+      // El primer toque pregunta cuántos son; recién después selecciona.
+      if (!state.grupoDefinido) abrirModal(alternar);
+      else alternar();
+    });
+
+    return b;
   }
 
-  // ---------- Aviso inline (VIP Plata) ----------
-  let avisoOnCancel = null;
-
-  function mostrarAviso(texto, onAceptar, onCancelar) {
-    avisoTexto.textContent = texto;
-    avisoOnCancel = onCancelar;
-    avisoModal.classList.remove("hidden");
-
-    avisoAceptar.onclick = () => {
-      avisoModal.classList.add("hidden");
-      avisoOnCancel = null;
-      onAceptar();
-    };
-    avisoCancelar.onclick = () => {
-      avisoModal.classList.add("hidden");
-      avisoOnCancel = null;
-      onCancelar();
-    };
+  // ---------- modal ----------
+  function abrirModal(despues) {
+    alCerrarModal = despues || null;
+    $("modal").hidden = false;
+    pintarModal();
   }
 
-  avisoModal.addEventListener("click", (event) => {
-    if (event.target === avisoModal && avisoOnCancel) {
-      avisoModal.classList.add("hidden");
-      avisoOnCancel();
-      avisoOnCancel = null;
-    }
+  function pintarModal() {
+    $("personas").textContent = state.personas;
+    const porMesa = mesaTipica();
+    const necesarias = Math.ceil(state.personas / porMesa);
+
+    $("modalCalculo").innerHTML = state.seccion?.conPlano || state.seccion?.section?.assignment_mode === "auto_fcfs"
+      ? `Necesitás <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"} de ${porMesa} sillas.`
+      : `Son <em>${state.personas}</em> ${state.personas === 1 ? "entrada" : "entradas"}.`;
+  }
+
+  function mesaTipica() {
+    if (state.seccion?.conPlano) return 6;
+    if (state.seccion?.section?.assignment_mode === "auto_fcfs") return 4;
+    return 1;
+  }
+
+  $("mas").addEventListener("click", () => { state.personas = Math.min(60, state.personas + 1); pintarModal(); });
+  $("menos").addEventListener("click", () => { state.personas = Math.max(1, state.personas - 1); pintarModal(); });
+
+  $("modalOk").addEventListener("click", () => {
+    state.grupoDefinido = true;
+    $("modal").hidden = true;
+    $("grupo").hidden = false;
+    const accion = alCerrarModal;
+    alCerrarModal = null;
+    if (accion) accion();
+    pintarResumen();
   });
 
-  // ---------- Mapa de mesas ----------
-  function renderMapaMesas(section) {
-    const tables = catalogo.tablesBySection.get(section.id) || [];
-    mesaGrid.innerHTML = "";
-    seatsPanel.classList.add("hidden");
+  $("modal").addEventListener("click", (e) => {
+    if (e.target === $("modal")) { alCerrarModal = null; $("modal").hidden = true; }
+  });
 
-    tables.forEach((table) => {
-      const libres = disponiblesEnMesa(table.id);
-      const llena = libres === 0;
+  $("grupoEditar").addEventListener("click", () => abrirModal(null));
 
-      const mesaEl = document.createElement("button");
-      mesaEl.type = "button";
-      mesaEl.className = "mesa-item" + (llena ? " mesa-item--occupied" : "");
-      mesaEl.dataset.tableId = table.id;
-      mesaEl.dataset.status = llena ? "reservado" : "disponible";
-      mesaEl.dataset.badge = llena ? "Reservado" : `Disponible · ${libres}`;
-      mesaEl.textContent = table.label || table.number;
-      mesaEl.disabled = llena;
-
-      mesaEl.addEventListener("click", () => {
-        mesaGrid.querySelectorAll(".mesa-item").forEach((el) =>
-          el.classList.remove("mesa-item--selected")
-        );
-        mesaEl.classList.add("mesa-item--selected");
-        renderSillas(table);
-      });
-
-      mesaGrid.appendChild(mesaEl);
-    });
+  // ---------- resumen ----------
+  function haySeleccion() {
+    return state.grupoDefinido && (state.mesas.size > 0 || !state.seccion?.conPlano);
   }
 
-  function renderSillas(table) {
-    seatsPanel.classList.remove("hidden");
-    mesaSeleccionadaLabel.textContent = table.label || table.number;
-    sillaGrid.innerHTML = "";
-    mesaInput.value = "";
-    sillaInput.value = "";
-    seleccionActual.textContent = "";
-
-    const seats = catalogo.seatsByTable.get(table.id) || [];
-
-    seats.forEach((seat) => {
-      const libre = seat.status === "available";
-      const sillaEl = document.createElement("button");
-      sillaEl.type = "button";
-      sillaEl.className = "silla-item" + (libre ? "" : " silla-item--occupied");
-      sillaEl.dataset.seatId = seat.id;
-      sillaEl.dataset.status = libre ? "disponible" : "reservado";
-      sillaEl.dataset.badge = libre ? "Disponible" : "Reservado";
-      sillaEl.textContent = seat.number;
-      sillaEl.disabled = !libre;
-
-      sillaEl.addEventListener("click", () => {
-        sillaGrid.querySelectorAll(".silla-item").forEach((el) =>
-          el.classList.remove("silla-item--selected")
-        );
-        sillaEl.classList.add("silla-item--selected");
-        mesaInput.value = table.number;
-        sillaInput.value = seat.number;
-        setError("mesa", "");
-        seleccionActual.textContent =
-          `Seleccionaste: Mesa ${table.label || table.number}, Silla ${seat.number} · ${state.section.label}`;
-      });
-
-      sillaGrid.appendChild(sillaEl);
-    });
+  function totalCents() {
+    if (state.seccion?.conPlano) {
+      return [...state.mesas.values()].reduce((acc, m) => acc + m.price_cents, 0);
+    }
+    const s = state.seccion?.section;
+    if (!s) return 0;
+    if (s.assignment_mode === "auto_fcfs") {
+      return s.price_cents * Math.ceil(state.personas / mesaTipica());
+    }
+    return s.price_cents * state.personas;
   }
 
-  // ---------- Realtime ----------
-  function suscribirRealtime() {
-    if (realtimeChannel) db.removeChannel(realtimeChannel);
+  function pintarResumen() {
+    const porMesa = mesaTipica();
+    const necesarias = Math.ceil(state.personas / porMesa);
 
-    realtimeChannel = db
-      .channel("seats-live")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "seats" },
-        (payload) => aplicarCambioSilla(payload.new),
-      )
-      .subscribe();
-  }
+    $("grupoDato").innerHTML = state.seccion?.conPlano || state.seccion?.section?.assignment_mode === "auto_fcfs"
+      ? `<b>${state.personas}</b> ${state.personas === 1 ? "persona" : "personas"} · necesitás <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"}`
+      : `<b>${state.personas}</b> ${state.personas === 1 ? "entrada" : "entradas"}`;
 
-  function aplicarCambioSilla(seat) {
-    if (!seat || !catalogo.seatsByTable.has(seat.table_id)) return;
+    $("total").textContent = money(totalCents());
+    $("resumen").hidden = !state.grupoDefinido;
 
-    const seats = catalogo.seatsByTable.get(seat.table_id);
-    const actual = seats.find((s) => s.id === seat.id);
-    if (!actual || actual.status === seat.status) return;
-    actual.status = seat.status;
+    const btn = $("btnIrDatos");
 
-    const libre = seat.status === "available";
-
-    const sillaEl = sillaGrid.querySelector(`[data-seat-id="${seat.id}"]`);
-    if (sillaEl) {
-      sillaEl.classList.toggle("silla-item--occupied", !libre);
-      sillaEl.dataset.status = libre ? "disponible" : "reservado";
-      sillaEl.dataset.badge = libre ? "Disponible" : "Reservado";
-      sillaEl.disabled = !libre;
-
-      // Si otro comprador se adelantó, se avisa en vez de dejarlo avanzar.
-      if (!libre && sillaEl.classList.contains("silla-item--selected")) {
-        sillaEl.classList.remove("silla-item--selected");
-        mesaInput.value = "";
-        sillaInput.value = "";
-        seleccionActual.textContent = "";
-        setError("mesa", "Esa silla acaba de ser reservada. Elige otra.");
-      }
+    if (!state.seccion?.conPlano) {
+      $("resumenMesas").innerHTML = `<b>${esc(state.seccion?.section?.label ?? "")}</b>`;
+      $("resumenAviso").textContent = "";
+      btn.disabled = !state.grupoDefinido;
+      return;
     }
 
-    const mesaEl = mesaGrid.querySelector(`[data-table-id="${seat.table_id}"]`);
-    if (mesaEl) {
-      const libres = disponiblesEnMesa(seat.table_id);
-      const llena = libres === 0;
-      mesaEl.classList.toggle("mesa-item--occupied", llena);
-      mesaEl.dataset.status = llena ? "reservado" : "disponible";
-      mesaEl.dataset.badge = llena ? "Reservado" : `Disponible · ${libres}`;
-      mesaEl.disabled = llena;
+    const elegidas = [...state.mesas.values()];
+    const lugares = elegidas.reduce((acc, m) => acc + m.seats, 0);
+
+    if (!elegidas.length) {
+      $("resumenMesas").textContent = "Ninguna mesa seleccionada";
+      $("resumenAviso").textContent = `Elegí ${necesarias} ${necesarias === 1 ? "mesa" : "mesas"} en el plano.`;
+      btn.disabled = true;
+      return;
+    }
+
+    $("resumenMesas").innerHTML =
+      `<b>${elegidas.length}</b> ${elegidas.length === 1 ? "mesa" : "mesas"}: ${elegidas.map((m) => esc(m.code)).join(", ")} · ${lugares} lugares`;
+
+    if (lugares < state.personas) {
+      const faltan = Math.ceil((state.personas - lugares) / porMesa);
+      $("resumenAviso").textContent =
+        `Te falta${faltan === 1 ? "" : "n"} ${faltan} mesa${faltan === 1 ? "" : "s"} para ${state.personas} personas.`;
+      btn.disabled = true;
+    } else {
+      $("resumenAviso").textContent = "";
+      btn.disabled = false;
     }
   }
 
-  // ---------- Validación ----------
-  function setError(fieldName, message) {
-    const el = document.querySelector(`.error[data-for="${fieldName}"]`);
-    if (el) el.textContent = message || "";
-    const input = document.getElementById(fieldName);
-    if (input) input.classList.toggle("invalid", Boolean(message));
-  }
+  // ---------- paso 3 ----------
+  $("btnIrDatos").addEventListener("click", () => {
+    const elegidas = [...state.mesas.values()];
+    const detalle = state.seccion?.conPlano
+      ? `${elegidas.length} mesa(s): ${elegidas.map((m) => m.code).join(", ")}`
+      : state.seccion?.section?.label ?? "";
 
-  function validarRegistro() {
-    let valido = true;
+    $("resumenCompra").innerHTML = `
+      <div class="row"><span>Área</span><span>${esc(state.seccion?.conPlano ? "VIP Oro" : state.seccion?.section?.label)}</span></div>
+      <div class="row"><span>Personas</span><span>${state.personas}</span></div>
+      <div class="row"><span>Lugar</span><span>${esc(detalle)}</span></div>
+      <div class="row"><span>Total</span><span>${money(totalCents())}</span></div>
+    `;
+    irAPaso(3);
+  });
 
-    const requeridos = [
-      ["nombre", "Ingresa el nombre."],
-      ["apellido", "Ingresa el apellido."],
-      ["documento", "Ingresa la cédula/CPF."],
-    ];
-
-    requeridos.forEach(([campo, mensaje]) => {
-      if (!document.getElementById(campo).value.trim()) {
-        setError(campo, mensaje);
-        valido = false;
-      } else setError(campo, "");
+  function validar() {
+    let ok = true;
+    [["nombre", "Ingresa el nombre."], ["apellido", "Ingresa el apellido."],
+     ["documento", "Ingresa la cédula/CPF."]].forEach(([campo, msg]) => {
+      if (!$(campo).value.trim()) { setError(campo, msg); ok = false; } else setError(campo, "");
     });
 
-    const whatsapp = document.getElementById("whatsapp").value.trim();
-    if (!whatsapp) {
-      setError("whatsapp", "Ingresa tu número de WhatsApp.");
-      valido = false;
-    } else if (whatsapp.replace(/\D/g, "").length < 10) {
-      setError("whatsapp", "Incluye el código de área. Ej: (11) 99999-9999");
-      valido = false;
+    const wa = $("whatsapp").value.trim();
+    if (!wa) { setError("whatsapp", "Ingresa tu WhatsApp."); ok = false; }
+    else if (wa.replace(/\D/g, "").length < 10) {
+      setError("whatsapp", "Incluye el código de área. Ej: (11) 99999-9999"); ok = false;
     } else setError("whatsapp", "");
 
-    if (!state.section) {
-      setError("area", "Selecciona un área.");
-      valido = false;
-    } else {
-      setError("area", "");
-      if (state.section.assignment_mode === "manual" && (!mesaInput.value || !sillaInput.value)) {
-        setError("mesa", "Selecciona una mesa y una silla en el mapa.");
-        valido = false;
-      }
-    }
-
-    return valido;
+    return ok;
   }
 
-  // ---------- Paso 1 -> 2 ----------
-  formRegistro.addEventListener("submit", async (event) => {
+  $("formRegistro").addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!validarRegistro()) return;
+    if (!validar()) return;
 
-    state.nombre = document.getElementById("nombre").value.trim();
-    state.apellido = document.getElementById("apellido").value.trim();
-    state.documento = document.getElementById("documento").value.trim();
-    state.whatsapp = document.getElementById("whatsapp").value.trim();
-    state.email = document.getElementById("email").value.trim();
-    state.mesa = mesaInput.value;
-    state.silla = sillaInput.value;
+    const btn = $("btnContinuar");
+    btn.disabled = true;
+    btn.textContent = "Generando cobro...";
 
-    btnContinuar.disabled = true;
-    btnContinuar.textContent = "Generando cobro...";
-
-    const { ok, status, data } = await window.callFunction("create-order", {
+    const cuerpo = {
       event_slug: EVENT_SLUG,
-      section_code: state.section.code,
-      table_number: state.mesa ? Number(state.mesa) : null,
-      seat_number: state.silla ? Number(state.silla) : null,
+      people: state.personas,
       buyer: {
-        nombre: state.nombre,
-        apellido: state.apellido,
-        documento: state.documento,
-        whatsapp: state.whatsapp,
-        email: state.email,
+        nombre: $("nombre").value.trim(),
+        apellido: $("apellido").value.trim(),
+        documento: $("documento").value.trim(),
+        whatsapp: $("whatsapp").value.trim(),
+        email: $("email").value.trim(),
       },
-    });
+    };
 
-    btnContinuar.disabled = false;
-    btnContinuar.textContent = "Continuar al pago";
+    if (state.seccion.conPlano) cuerpo.table_codes = [...state.mesas.keys()];
+    else cuerpo.section_code = state.seccion.section.code;
+
+    const { ok, status, data } = await window.callFunction("create-order", cuerpo);
+
+    btn.disabled = false;
+    btn.textContent = "Ir a pagar";
 
     if (!ok) {
       if (status === 409) {
-        setError("mesa", data.error || "Esa ubicación ya no está disponible.");
-        await cargarSillas();
-        if (state.section.assignment_mode === "manual") renderMapaMesas(state.section);
+        setError("lugar", data.error || "Ese lugar ya no está disponible.");
+        await refrescarMesas();
+        irAPaso(2);
       } else {
-        setError("area", data.error || "No se pudo iniciar la compra.");
+        setError("whatsapp", data.error || "No se pudo iniciar la compra.");
       }
       return;
     }
 
-    state.orderId = data.order_id;
-    state.mesa = data.table_number ?? "";
-    state.silla = data.seat_number ?? "";
-
-    renderResumenPedido(data);
-    renderPix(data);
-    iniciarTemporizador(data.expires_at);
-    iniciarPolling();
-    goToStep(2);
+    window.location.href = `pagar.html?order=${encodeURIComponent(data.order_id)}`;
   });
 
-  btnVolverRegistro.addEventListener("click", () => {
-    detenerTemporizador();
-    detenerPolling();
-    goToStep(1);
-  });
+  // ---------- disponibilidad en vivo ----------
+  async function refrescarMesas() {
+    const conPlano = state.sections.filter((s) => s.assignment_mode === "manual");
+    if (!conPlano.length) return;
 
-  // ---------- Paso 2 ----------
-  function renderResumenPedido(data) {
-    const ubicacion = data.seat_number
-      ? `Mesa ${data.table_number} · Silla ${data.seat_number}`
-      : "Acceso general (de pie)";
+    const { data } = await db
+      .from("tables_public")
+      .select("id, section_id, code, seat_count, label, available, pos_x, pos_y")
+      .in("section_id", conPlano.map((s) => s.id))
+      .order("code");
 
-    const asignada = state.section.assignment_mode === "auto_fcfs"
-      ? '<div class="row"><span></span><span class="hint">Asignada por orden de llegada</span></div>'
-      : "";
-
-    orderSummary.innerHTML = `
-      <div class="row"><span>Comprador</span><span>${state.nombre} ${state.apellido}</span></div>
-      <div class="row"><span>Documento</span><span>${state.documento}</span></div>
-      <div class="row"><span>WhatsApp</span><span>${state.whatsapp}</span></div>
-      <div class="row"><span>Área</span><span>${data.section.label}</span></div>
-      <div class="row"><span>Ubicación</span><span>${ubicacion}</span></div>
-      ${asignada}
-      <div class="row"><span>Total a pagar</span><span>${formatPrice(data.amount_cents)}</span></div>
-    `;
-  }
-
-  function renderPix(data) {
-    pixCodeInput.value = data.pix_qr_code;
-    // El código completo tiene cientos de caracteres: se muestran los primeros
-    // seis solo para que se vea que hay algo copiable.
-    pixCodePreview.textContent = data.pix_qr_code.slice(0, 6);
-
-    qrcodeContainer.innerHTML = "";
-
-    if (data.pix_qr_base64) {
-      // Mercado Pago ya devuelve la imagen: se usa esa en vez de redibujarla.
-      const img = document.createElement("img");
-      img.src = `data:image/png;base64,${data.pix_qr_base64}`;
-      img.alt = "Código QR para pagar con PIX";
-      img.width = 200;
-      img.height = 200;
-      qrcodeContainer.appendChild(img);
-    } else {
-      new QRCode(qrcodeContainer, {
-        text: data.pix_qr_code,
-        width: 200,
-        height: 200,
-        colorDark: "#0f1117",
-        colorLight: "#ffffff",
-      });
-    }
-  }
-
-  btnCopyPix.addEventListener("click", async () => {
-    const original = btnCopyPix.querySelector(".pix-copy__label").textContent;
-    try {
-      await navigator.clipboard.writeText(pixCodeInput.value);
-    } catch (err) {
-      // navigator.clipboard no existe fuera de contextos seguros (http en LAN).
-      const temporal = document.createElement("textarea");
-      temporal.value = pixCodeInput.value;
-      document.body.appendChild(temporal);
-      temporal.select();
-      document.execCommand("copy");
-      temporal.remove();
-    }
-    btnCopyPix.classList.add("pix-copy--copiado");
-    btnCopyPix.querySelector(".pix-copy__label").textContent = "¡Copiado!";
-    setTimeout(() => {
-      btnCopyPix.classList.remove("pix-copy--copiado");
-      btnCopyPix.querySelector(".pix-copy__label").textContent = original;
-    }, 1600);
-  });
-
-  // El vencimiento lo define el servidor, no un contador local.
-  function iniciarTemporizador(expiresAt) {
-    detenerTemporizador();
-    const limite = new Date(expiresAt).getTime();
-
-    const tick = () => {
-      const restante = Math.max(0, Math.floor((limite - Date.now()) / 1000));
-      const minutos = Math.floor(restante / 60).toString().padStart(2, "0");
-      const segundos = (restante % 60).toString().padStart(2, "0");
-      timerEl.textContent = `${minutos}:${segundos}`;
-
-      if (restante <= 0) {
-        detenerTemporizador();
-        detenerPolling();
-        pagoEstado.textContent =
-          "La reserva expiró. Vuelve atrás y elige tu lugar de nuevo.";
-        pagoEstado.className = "pago-estado pago-estado--error";
-      }
-    };
-
-    tick();
-    timerInterval = setInterval(tick, 1000);
-  }
-
-  function detenerTemporizador() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
-  }
-
-  // El pago lo confirma el webhook de Pagar.me; acá solo se consulta el estado.
-  function iniciarPolling() {
-    detenerPolling();
-    pagoEstado.textContent = "Esperando la confirmación del pago...";
-    pagoEstado.className = "pago-estado";
-    pollTimer = setInterval(consultarEstadoPago, 4000);
-  }
-
-  function detenerPolling() {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = null;
-  }
-
-  async function consultarEstadoPago(manual) {
-    const { ok, data } = await window.callFunction("get-order-status", { order_id: state.orderId });
-    if (!ok) return false;
-
-    if (data.status === "paid" && data.ticket) {
-      detenerPolling();
-      detenerTemporizador();
-      state.ticket = data.ticket;
-      renderTicket();
-      goToStep(3);
-      return true;
-    }
-
-    if (["expired", "canceled", "failed"].includes(data.status)) {
-      detenerPolling();
-      pagoEstado.textContent = "La compra expiró o fue cancelada. Vuelve atrás e inténtalo de nuevo.";
-      pagoEstado.className = "pago-estado pago-estado--error";
-      return false;
-    }
-
-    if (manual) {
-      pagoEstado.textContent =
-        "Todavía no recibimos la confirmación del banco. Puede tardar unos segundos.";
-      pagoEstado.className = "pago-estado";
-    }
-    return false;
-  }
-
-  btnConfirmarPago.addEventListener("click", async () => {
-    btnConfirmarPago.disabled = true;
-    btnConfirmarPago.textContent = "Verificando...";
-    await consultarEstadoPago(true);
-    btnConfirmarPago.disabled = false;
-    btnConfirmarPago.textContent = "Ya realicé el pago";
-  });
-
-  // ---------- Paso 3 ----------
-  function construirUrlVerificacion(ticket) {
-    const params = new URLSearchParams({ codigo: ticket.code, firma: ticket.qr_signature });
-    const base = window.location.href.replace(/index\.html.*$/i, "").replace(/\/?$/, "/");
-    return `${base}verificar.html?${params.toString()}`;
-  }
-
-  function renderTicket() {
-    const ticket = state.ticket;
-    const ubicacion = ticket.seat_number
-      ? `<div class="row"><strong>Mesa / Silla:</strong> Mesa ${ticket.table_number} · Silla ${ticket.seat_number}</div>`
-      : `<div class="row"><strong>Ubicación:</strong> Acceso general (de pie)</div>`;
-
-    ticketEl.innerHTML = `
-      <div class="ticket__info">
-        <span class="ticket__area ticket__area--${ticket.section_code}">${ticket.section_label}</span>
-        <h3>${ticket.buyer_name} ${ticket.buyer_lastname}</h3>
-        <div class="row"><strong>Documento:</strong> ${state.documento}</div>
-        ${ubicacion}
-        <div class="row"><strong>Código de entrada:</strong> ${ticket.code}</div>
-        <p class="ticket__qr-hint">Presenta este QR en la entrada del evento</p>
-      </div>
-      <div class="ticket__qr" id="ticketQr"></div>
-    `;
-
-    new QRCode(document.getElementById("ticketQr"), {
-      text: construirUrlVerificacion(ticket),
-      width: 150,
-      height: 150,
-      colorDark: "#0f1117",
-      colorLight: "#ffffff",
+    state.tables = data || [];
+    // Si alguna mesa elegida se ocupó mientras tanto, se quita de la selección.
+    [...state.mesas.keys()].forEach((code) => {
+      const m = state.tables.find((t) => t.code === code);
+      if (!m || !m.available) state.mesas.delete(code);
     });
+    if (state.seccion?.conPlano) pintarPlano();
+    pintarResumen();
   }
 
-  btnNuevaCompra.addEventListener("click", async () => {
-    formRegistro.reset();
-    deseleccionarArea();
-    state.orderId = "";
-    state.ticket = null;
-    document.querySelectorAll(".error").forEach((el) => (el.textContent = ""));
-    document.querySelectorAll(".invalid").forEach((el) => el.classList.remove("invalid"));
-    await cargarSillas();
-    goToStep(1);
-  });
+  function suscribirRealtime() {
+    if (realtimeChannel) db.removeChannel(realtimeChannel);
+    realtimeChannel = db
+      .channel("mesas-live")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "seats" }, () => {
+        // Una silla cambió: se recalcula el estado de las mesas.
+        clearTimeout(suscribirRealtime._t);
+        suscribirRealtime._t = setTimeout(refrescarMesas, 400);
+      })
+      .subscribe();
+  }
 
-  // ---------- Inicio ----------
-  goToStep(1);
-  cargarCatalogo();
+  irAPaso(1);
+  cargar();
 })();
