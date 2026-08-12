@@ -39,6 +39,47 @@ function toOffsetIso(iso: string): string {
   return new Date(iso).toISOString().replace("Z", "-00:00");
 }
 
+/* Reintenta ante fallos pasajeros de Mercado Pago.
+
+   Su API devuelve 500 con "communication_error" cuando algo se cae de su lado,
+   y eso pasa: durante las pruebas estuvo así un buen rato, con todos los
+   métodos de cobro caídos. Sin reintentos, cada visitante que caiga en ese
+   momento pierde la compra y su mesa. Se reintenta solo ante 5xx y 429, nunca
+   ante un 400: si el pedido está mal formado, insistir no lo arregla.
+
+   La clave de idempotencia se mantiene entre intentos para que un cobro que
+   sí entró y falló al responder no se duplique. */
+async function fetchConReintentos(
+  url: string,
+  opciones: RequestInit,
+  intentos = 3,
+): Promise<Response> {
+  let ultima: Response | null = null;
+
+  for (let i = 0; i < intentos; i++) {
+    if (i > 0) {
+      // 400ms, 1200ms: suficiente para un hipo, corto para no dejar esperando.
+      await new Promise((r) => setTimeout(r, 400 * Math.pow(3, i - 1)));
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(url, opciones);
+    } catch (error) {
+      // Falló la conexión: se reintenta salvo que fuera el último intento.
+      if (i === intentos - 1) throw error;
+      continue;
+    }
+
+    if (res.status < 500 && res.status !== 429) return res;
+
+    ultima = res;
+    console.warn(`mercadopago: intento ${i + 1} devolvió ${res.status}`);
+  }
+
+  return ultima!;
+}
+
 export async function createPixPayment(input: PixPaymentInput): Promise<PixPaymentResult> {
   const document = input.buyer.document.replace(/\D/g, "");
 
@@ -70,7 +111,7 @@ export async function createPixPayment(input: PixPaymentInput): Promise<PixPayme
     },
   };
 
-  const response = await fetch(`${API}/v1/payments`, {
+  const response = await fetchConReintentos(`${API}/v1/payments`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${accessToken()}`,
@@ -105,7 +146,7 @@ export type PaymentInfo = {
 };
 
 export async function getPayment(paymentId: string): Promise<PaymentInfo | null> {
-  const response = await fetch(`${API}/v1/payments/${paymentId}`, {
+  const response = await fetchConReintentos(`${API}/v1/payments/${paymentId}`, {
     headers: { "Authorization": `Bearer ${accessToken()}` },
   });
   if (!response.ok) return null;

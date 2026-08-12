@@ -52,6 +52,12 @@
     tab: null,
   };
 
+  // Solo estas columnas llegan al navegador: los permisos de la base
+  // impiden leer el documento y el WhatsApp del comprador.
+  const COLUMNAS_TICKET =
+    "code, section_code, section_label, table_number, table_code, seat_number, " +
+    "guest_index, buyer_name, buyer_lastname, status, used_at, is_courtesy, created_at";
+
   let realtimeChannel = null;
 
   // ---------- utilidades ----------
@@ -223,15 +229,11 @@
       state.orders = orders || [];
     }
 
-    // Los meseros leen la vista sin datos personales ni de pago.
-    const fuente = state.role === "admin" ? "tickets" : "tickets_staff";
-    const columnas = state.role === "admin"
-      ? "code, section_code, section_label, table_number, seat_number, buyer_name, buyer_lastname, status, used_at, created_at"
-      : "code, section_code, section_label, table_number, seat_number, buyer_name, buyer_lastname, status, used_at, created_at";
-
+    // Los permisos por columna limitan qué campos llegan al navegador,
+    // así que ambos roles pueden leer la tabla directamente.
     const { data: tickets } = await db
-      .from(fuente)
-      .select(columnas)
+      .from("tickets")
+      .select(COLUMNAS_TICKET)
       .eq("event_id", state.eventId)
       .order("created_at", { ascending: false });
     state.tickets = tickets || [];
@@ -700,7 +702,7 @@
         <div class="verify-card__details">
           <div class="row"><span>Sección</span><span><strong>${esc(t.section_label)}</strong></span></div>
           <div class="row"><span>Ubicación</span><span>${
-            t.seat_number ? `Mesa ${esc(t.table_number)} · Silla ${esc(t.seat_number)}` : "Acceso general (de pie)"
+            t.table_code ? `Mesa ${esc(t.table_code)}` : "Acceso general (de pie)"
           }</span></div>
           <div class="row"><span>Invitado</span><span>${esc(t.buyer_name)} ${esc(t.buyer_lastname)}</span></div>
           <div class="row"><span>Código</span><span>${esc(t.code)}</span></div>
@@ -736,10 +738,9 @@
   }
 
   async function refrescarTickets() {
-    const fuente = state.role === "admin" ? "tickets" : "tickets_staff";
     const { data } = await db
-      .from(fuente)
-      .select("code, section_code, section_label, table_number, seat_number, buyer_name, buyer_lastname, status, used_at, created_at")
+      .from("tickets")
+      .select(COLUMNAS_TICKET)
       .eq("event_id", state.eventId)
       .order("created_at", { ascending: false });
     state.tickets = data || [];
@@ -785,7 +786,7 @@
             <td class="mono">${esc(t.code)}</td>
             <td>${esc(t.buyer_name)} ${esc(t.buyer_lastname)}</td>
             <td>${esc(t.section_label)}</td>
-            <td>${t.seat_number ? `Mesa ${esc(t.table_number)} · Silla ${esc(t.seat_number)}` : "General"}</td>
+            <td>${t.table_code ? `Mesa ${esc(t.table_code)}` : "General"}</td>
             <td>${etiquetaEstado[t.status] || esc(t.status)}</td>
           </tr>
         `).join("")}
