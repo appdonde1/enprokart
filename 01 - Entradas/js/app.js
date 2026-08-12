@@ -53,16 +53,20 @@
       el.classList.toggle("done", s < n);
     });
 
-    $("hero").classList.toggle("hidden", n !== 1);
-    $("eventoPortada").hidden = n !== 1;
     $("resumen").hidden = n === 1 || !haySeleccion();
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // El flujo vive dentro de #reservar, en medio de la página. Antes esto
+    // ocultaba el hero y subía al tope: como el hero desaparecía, el visitante
+    // terminaba mirando "Próximos eventos" en vez del paso siguiente.
+    const shell = $("reservar");
+    if (shell && !shell.hidden) {
+      shell.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
-  $("btnComprar").addEventListener("click", () => {
-    $("panel-1").scrollIntoView({ behavior: "smooth" });
-  });
+  // Abrir el flujo y desplazarse hasta él lo hace el script de index.html,
+  // que es quien conoce la sección #reservar. Duplicarlo acá hacía que dos
+  // desplazamientos suaves compitieran en el mismo clic.
 
   // ---------- carga ----------
   async function cargar() {
