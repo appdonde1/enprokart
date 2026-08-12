@@ -1,0 +1,24 @@
+# Publicación del sitio en Netlify.
+# Es estático: no hay build, solo se sirve la carpeta.
+
+[build]
+  publish = "01 - Entradas"
+  command = ""
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# El panel del personal no debe aparecer en buscadores.
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/verificar.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

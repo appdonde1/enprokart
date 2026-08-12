@@ -112,8 +112,8 @@ Nunca en el repo ni en estas notas. Se cargan con `supabase secrets set`:
 |---|---|---|
 | `TICKET_HMAC_SECRET` | generado | cargado |
 | `CRON_SECRET` | generado | cargado |
-| `MP_ACCESS_TOKEN` | Mercado Pago → Tus integraciones → Credenciales | **falta** |
-| `MP_WEBHOOK_SECRET` | Mercado Pago → Webhooks → Configurar notificación | **falta** |
+| `MP_ACCESS_TOKEN` | Mercado Pago → Tus integraciones → Credenciales | cargado (prueba) |
+| `MP_WEBHOOK_SECRET` | Mercado Pago → Webhooks → Configurar notificación | cargado |
 
 La URL a registrar en Mercado Pago como notificación es
 `https://tgilgfwxtghcqskfyzif.supabase.co/functions/v1/mercadopago-webhook`.
