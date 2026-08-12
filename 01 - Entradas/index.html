@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Venta de Entradas - Evento</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar__brand">🎫 <span>NOCHE VIP FEST</span></div>
+    <div class="topbar__steps" id="stepsIndicator">
+      <div class="step-indicator active" data-step="1">1. Registro</div>
+      <div class="step-indicator" data-step="2">2. Pago PIX</div>
+      <div class="step-indicator" data-step="3">3. Confirmación</div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <h1>Noche VIP Fest</h1>
+      <p class="hero__sub">Sábado 20 de Diciembre · 21:00 hs · Arena Central</p>
+      <button class="btn btn--primary" id="btnComprar">Comprar entrada</button>
+    </section>
+
+    <!-- PASO 1: REGISTRO + SELECCIÓN DE ÁREA -->
+    <section class="step-panel active" id="panel-1">
+      <h2>1. Datos del comprador</h2>
+      <form id="formRegistro" novalidate>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" name="nombre" required placeholder="Ej: Juan" />
+            <span class="error" data-for="nombre"></span>
+          </div>
+          <div class="field">
+            <label for="apellido">Apellido</label>
+            <input type="text" id="apellido" name="apellido" required placeholder="Ej: Pérez" />
+            <span class="error" data-for="apellido"></span>
+          </div>
+          <div class="field">
+            <label for="documento">Cédula de identidad / CPF</label>
+            <input type="text" id="documento" name="documento" required placeholder="Ej: 123.456.789-00" />
+            <span class="error" data-for="documento"></span>
+          </div>
+        </div>
+
+        <h3>Selecciona el área</h3>
+        <div class="areas-grid" id="areasGrid">
+
+          <label class="area-card area-card--oro">
+            <input type="radio" name="area" value="ORO" data-price="150" />
+            <div class="area-card__body">
+              <span class="badge badge--vip">VIP</span>
+              <h4>Área Oro</h4>
+              <p>Mesa y silla asignada · Ubicación preferencial</p>
+              <span class="price">R$ 150,00</span>
+            </div>
+          </label>
+
+          <label class="area-card area-card--plata">
+            <input type="radio" name="area" value="PLATA" data-price="100" />
+            <div class="area-card__body">
+              <span class="badge badge--vip">VIP</span>
+              <h4>Área Plata</h4>
+              <p>Mesa y silla asignada</p>
+              <span class="price">R$ 100,00</span>
+            </div>
+          </label>
+
+          <label class="area-card area-card--general">
+            <input type="radio" name="area" value="GENERAL" data-price="50" />
+            <div class="area-card__body">
+              <span class="badge badge--general">GENERAL</span>
+              <h4>Área General</h4>
+              <p>Acceso de pie · Sin mesa ni silla asignada</p>
+              <span class="price">R$ 50,00</span>
+            </div>
+          </label>
+
+        </div>
+        <span class="error" data-for="area"></span>
+
+        <!-- Solo visible para ORO / PLATA: mapa referencial de mesas -->
+        <div class="seat-fields hidden" id="seatFields">
+          <h3>Elige tu mesa en el mapa del salón</h3>
+
+          <div class="venue-map">
+            <div class="venue-map__stage">ESCENARIO</div>
+            <div class="venue-map__grid" id="mesaGrid"></div>
+            <ul class="venue-map__legend">
+              <li><span class="legend-dot legend-dot--free"></span> Disponible</li>
+              <li><span class="legend-dot legend-dot--selected"></span> Tu mesa</li>
+              <li><span class="legend-dot legend-dot--occupied"></span> Ocupada</li>
+            </ul>
+          </div>
+
+          <div class="seats-panel hidden" id="seatsPanel">
+            <p class="seats-panel__title">Mesa <strong id="mesaSeleccionadaLabel"></strong> · Elige tu silla</p>
+            <div class="seats-panel__grid" id="sillaGrid"></div>
+          </div>
+
+          <p class="seleccion-actual" id="seleccionActual"></p>
+
+          <input type="hidden" id="mesa" name="mesa" />
+          <input type="hidden" id="silla" name="silla" />
+          <span class="error" data-for="mesa"></span>
+        </div>
+
+        <p class="hint hidden" id="generalHint">
+          El área <strong>General</strong> no tiene asiento asignado: el acceso es de pie.
+        </p>
+
+        <div class="actions">
+          <button type="submit" class="btn btn--primary">Continuar al pago</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- PASO 2: PAGO PIX -->
+    <section class="step-panel" id="panel-2">
+      <h2>2. Pago vía PIX</h2>
+
+      <div class="pay-layout">
+        <div class="order-summary" id="orderSummary"></div>
+
+        <div class="pix-box">
+          <p class="pix-box__title">Escanea el código QR con tu app bancaria</p>
+          <div id="qrcode" class="qrcode"></div>
+          <p class="pix-box__timer">Expira en <span id="timer">15:00</span></p>
+
+          <label class="pix-copy-label">Código PIX (copia y pega)</label>
+          <div class="pix-copy">
+            <input type="text" id="pixCode" readonly />
+            <button type="button" class="btn btn--ghost" id="btnCopyPix">Copiar</button>
+          </div>
+
+          <button type="button" class="btn btn--primary" id="btnConfirmarPago">
+            Ya realicé el pago
+          </button>
+          <button type="button" class="btn btn--link" id="btnVolverRegistro">← Volver a editar datos</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASO 3: CONFIRMACIÓN / TICKET -->
+    <section class="step-panel" id="panel-3">
+      <h2>3. ¡Pago confirmado!</h2>
+      <div class="ticket" id="ticket"></div>
+      <div class="actions">
+        <button type="button" class="btn btn--primary" id="btnNuevaCompra">Realizar nueva compra</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">© 2026 Noche VIP Fest · Todos los derechos reservados</footer>
+
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/firma.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

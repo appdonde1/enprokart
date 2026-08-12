@@ -1,0 +1,53 @@
+.verify-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.verify-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.verify-card {
+  background: var(--color-panel);
+  border-radius: var(--radius);
+  border: 1px solid #262a38;
+  box-shadow: var(--shadow);
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.verify-card__icon {
+  font-size: 3.2rem;
+  margin-bottom: 8px;
+}
+
+.verify-card__status {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 8px 0 16px;
+}
+
+.verify-card--valida .verify-card__status { color: var(--color-success); }
+.verify-card--invalida .verify-card__status { color: var(--color-danger); }
+.verify-card--usada .verify-card__status { color: var(--color-primary); }
+
+.verify-card__details {
+  text-align: left;
+  background: var(--color-panel-alt);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.verify-card__details .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  padding: 6px 0;
+  border-bottom: 1px dashed #2a2f3f;
+}
+.verify-card__details .row:last-child { border-bottom: none; }
+.verify-card__details .row span:first-child { color: var(--color-muted); }
