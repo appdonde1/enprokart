@@ -13,38 +13,68 @@
 .login-wrap {
   min-height: 100vh;
   display: flex;
-  padding: 20px 16px 36px;
+  padding: 24px 18px 48px;
+  /* Un halo tenue detrás de la tarjeta: da profundidad sin dibujar un adorno. */
+  background:
+    radial-gradient(58% 42% at 50% 0%, rgba(255, 89, 54, .07), transparent 70%),
+    var(--bg);
 }
+
 .login-card {
   width: 100%;
-  max-width: 400px;
+  /* 352px: el ancho donde una línea de formulario se lee de una sola pasada.
+     Más ancho estira los campos y el botón sin ganar nada. */
+  max-width: 352px;
   margin: auto;
-  position: relative;
-  overflow: hidden;
   background: var(--surface);
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  padding: 30px 26px 26px;
-  text-align: center;
+  padding: 34px 28px 26px;
 }
-.login-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: repeating-conic-gradient(
-      var(--accent) 0% 25%,
-      rgba(15, 17, 23, 0.9) 0% 50%
-    ) 0 0 / 12px 12px;
-  opacity: 0.75;
+
+.login-card .brand-plate--auth {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 26px;
 }
-.login-card h1 { margin: 0 0 4px; font-size: 1.4rem; }
-.login-card .hint { margin: 0 0 22px; }
-.login-card .field { margin-bottom: 14px; text-align: left; }
-.login-card .btn { width: 100%; margin-top: 8px; }
+
+.login-card .field { margin-bottom: 15px; text-align: left; }
+
+.login-card .field label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--dim);
+  font: 600 .6rem/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.login-card .field input {
+  width: 100%;
+  padding: 13px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: max(1rem, 16px);
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.login-card .field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.login-card .btn--primary {
+  width: 100%;
+  margin-top: 10px;
+  min-height: 48px;
+  font: 700 .9rem/1 var(--sans);
+  letter-spacing: .01em;
+}
 
 /* =========================================================
    Barra superior del panel
@@ -684,12 +714,26 @@
    LOGIN: dominio fijo, ojo para la clave y enlaces del pie
    ========================================================= */
 
+/* Un solo título, sin bajada. El interlineado ajustado y el tracking negativo
+   son lo que separa una tipografía compuesta de una puesta por defecto. */
 .login-titulo {
-  margin: 0 0 24px;
-  font: 800 1.35rem/1.15 var(--display);
-  letter-spacing: -.01em;
+  margin: 0 0 26px;
+  font: 700 1.32rem/1.1 var(--display);
+  letter-spacing: -.025em;
   color: var(--text);
   text-align: center;
+}
+
+/* Regla corta bajo el título en vez de un borde de lado a lado: cierra el
+   bloque sin partir la tarjeta en dos. */
+.login-titulo::after {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 2px;
+  margin: 14px auto 0;
+  background: var(--accent);
+  border-radius: 2px;
 }
 
 /* El input y el dominio comparten un solo marco, para que se lean como un
@@ -1292,3 +1336,40 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
 
   .table-scroll { max-height: none; border: 0; background: none; }
 }
+
+/* =========================================================
+   BLOQUEO: cambio de clave obligatorio
+   Cubre la pantalla entera y no tiene salida más que cambiar
+   la clave o cerrar sesión. Es intencional.
+   ========================================================= */
+
+.bloqueo {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+.bloqueo__caja {
+  width: min(420px, 100%);
+  padding: clamp(22px, 5vw, 34px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+}
+
+.bloqueo__caja h2 {
+  margin: 0 0 8px;
+  font: 800 1.4rem/1.15 var(--display);
+  color: var(--text);
+}
+
+.bloqueo__caja .hint { margin: 0 0 22px; }
+.bloqueo__caja .field { margin-bottom: 14px; }
+.bloqueo__caja .btn--primary { width: 100%; margin-top: 6px; }
+.bloqueo__caja .btn--link { width: 100%; margin-top: 10px; color: var(--dim); }

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
@@ -60,6 +60,38 @@
       </div>
     </form>
   </main>
+
+  <!-- Cambio de clave obligatorio.
+       No tiene botón de cerrar ni se cierra con Escape ni tocando afuera: una
+       clave temporal que alguien dictó por teléfono no puede quedar puesta. -->
+  <div class="bloqueo" id="bloqueoClave" hidden>
+    <form class="bloqueo__caja" id="cambioClaveForm">
+      <h2>Cambiá tu contraseña</h2>
+      <p class="hint">
+        Estás usando la clave temporal que te entregaron. Para seguir, elegí una
+        propia: al menos 8 caracteres, con letras y números.
+      </p>
+
+      <div class="field">
+        <label for="claveActual">Contraseña actual</label>
+        <input type="password" id="claveActual" required autocomplete="current-password" />
+      </div>
+
+      <div class="field">
+        <label for="claveNueva1">Contraseña nueva</label>
+        <input type="password" id="claveNueva1" required autocomplete="new-password" />
+      </div>
+
+      <div class="field">
+        <label for="claveNueva2">Repetila</label>
+        <input type="password" id="claveNueva2" required autocomplete="new-password" />
+      </div>
+
+      <span class="error" data-for="cambioClave"></span>
+      <button type="submit" class="btn btn--primary" id="btnCambiarClave">Guardar y entrar</button>
+      <button type="button" class="btn btn--link" id="btnSalirDeBloqueo">Cerrar sesión</button>
+    </form>
+  </div>
 
   <div class="admin-shell hidden" id="shell">
 

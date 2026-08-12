@@ -180,7 +180,7 @@
 
     const { data: perfil } = await db
       .from("staff_profiles")
-      .select("role, display_name")
+      .select("role, display_name, must_change_password")
       .eq("id", state.session.user.id)
       .maybeSingle();
 
@@ -193,11 +193,87 @@
     state.role = perfil.role;
     ui.userBadge.textContent = perfil.display_name || state.session.user.email;
     ui.loginWrap.classList.add("hidden");
+
+    // La clave temporal la dictó otra persona: mientras siga puesta, el panel
+    // no se abre. No es una sugerencia que se pueda saltear.
+    if (perfil.must_change_password) {
+      ui.shell.classList.add("hidden");
+      document.getElementById("bloqueoClave").hidden = false;
+      document.getElementById("claveActual").focus();
+      return;
+    }
+
     ui.shell.classList.remove("hidden");
 
     renderTabs();
     await cargarEventos();
   }
+
+  // ---------- cambio de clave obligatorio ----------
+  document.getElementById("cambioClaveForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setError("cambioClave", "");
+
+    const actual = document.getElementById("claveActual").value;
+    const nueva1 = document.getElementById("claveNueva1").value;
+    const nueva2 = document.getElementById("claveNueva2").value;
+
+    if (nueva1 !== nueva2) return setError("cambioClave", "Las dos claves nuevas no coinciden.");
+    if (nueva1.length < 8) return setError("cambioClave", "La clave nueva necesita al menos 8 caracteres.");
+    if (!/[a-zA-Z]/.test(nueva1) || !/[0-9]/.test(nueva1)) {
+      return setError("cambioClave", "Combiná letras y números.");
+    }
+    if (nueva1 === actual) return setError("cambioClave", "La clave nueva tiene que ser distinta de la actual.");
+
+    const boton = document.getElementById("btnCambiarClave");
+    boton.disabled = true;
+    boton.textContent = "Guardando...";
+
+    try {
+      // Se comprueba la clave actual volviendo a iniciar sesión con ella. Sin
+      // esto, cualquiera que encuentre una sesión abierta podría apropiarse de
+      // la cuenta cambiando la clave sin conocer la anterior.
+      const { error: malActual } = await db.auth.signInWithPassword({
+        email: state.session.user.email,
+        password: actual,
+      });
+      if (malActual) throw new Error("La contraseña actual no es correcta.");
+
+      const { data: sesion } = await db.auth.getSession();
+      const respuesta = await fetch(
+        `${window.PROKART_CONFIG.SUPABASE_URL}/functions/v1/staff-admin`,
+        {
+          method: "POST",
+          headers: {
+            apikey: window.PROKART_CONFIG.SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${sesion.session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action: "change_own_password", new_password: nueva1 }),
+        },
+      );
+
+      const datos = await respuesta.json().catch(() => ({}));
+      if (!respuesta.ok) throw new Error(datos.error ?? "No se pudo cambiar la clave.");
+
+      // Cambiar la clave invalida la sesión: se vuelve a entrar con la nueva.
+      await db.auth.signInWithPassword({ email: state.session.user.email, password: nueva1 });
+
+      document.getElementById("cambioClaveForm").reset();
+      document.getElementById("bloqueoClave").hidden = true;
+      await iniciar();
+    } catch (error) {
+      setError("cambioClave", error.message);
+    }
+
+    boton.disabled = false;
+    boton.textContent = "Guardar y entrar";
+  });
+
+  document.getElementById("btnSalirDeBloqueo")?.addEventListener("click", async () => {
+    await db.auth.signOut();
+    location.reload();
+  });
 
   // ---------- barra lateral ----------
   function renderTabs() {

@@ -1015,3 +1015,89 @@ body.overlay-abierto { overflow: hidden; }
   .overlay-ad__caja { width: 100%; }
   .overlay-ad__visitas-rotulo { letter-spacing: .1em; }
 }
+
+/* =========================================================
+   15. AJUSTE TIPOGRÁFICO
+   La escala ya estaba; lo que faltaba es el ajuste fino que
+   distingue una tipografía compuesta de una puesta por defecto.
+   ========================================================= */
+
+/* El tracking tiene que bajar cuando el cuerpo sube. Una fuente dibujada para
+   leerse a 16px lleva un espaciado que, a 60px, se ve suelto y anticuado. Es el
+   detalle que más delata a un titular sin trabajar. */
+.feature__copy h1,
+.section-heading h2,
+.menu-intro h2,
+.booking-shell__header h2,
+.evento__nombre {
+  letter-spacing: -.035em;
+  /* Reparte las líneas en vez de dejar una palabra huérfana abajo. */
+  text-wrap: balance;
+}
+
+.feature__copy--secundaria h1,
+.step-panel h2,
+.event-row__main h3 {
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+
+/* Los textos corridos respiran más que la interfaz: 1.5 alcanza para una
+   etiqueta, no para un párrafo que alguien va a leer entero. */
+.section-heading > p,
+.menu-intro p,
+.feature__copy p,
+.experience-card p {
+  line-height: 1.62;
+  /* Evita que la última línea quede con una sola palabra. */
+  text-wrap: pretty;
+  /* Entre 60 y 75 caracteres por línea; más largo, el ojo pierde el renglón. */
+  max-width: 64ch;
+}
+
+/* Las cifras tienen que ocupar siempre el mismo ancho. Sin esto, un total que
+   pasa de R$ 300,00 a R$ 250,00 mueve todo lo que tiene al lado. */
+#total,
+.resumen__total strong,
+.area-card__precio,
+.kpi__value,
+.ticket__code,
+.overlay-ad__visitas,
+.num,
+.event-row__day {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Las mayúsculas espaciadas necesitan aire a la derecha: el letter-spacing
+   agrega un hueco después del último carácter que descoloca el centrado. */
+.site-nav,
+.eyebrow,
+.sidebar__rotulo,
+.ad-slot__nota,
+.site-footer__enlaces a {
+  padding-right: .12em;
+}
+
+/* Manrope tiene ejes ópticos; pedirlos explícitamente mejora el dibujo en
+   tamaños grandes en los navegadores que lo soportan. */
+body {
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  line-height: 1.55;
+}
+
+/* En pantalla chica el titular gigante deja de ser expresivo y pasa a ser un
+   estorbo: ocupa la pantalla entera antes de decir nada. */
+@media (max-width: 560px) {
+  .feature__copy h1,
+  .section-heading h2,
+  .menu-intro h2 {
+    letter-spacing: -.028em;
+    line-height: 1.02;
+  }
+
+  .section-heading > p,
+  .menu-intro p,
+  .feature__copy p { max-width: none; }
+}

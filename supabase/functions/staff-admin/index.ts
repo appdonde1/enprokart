@@ -46,7 +46,6 @@ Deno.serve(async (req) => {
 
   const staff = await requireStaff(req);
   if (!staff) return fail("Necesitas iniciar sesión", 401);
-  if (staff.role !== "admin") return fail("Solo un administrador puede gestionar personal", 403);
 
   let body: Record<string, any>;
   try {
@@ -57,6 +56,39 @@ Deno.serve(async (req) => {
 
   const db = serviceClient();
   const accion = body.action;
+
+  /* Cambiar la propia clave: lo hace cualquiera del personal, no solo un admin.
+     Va antes del control de rol porque un mesero obligado a cambiar su clave
+     tiene que poder hacerlo; si esto exigiera ser admin, quedaría encerrado.
+
+     Solo toca al que llama: el id sale de la sesión, nunca del cuerpo. */
+  if (accion === "change_own_password") {
+    const nueva = String(body.new_password ?? "");
+
+    if (nueva.length < 8) return fail("La clave nueva necesita al menos 8 caracteres");
+    if (!/[a-zA-Z]/.test(nueva) || !/[0-9]/.test(nueva)) {
+      return fail("La clave nueva tiene que combinar letras y números");
+    }
+
+    try {
+      await authAdmin(`/users/${staff.userId}`, {
+        method: "PUT",
+        body: JSON.stringify({ password: nueva }),
+      });
+    } catch (error) {
+      console.error("staff-admin/change_own", error);
+      return fail("No se pudo cambiar la clave", 500);
+    }
+
+    await db
+      .from("staff_profiles")
+      .update({ must_change_password: false, last_password_change: new Date().toISOString() })
+      .eq("id", staff.userId);
+
+    return json({ changed: true });
+  }
+
+  if (staff.role !== "admin") return fail("Solo un administrador puede gestionar personal", 403);
 
   if (accion === "list") {
     const { data } = await db
