@@ -101,12 +101,12 @@
     link.target = pieza.link_url && !pieza.es_vitalicia ? "_blank" : "_self";
 
     caja.hidden = false;
-    document.body.classList.add("overlay-abierto");
     $("overlayAdCerrar")?.focus();
 
+    // El bloqueo del scroll lo pone el CSS mirando si este elemento está
+    // visible, así que ocultarlo alcanza para devolver el scroll siempre.
     const cerrar = () => {
       caja.hidden = true;
-      document.body.classList.remove("overlay-abierto");
       marcarVisto();
       document.removeEventListener("keydown", conEscape);
     };
@@ -117,7 +117,20 @@
     $("overlayAdCerrar")?.addEventListener("click", cerrar);
     caja.addEventListener("click", (e) => { if (e.target === caja) cerrar(); });
     document.addEventListener("keydown", conEscape);
+
+    // Tocar el anuncio también cuenta como haberlo visto: si no, al volver con
+    // el botón atrás el overlay reaparece y tapa la página otra vez.
+    link.addEventListener("click", cerrar);
   }
+
+  /* Al volver con el botón atrás, el navegador puede restaurar la página tal
+     como estaba, con el overlay abierto. Se cierra: ya lo vio, y encontrárselo
+     de nuevo al retroceder es exactamente lo que molesta. */
+  window.addEventListener("pageshow", (evento) => {
+    if (!evento.persisted) return;
+    const caja = $("overlayAd");
+    if (caja && !caja.hidden) caja.hidden = true;
+  });
 
   // ------------------------------------------------------------ visitas
   async function contarVisita() {

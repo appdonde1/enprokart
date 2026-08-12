@@ -921,7 +921,16 @@ img { max-width: 100%; }
 
 @keyframes overlay-entra { from { opacity: 0 } to { opacity: 1 } }
 
-body.overlay-abierto { overflow: hidden; }
+/* El bloqueo de scroll se ata a que el overlay esté realmente visible, no a una
+   clase que alguien tiene que acordarse de quitar.
+
+   Antes esto era `body.overlay-abierto`, y cualquier salida que no pasara por la
+   función de cierre —tocar el anuncio y volver con el botón atrás, que restaura
+   la página desde la caché con la clase puesta— dejaba la página congelada con
+   el overlay ya invisible. Así no puede pasar: si el overlay no se ve, se
+   scrollea. Y si un navegador viejo no entiende `:has()`, lo peor que ocurre es
+   que el fondo se mueva detrás del anuncio, no que nadie pueda scrollear. */
+body:has(#overlayAd:not([hidden])) { overflow: hidden; }
 
 .overlay-ad__caja {
   position: relative;

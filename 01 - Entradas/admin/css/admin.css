@@ -842,6 +842,16 @@
 
 .login-enlace:hover { color: var(--accent); background: var(--surface-2); }
 
+/* La salida va separada del resto: no es una opción más de la lista, es la
+   puerta para quien llegó acá por equivocación. */
+.login-enlace--volver {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--dim);
+  font-size: .7rem;
+}
+
 /* El mismo hueco sirve para el error y para la confirmación del pedido de
    clave: son mensajes que ocupan el mismo lugar y nunca conviven. */
 .error--ok { color: var(--success); }
