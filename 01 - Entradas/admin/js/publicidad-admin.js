@@ -1,18 +1,24 @@
 /* Gestión de la publicidad: piezas vitalicias y campañas por fecha.
 
-   Las imágenes van al bucket `publicidad`, que es público de lectura y solo
+   Las imágenes van al bucket `medios`, que es público de lectura y solo
    escribible por un admin (política sobre storage.objects con is_admin()). Se
    suben con la sesión abierta desde acá, no por Edge Function: el archivo ya
    está en el navegador de quien tiene permiso, y hacerlo pasar por base64 solo
-   agregaría un rebote. */
+   agregaría un rebote.
+
+   El bucket no se llama `publicidad` porque los bloqueadores de anuncios
+   cancelan las descargas cuya URL contiene esa palabra, y el espacio que
+   alguien pagó quedaba vacío. */
 
 (() => {
   const P = window.PanelBase;
   const $ = (id) => document.getElementById(id);
   const cfg = window.PROKART_CONFIG;
 
+  // Bucket `medios` y no `publicidad`: los bloqueadores de anuncios cancelan
+  // cualquier descarga cuya URL contenga esa palabra.
   const urlPublica = (ruta) =>
-    `${cfg.SUPABASE_URL}/storage/v1/object/public/publicidad/${ruta}`;
+    `${cfg.SUPABASE_URL}/storage/v1/object/public/medios/${ruta}`;
 
   function setError(campo, mensaje, ok = false) {
     const el = document.querySelector(`.error[data-for="${campo}"]`);
@@ -37,7 +43,7 @@
     const ruta = `${slot}-${Date.now()}.${extension}`;
 
     const { error } = await P.db.storage
-      .from("publicidad")
+      .from("medios")
       .upload(ruta, archivo, { cacheControl: "3600", upsert: false });
 
     if (error) throw new Error(`No se pudo subir la imagen: ${error.message}`);

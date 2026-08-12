@@ -794,14 +794,14 @@ img { max-width: 100%; }
 
 /* ---------------------------------------------- banner en medio de la página */
 
-.ad-slot {
+.pieza-destacada {
   margin: 90px 0 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.ad-slot__link {
+.pieza__link {
   display: block;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -810,21 +810,21 @@ img { max-width: 100%; }
   transition: border-color .18s var(--ease), transform .18s var(--ease);
 }
 
-.ad-slot__link:hover {
+.pieza__link:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
 }
 
 /* 3:1 reservado desde el principio: el hueco existe antes de que cargue la
    imagen, así la página no salta cuando llega. */
-.ad-slot__img {
+.pieza__img {
   display: block;
   width: 100%;
   aspect-ratio: 3 / 1;
   object-fit: cover;
 }
 
-.ad-slot__nota {
+.pieza__nota {
   margin: 0;
   color: var(--dim);
   font: 600 .58rem/1 var(--mono);
@@ -907,7 +907,7 @@ img { max-width: 100%; }
 
 /* ---------------------------------------------- overlay */
 
-.overlay-ad {
+.bienvenida {
   position: fixed;
   inset: 0;
   z-index: 90;
@@ -930,9 +930,9 @@ img { max-width: 100%; }
    el overlay ya invisible. Así no puede pasar: si el overlay no se ve, se
    scrollea. Y si un navegador viejo no entiende `:has()`, lo peor que ocurre es
    que el fondo se mueva detrás del anuncio, no que nadie pueda scrollear. */
-body:has(#overlayAd:not([hidden])) { overflow: hidden; }
+body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
 
-.overlay-ad__caja {
+.bienvenida__caja {
   position: relative;
   width: min(420px, 100%);
   /* La imagen es 4:5. Con el tope de alto, en una pantalla baja se achica
@@ -942,7 +942,7 @@ body:has(#overlayAd:not([hidden])) { overflow: hidden; }
   flex-direction: column;
 }
 
-.overlay-ad__link {
+.bienvenida__link {
   display: block;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -950,7 +950,7 @@ body:has(#overlayAd:not([hidden])) { overflow: hidden; }
   min-height: 0;
 }
 
-.overlay-ad__img {
+.bienvenida__img {
   display: block;
   width: 100%;
   max-height: 78vh;
@@ -961,7 +961,7 @@ body:has(#overlayAd:not([hidden])) { overflow: hidden; }
 /* El botón de cierre es el contador. Va debajo y ancho completo, no como una
    × chiquita en la esquina: tiene que leerse el número y tiene que ser fácil
    de tocar con el pulgar. */
-.overlay-ad__cerrar {
+.bienvenida__cerrar {
   margin-top: 10px;
   display: flex;
   align-items: center;
@@ -979,38 +979,38 @@ body:has(#overlayAd:not([hidden])) { overflow: hidden; }
   transition: border-color .15s ease, color .15s ease, background .15s ease;
 }
 
-.overlay-ad__cerrar:hover {
+.bienvenida__cerrar:hover {
   border-color: var(--accent);
   color: var(--text);
   background: var(--surface-2);
 }
 
-.overlay-ad__visitas {
+.bienvenida__visitas {
   color: var(--text);
   font: 800 1.05rem/1 var(--display);
   letter-spacing: .01em;
 }
 
-.overlay-ad__visitas-rotulo {
+.bienvenida__rotulo {
   font: 600 .58rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
 }
 
-.overlay-ad__x {
+.bienvenida__x {
   margin-left: auto;
   font-size: 1.35rem;
   line-height: 1;
   color: var(--dim);
 }
 
-.overlay-ad__cerrar:hover .overlay-ad__x { color: var(--accent); }
+.bienvenida__cerrar:hover .bienvenida__x { color: var(--accent); }
 
 /* ---------------------------------------------- teléfonos */
 
 @media (max-width: 700px) {
-  .ad-slot { margin-top: 64px; }
-  .ad-slot__nota { text-align: left; }
+  .pieza-destacada { margin-top: 64px; }
+  .pieza__nota { text-align: left; }
 
   .site-footer {
     flex-direction: column;
@@ -1020,9 +1020,9 @@ body:has(#overlayAd:not([hidden])) { overflow: hidden; }
 
   .site-footer__enlaces { gap: 14px; }
 
-  .overlay-ad { padding: 14px; }
-  .overlay-ad__caja { width: 100%; }
-  .overlay-ad__visitas-rotulo { letter-spacing: .1em; }
+  .bienvenida { padding: 14px; }
+  .bienvenida__caja { width: 100%; }
+  .bienvenida__rotulo { letter-spacing: .1em; }
 }
 
 /* =========================================================
@@ -1071,7 +1071,7 @@ body:has(#overlayAd:not([hidden])) { overflow: hidden; }
 .area-card__precio,
 .kpi__value,
 .ticket__code,
-.overlay-ad__visitas,
+.bienvenida__visitas,
 .num,
 .event-row__day {
   font-variant-numeric: tabular-nums;
@@ -1083,7 +1083,7 @@ body:has(#overlayAd:not([hidden])) { overflow: hidden; }
 .site-nav,
 .eyebrow,
 .sidebar__rotulo,
-.ad-slot__nota,
+.pieza__nota,
 .site-footer__enlaces a {
   padding-right: .12em;
 }

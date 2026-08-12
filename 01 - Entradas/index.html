@@ -139,11 +139,11 @@
          La pieza la resuelve la base: si hay campaña vigente sale la del
          anunciante, si no sale la de la casa ofreciendo el espacio.
          ===================================================== -->
-    <aside class="ad-slot" id="adBanner" hidden>
-      <a class="ad-slot__link" id="adBannerLink" href="anunciar.html">
-        <img class="ad-slot__img" id="adBannerImg" src="" alt="Espacio publicitario" />
+    <aside class="pieza-destacada" id="piezaDestacada" hidden>
+      <a class="pieza__link" id="piezaLink" href="anunciar.html">
+        <img class="pieza__img" id="piezaImg" src="" alt="Espacio publicitario" />
       </a>
-      <p class="ad-slot__nota">Espacio publicitario</p>
+      <p class="pieza__nota">Espacio publicitario</p>
     </aside>
 
     <!-- =====================================================
@@ -398,15 +398,15 @@
        Se abre una vez por día. El botón que lo cierra muestra las visitas
        de hoy: es el mismo control, con el número encima.
        ===================================================== -->
-  <div class="overlay-ad" id="overlayAd" role="dialog" aria-modal="true" aria-label="Publicidad" hidden>
-    <div class="overlay-ad__caja">
-      <a class="overlay-ad__link" id="overlayAdLink" href="anunciar.html">
-        <img class="overlay-ad__img" id="overlayAdImg" src="" alt="Publicidad" />
+  <div class="bienvenida" id="bienvenidaCaja" role="dialog" aria-modal="true" aria-label="Publicidad" hidden>
+    <div class="bienvenida__caja">
+      <a class="bienvenida__link" id="bienvenidaLink" href="anunciar.html">
+        <img class="bienvenida__img" id="bienvenidaImg" src="" alt="Publicidad" />
       </a>
-      <button type="button" class="overlay-ad__cerrar" id="overlayAdCerrar" aria-label="Cerrar">
-        <span class="overlay-ad__visitas" id="overlayVisitas">—</span>
-        <span class="overlay-ad__visitas-rotulo">visitas hoy</span>
-        <span class="overlay-ad__x" aria-hidden="true">×</span>
+      <button type="button" class="bienvenida__cerrar" id="bienvenidaCerrar" aria-label="Cerrar">
+        <span class="bienvenida__visitas" id="visitasHoy">—</span>
+        <span class="bienvenida__rotulo">visitas hoy</span>
+        <span class="bienvenida__x" aria-hidden="true">×</span>
       </button>
     </div>
   </div>
