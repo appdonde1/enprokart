@@ -30,12 +30,14 @@
 
       <nav class="site-nav" aria-label="Navegación principal">
         <a href="#eventos">Eventos</a>
-        <a href="#novedades">Novedades</a>
         <a href="#menu">Menú</a>
         <a href="#experiencias">Experiencias</a>
       </nav>
 
-      <a class="header-book" href="#reservar" id="headerReservar">Reservar <span>↗</span></a>
+      <div class="header-actions">
+        <a class="header-staff" href="admin/index.html">Iniciar sesión</a>
+        <a class="header-book" href="#reservar" id="headerReservar">Comprar entradas <span>↗</span></a>
+      </div>
     </div>
   </header>
 
@@ -86,75 +88,21 @@
             <span>EVENTO DESTACADO</span>
           </div>
           <button class="editorial-cta" id="btnComprar" type="button">
-            Reservar entrada <span>↗</span>
+            Comprar entradas <span>↗</span>
           </button>
         </div>
       </div>
     </section>
 
     <!-- =====================================================
-         02 / MOSAICO EDITORIAL
-         ===================================================== -->
-    <section class="content-section" id="novedades">
-      <div class="section-heading">
-        <div>
-          <p class="section-index">02 / CONTENIDO</p>
-          <h2>Novedades</h2>
-        </div>
-        <p>Lo que está pasando dentro y fuera de la pista.</p>
-      </div>
-
-      <div class="editorial-grid editorial-grid--news">
-        <a class="story-card story-card--wide" href="#eventos">
-          <div class="story-art story-art--night">
-            <span>PK NIGHT</span>
-            <b>NOCHES<br />A FONDO</b>
-            <i></i>
-          </div>
-          <div class="story-copy">
-            <div class="story-meta"><span>NOVEDAD</span><span>01</span></div>
-            <h3>La pista cambia cuando cae la noche.</h3>
-            <p>Una nueva forma de vivir Pro Kart: luces, música y competición.</p>
-            <span class="story-link">Ver eventos <b>↗</b></span>
-          </div>
-        </a>
-
-        <a class="story-card" href="#experiencias">
-          <div class="story-art story-art--paddock">
-            <span>PADDOCK</span>
-            <b>BEHIND<br />THE RACE</b>
-          </div>
-          <div class="story-copy">
-            <div class="story-meta"><span>EXPERIENCIA</span><span>02</span></div>
-            <h3>Más cerca de la acción.</h3>
-            <span class="story-link">Descubrir <b>↗</b></span>
-          </div>
-        </a>
-
-        <a class="story-card" href="#menu">
-          <div class="story-art story-art--menu">
-            <span>PRO KART / FOOD</span>
-            <b>COMER.<br />CORRER.<br />REPETIR.</b>
-          </div>
-          <div class="story-copy">
-            <div class="story-meta"><span>MENÚ</span><span>03</span></div>
-            <h3>La experiencia no termina en la pista.</h3>
-            <span class="story-link">Ver menú <b>↗</b></span>
-          </div>
-        </a>
-      </div>
-    </section>
-
-    <!-- =====================================================
-         03 / EVENTOS
+         EVENTOS
          ===================================================== -->
     <section class="content-section content-section--events" id="eventos">
       <div class="section-heading">
         <div>
-          <p class="section-index">03 / CALENDARIO</p>
           <h2>Próximos eventos</h2>
         </div>
-        <p>Elige una fecha y entra directo al proceso de reserva.</p>
+        <p>Elegí una fecha y comprá tus entradas.</p>
       </div>
 
       <!-- Se llena desde la base: los edita el admin en el panel -->
@@ -164,29 +112,28 @@
     </section>
 
     <!-- =====================================================
-         04 / MENÚ
+         MENÚ
          ===================================================== -->
     <section class="content-section content-section--split" id="menu">
       <div class="menu-intro">
-        <p class="section-index">04 / PADDOCK</p>
         <h2>Menú destacado</h2>
-        <p>Antes de la bandera verde, hay una regla importante: nadie corre con hambre.</p>
-        <a href="#reservar" class="text-cta">Reservar experiencia <span>↗</span></a>
+        <p>Lo que se sirve en el paddock.</p>
+        <a href="#reservar" class="text-cta">Comprar entradas <span>↗</span></a>
       </div>
 
-      <!-- Productos destacados: los edita el admin en el panel -->
-      <div class="menu-list" id="listaMenu">
-        <div><span>—</span><strong>Cargando menú...</strong><em></em></div>
+      <!-- Productos destacados: los edita el admin en el panel.
+           Cada tarjeta admite una foto propia más adelante. -->
+      <div class="menu-collage" id="listaMenu">
+        <div class="menu-tile"><span>Cargando menú...</span></div>
       </div>
     </section>
 
     <!-- =====================================================
-         05 / EXPERIENCIAS
+         EXPERIENCIAS
          ===================================================== -->
     <section class="content-section experiences" id="experiencias">
       <div class="section-heading">
         <div>
-          <p class="section-index">05 / EXPERIENCIAS</p>
           <h2>No todo es correr.</h2>
         </div>
       </div>
@@ -194,20 +141,20 @@
       <div class="experience-grid">
         <a href="#reservar" class="experience-card experience-card--dark">
           <span>01</span>
-          <strong>PADDOCK</strong>
-          <p>Vive el evento desde el centro de la acción.</p>
+          <strong>GRUPOS</strong>
+          <p>Mesas para equipos y amigos, juntos en el mismo sector.</p>
           <b>↗</b>
         </a>
         <a href="#reservar" class="experience-card experience-card--light">
           <span>02</span>
-          <strong>GRUPOS</strong>
-          <p>Una experiencia pensada para equipos y amigos.</p>
+          <strong>CUMPLEAÑOS</strong>
+          <p>Festejá con tu mesa reservada y el show en vivo.</p>
           <b>↗</b>
         </a>
         <a href="#reservar" class="experience-card experience-card--accent">
           <span>03</span>
-          <strong>PRIVATE</strong>
-          <p>Eventos corporativos y celebraciones a medida.</p>
+          <strong>EMPRESAS</strong>
+          <p>Eventos corporativos con sector privado y catering.</p>
           <b>↗</b>
         </a>
       </div>
@@ -218,10 +165,9 @@
          Se mantiene la estructura original y sus IDs para app.js.
          Solo aparece cuando el usuario decide reservar.
          ===================================================== -->
-    <section class="booking-shell" id="reservar" hidden aria-label="Reservar entrada">
+    <section class="booking-shell" id="reservar" hidden aria-label="Comprar entradas">
       <div class="booking-shell__header">
         <div>
-          <p class="section-index">RESERVA</p>
           <h2>Tu entrada, paso a paso.</h2>
         </div>
         <button type="button" class="close-booking" id="closeBooking">Cerrar ×</button>

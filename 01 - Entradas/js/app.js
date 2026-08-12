@@ -203,21 +203,25 @@
 
     const { data } = await db
       .from("menu_items")
-      .select("name, description, price_cents")
+      .select("name, description, image_url")
       .eq("active", true)
       .order("sort_order");
 
     if (!data?.length) {
-      cont.innerHTML = '<div><span>—</span><strong>Menú en preparación</strong><em></em></div>';
+      cont.innerHTML = '<div class="menu-tile"><span>Menú en preparación</span></div>';
       return;
     }
 
+    // Sin precios: el menú de la portada muestra qué hay, no cuánto cuesta.
     cont.innerHTML = data.map((p, i) => `
-      <div>
-        <span>${String(i + 1).padStart(2, "0")}</span>
-        <strong>${esc(p.name)}</strong>
-        <em>${p.price_cents == null ? "R$ —" : money(p.price_cents)}</em>
-      </div>
+      <figure class="menu-tile${p.image_url ? " menu-tile--foto" : ""}"
+              ${p.image_url ? `style="background-image:url('${esc(p.image_url)}')"` : ""}>
+        <figcaption>
+          <b>${String(i + 1).padStart(2, "0")}</b>
+          <strong>${esc(p.name)}</strong>
+          ${p.description ? `<em>${esc(p.description)}</em>` : ""}
+        </figcaption>
+      </figure>
     `).join("");
   }
 
