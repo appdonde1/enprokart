@@ -262,10 +262,24 @@ img { max-width: 100%; }
 }
 .feature__copy h1 {
   margin: 0;
-  max-width: 8ch;
-  font: 700 clamp(2.7rem, 6vw, 5.3rem)/.9 var(--display);
-  letter-spacing: -.065em;
+  max-width: 11ch;
+  font: 700 clamp(2.2rem, 5vw, 4.4rem)/.92 var(--display);
+  letter-spacing: -.06em;
   text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+/* Cuando el evento tiene foto, la portada ya dice su nombre y su fecha.
+   Esta columna pasa a segundo plano y no repite lo mismo en grande. */
+.feature__copy--secundaria h1 {
+  max-width: 18ch;
+  font: 700 clamp(1.4rem, 2.6vw, 2rem)/1.12 var(--display);
+  letter-spacing: -.03em;
+  color: var(--text);
+}
+.feature__copy--secundaria .feature__sub {
+  margin-top: 14px;
+  font-size: .84rem;
 }
 .feature__sub {
   max-width: 30ch;

@@ -119,24 +119,38 @@
   }
 
   function pintarEvento(event) {
-    $("heroTitulo").textContent = event.name;
     const cuando = event.event_date
       ? new Date(event.event_date).toLocaleString("es", {
         weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
       })
       : "";
-    $("heroSubtitulo").textContent = [cuando, event.venue].filter(Boolean).join(" · ");
 
-    if (event.cover_image) {
+    const conPortada = Boolean(event.cover_image);
+
+    if (conPortada) {
       const img = $("eventoImagen");
       img.src = event.cover_image;
       img.alt = event.name;
       $("eventoPortada").hidden = false;
+      $("eventoTagline").textContent = event.tagline || "";
+      $("eventoNombre").textContent = event.name;
+      $("eventoFecha").textContent = cuando;
+      $("eventoLugar").textContent = event.venue || "";
     }
-    $("eventoTagline").textContent = event.tagline || "";
-    $("eventoNombre").textContent = event.name;
-    $("eventoFecha").textContent = cuando;
-    $("eventoLugar").textContent = event.venue || "";
+
+    // El nombre y la fecha se dicen una sola vez. Con foto los lleva la
+    // portada; sin foto, la columna de la derecha, que si no queda vacía.
+    const copia = document.querySelector(".feature__copy");
+    if (copia) copia.classList.toggle("feature__copy--secundaria", conPortada);
+
+    if (conPortada) {
+      $("heroTitulo").textContent = event.tagline || event.name;
+      $("heroSubtitulo").textContent =
+        event.description || "Entradas por mesa, con tu lugar asegurado.";
+    } else {
+      $("heroTitulo").textContent = event.name;
+      $("heroSubtitulo").textContent = [cuando, event.venue].filter(Boolean).join(" · ");
+    }
   }
 
   // ---------- portada: próximos eventos ----------
