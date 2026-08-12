@@ -12,13 +12,23 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# El panel del personal no debe aparecer en buscadores.
+# El panel del personal no debe aparecer en buscadores ni quedar cacheado.
+# Lo que impide el acceso es el inicio de sesión y las políticas de la base:
+# esto solo evita que la URL circule sola.
 [[headers]]
   for = "/admin/*"
   [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
+    X-Robots-Tag = "noindex, nofollow, noarchive, nosnippet"
+    Cache-Control = "no-store"
+    Referrer-Policy = "no-referrer"
 
 [[headers]]
   for = "/verificar.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/pagar.html"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"

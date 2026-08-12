@@ -1,0 +1,1028 @@
+/* =========================================================
+   PRO KART — FLUJO DE COMPRA
+   Área → Lugar → Datos → Pago → Entrada.
+
+   Complementa css/style.css (paleta y tono) y css/plano.css (mapa de mesas).
+   Mismo idioma que la portada: rejillas de 1px, bordes visibles, rótulos en
+   monoespaciada versalita y titulares en display muy apretado. El naranja se
+   reserva para la acción principal y para "esto es tuyo".
+
+   Escrito móvil primero: todo entra a 360px sin desborde horizontal.
+   ========================================================= */
+
+/* =========================================================
+   0. Utilidades y primitivas compartidas
+   ========================================================= */
+
+/* app.js oculta el hero con .hidden; el resto usa el atributo. */
+.hidden,
+[hidden] { display: none !important; }
+
+/* Texto de apoyo: cargando, aclaraciones, subtítulos de panel. */
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.55;
+}
+
+/* Cuando el .hint es el marcador de "todavía cargando" ocupa el hueco del
+   contenido que falta, así el layout no salta cuando llegan los datos. */
+.areas-grid .hint,
+.event-list .hint,
+#entradas .hint {
+  padding: 26px 18px;
+  border: 1px dashed var(--line);
+  color: var(--dim);
+  font: 600 .62rem/1 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* Enlace de texto editorial (bloque "Menú destacado"). */
+.text-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+  color: var(--accent);
+  font: 700 .64rem/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  transition: border-color .18s var(--ease), color .18s var(--ease);
+}
+.text-cta span { display: inline-block; transition: transform .18s var(--ease); }
+.text-cta:hover { border-color: var(--accent); }
+.text-cta:hover span { transform: translate(3px, -3px); }
+.text-cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Foco visible y coherente en todo lo que se puede tocar. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   1. Riel de pasos (index + pagar)
+   ========================================================= */
+
+.steps-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  min-width: 0;
+}
+.step-indicator__label { white-space: nowrap; }
+.step-indicator__dot {
+  flex: none;
+  font: 700 .66rem/1 var(--mono);
+}
+
+/* =========================================================
+   2. Paso 1 — Tarjetas de área
+   La decisión de compra principal. Son <button>: tienen que leerse como
+   opciones, no como texto. El nivel se distingue por un filete de color, no
+   pintando la tarjeta entera.
+   ========================================================= */
+
+.areas-grid { gap: 12px; }
+
+.area-card {
+  /* Color del nivel. Se define acá para que baje al badge y al filete. */
+  --tier: #6b706a;
+  --tier-tint: rgba(255, 255, 255, .05);
+
+  position: relative;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  color: var(--text);
+  font-family: var(--sans);
+  cursor: pointer;
+  transition:
+    border-color .18s var(--ease),
+    background-color .18s var(--ease),
+    transform .18s var(--ease),
+    box-shadow .18s var(--ease);
+}
+
+.area-card--oro     { --tier: var(--oro);   --tier-tint: rgba(217, 184, 93, .12); }
+.area-card--plata   { --tier: var(--plata); --tier-tint: rgba(185, 188, 182, .10); }
+.area-card--general { --tier: var(--info);  --tier-tint: rgba(106, 169, 255, .12); }
+
+/* Filete de nivel: siempre presente, es lo que identifica la categoría. */
+.area-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--tier);
+  opacity: .8;
+  transition: opacity .18s var(--ease), width .18s var(--ease);
+}
+
+/* Marca de elegida: además del color, un tilde. El estado no se comunica
+   solo por color. */
+.area-card::after {
+  content: "✓";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--black);
+  font: 700 .82rem/1 var(--sans);
+  opacity: 0;
+  transform: scale(.5);
+  transition: opacity .18s var(--ease), transform .18s var(--ease);
+}
+
+.area-card__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "badge"
+    "title"
+    "desc"
+    "price";
+  gap: 9px;
+  padding: 18px 18px 18px 22px;
+}
+.area-card .badge  { grid-area: badge; justify-self: start; }
+.area-card h4      { grid-area: title; }
+.area-card p       { grid-area: desc; }
+.area-card .price  { grid-area: price; }
+
+.area-card h4 {
+  margin: 0;
+  font: 700 clamp(1.25rem, 5vw, 1.6rem)/1 var(--display);
+  letter-spacing: -.045em;
+  color: var(--text);
+}
+.area-card p {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+/* El precio es lo que la gente compara: tipografía display, números
+   tabulares y su propia línea separada por un filete. */
+.price {
+  display: block;
+  margin-top: 3px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--text);
+  font: 700 clamp(1.05rem, 4.4vw, 1.3rem)/1.05 var(--display);
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Etiqueta de nivel. Rectángulo, no píldora: el sitio es de esquinas rectas. */
+.badge {
+  display: inline-block;
+  padding: 5px 8px;
+  border: 1px solid;
+  border-radius: 2px;
+  border-color: var(--tier, var(--line));
+  color: var(--tier, var(--muted));
+  background: var(--tier-tint, transparent);
+  font: 700 .56rem/1 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* Dentro de una tarjeta heredan el color del nivel; sueltas, cada una tiene
+   el suyo, así el badge nunca queda sin identidad. */
+.badge--vip {
+  border-color: var(--tier, var(--oro));
+  color: var(--tier, var(--oro));
+}
+.badge--general {
+  border-color: var(--tier, var(--info));
+  color: var(--tier, var(--info));
+  background: var(--tier-tint, rgba(106, 169, 255, .12));
+}
+
+/* -------- Estados -------- */
+.area-card:hover {
+  border-color: #5a5e57;
+  background: var(--surface);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px -22px #000;
+}
+.area-card:hover::before { opacity: 1; width: 6px; }
+.area-card:active { transform: translateY(0); }
+
+.area-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+/* Elegida. app.js todavía no marca la tarjeta, pero el estado queda listo
+   para cualquiera de los ganchos habituales. */
+.area-card[aria-pressed="true"],
+.area-card[data-selected="true"],
+.area-card.is-selected,
+.area-card.selected,
+.area-card--activa {
+  border-color: var(--accent);
+  background:
+    linear-gradient(90deg, var(--accent-soft) 0%, var(--surface-2) 55%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 89, 54, .35),
+    0 14px 34px -20px rgba(255, 89, 54, .75);
+}
+.area-card[aria-pressed="true"]::after,
+.area-card[data-selected="true"]::after,
+.area-card.is-selected::after,
+.area-card.selected::after,
+.area-card--activa::after { opacity: 1; transform: scale(1); }
+
+.area-card[aria-pressed="true"] .price,
+.area-card[data-selected="true"] .price,
+.area-card.is-selected .price,
+.area-card.selected .price,
+.area-card--activa .price { border-top-color: rgba(255, 89, 54, .4); }
+
+/* A partir de acá el precio se va a la derecha, como columna de datos. */
+@media (min-width: 620px) {
+  .area-card__body {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "badge price"
+      "title price"
+      "desc  price";
+    align-items: center;
+    column-gap: 26px;
+    row-gap: 8px;
+    padding: 22px 24px 22px 26px;
+  }
+  .price {
+    margin-top: 0;
+    padding: 4px 0 4px 26px;
+    border-top: 0;
+    border-left: 1px solid var(--line-soft);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .area-card[aria-pressed="true"] .price,
+  .area-card[data-selected="true"] .price,
+  .area-card.is-selected .price,
+  .area-card.selected .price,
+  .area-card--activa .price {
+    border-top-color: transparent;
+    border-left-color: rgba(255, 89, 54, .4);
+  }
+}
+
+/* =========================================================
+   3. Formularios
+   ========================================================= */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px 18px;
+}
+@media (min-width: 560px) {
+  .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Si queda un campo solo en la última fila, ocupa el ancho completo. */
+  .form-grid > .field:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.field label {
+  display: block;
+  line-height: 1.35;
+}
+.field__opcional {
+  color: var(--dim);
+  font-weight: 500;
+  letter-spacing: .04em;
+  text-transform: none;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 13px 14px;
+  /* 16px real: si baja de ahí, iOS hace zoom al enfocar. */
+  font-size: max(1rem, 16px);
+  font-family: var(--sans);
+  line-height: 1.3;
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease), background-color .16s var(--ease);
+}
+.field input::placeholder { color: var(--dim); }
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 0;
+  border-color: var(--accent);
+  background: var(--surface-2);
+  box-shadow: 0 0 0 2px rgba(255, 89, 54, .32);
+}
+
+/* -------- Error --------
+   El campo se marca en rojo y además aparece el texto: nunca solo color. */
+.field input.invalid,
+.field select.invalid,
+.field textarea.invalid,
+.invalid {
+  border-color: var(--danger);
+}
+.field input.invalid:focus,
+.field select.invalid:focus,
+.field textarea.invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(255, 102, 96, .35);
+}
+
+.error {
+  display: block;
+  color: var(--danger);
+  font: 600 .72rem/1.4 var(--sans);
+}
+.error::before {
+  content: "▲";
+  margin-right: 6px;
+  font-size: .62rem;
+  vertical-align: 1px;
+}
+/* app.js vacía el span cuando el error se resuelve. */
+.error:empty { display: none; }
+
+/* El error de área y el de lugar cuelgan del panel, no de un campo. */
+.step-panel > .error:not(:empty) {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 102, 96, .45);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 102, 96, .07);
+}
+
+/* =========================================================
+   4. Botones
+   ========================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 14px 18px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color .18s var(--ease),
+    border-color .18s var(--ease),
+    color .18s var(--ease),
+    transform .18s var(--ease),
+    box-shadow .18s var(--ease);
+}
+
+.btn--primary {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0 rgba(255, 89, 54, .5);
+}
+.btn--primary:not(:disabled):hover {
+  background: #ff6848;
+  border-color: #ff6848;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -12px rgba(255, 89, 54, .85);
+}
+.btn--primary:not(:disabled):active { transform: translateY(0); }
+
+.btn--ghost {
+  border-color: var(--line);
+}
+.btn--ghost:not(:disabled):hover {
+  background: var(--surface-2);
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.btn--link {
+  min-height: 0;
+  padding: 8px 2px;
+  border: 0;
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 5px;
+}
+.btn--link:not(:disabled):hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+.btn--block { display: flex; width: 100%; }
+.btn--lg {
+  min-height: 54px;
+  padding: 17px 22px;
+  font-size: .72rem;
+  letter-spacing: .09em;
+}
+
+/* Deshabilitado. #btnIrDatos arranca así: tiene que verse apagado sin
+   ninguna duda, y el cursor lo confirma. */
+.btn:disabled,
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  background: var(--surface-2);
+  border-color: var(--line-soft);
+  color: var(--dim);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+/* Barra de acciones al pie de cada paso. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-soft);
+}
+.actions > .btn { flex: 1 1 auto; }
+.actions > .btn--primary { flex: 1.7 1 auto; }
+.actions > .btn--link { flex: 0 0 auto; }
+
+/* =========================================================
+   5. Resumen del paso 3
+   Ya existe en plano.css; acá solo se alinea con el resto del flujo.
+   ========================================================= */
+
+.resumen-compra .row span:first-child {
+  font: 600 .58rem/1.5 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.resumen-compra .row span:last-child { text-align: right; }
+.resumen-compra .row:last-child span:first-child { color: var(--accent); }
+
+/* =========================================================
+   6. pagar.html — estructura de página
+   ========================================================= */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(9, 10, 9, .94);
+  border-bottom: 1px solid var(--line-soft);
+  backdrop-filter: blur(12px);
+}
+.topbar__inner {
+  width: min(var(--max), calc(100% - 32px));
+  min-height: 64px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 24px;
+  padding: 12px 0;
+}
+.topbar__brand { display: flex; align-items: center; }
+.topbar .steps-rail { gap: 8px 16px; }
+
+/* A 430px el riel se lleva su propia línea y solo el paso activo dice
+   su nombre; el número sigue estando para los otros dos. */
+@media (max-width: 430px) {
+  .topbar__inner { justify-content: center; }
+  .topbar__brand { flex: 1 0 100%; justify-content: center; }
+  .topbar .steps-rail .step-indicator:not(.active) .step-indicator__label { display: none; }
+}
+
+/* Solo pagar.html: index.html usa .container junto a .editorial-page. */
+main.container:not(.editorial-page) {
+  width: min(880px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 36px 0 56px;
+}
+/* Acá los pasos son la página entera, no una tarjeta dentro de otra. */
+main.container:not(.editorial-page) > .step-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+main.container:not(.editorial-page) > .step-panel > h2 {
+  margin: 0 0 8px;
+  font: 700 clamp(1.9rem, 6vw, 2.9rem)/.95 var(--display);
+  letter-spacing: -.055em;
+  text-wrap: balance;
+}
+main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px; }
+
+.footer {
+  width: min(var(--max), calc(100% - 32px));
+  margin: 60px auto 0;
+  padding: 24px 0 36px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--dim);
+  font: 600 .6rem/1.6 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* =========================================================
+   7. pagar.html — pago con PIX
+   ========================================================= */
+
+/* Rejilla de 1px, como .experience-grid: los bloques se tocan y la línea
+   que los separa es la del sitio. */
+.pay-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  margin-top: 26px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+@media (min-width: 800px) {
+  .pay-layout { grid-template-columns: minmax(0, .85fr) minmax(0, 1fr); }
+}
+
+.pay-card {
+  min-width: 0;
+  padding: 24px 22px;
+  background: var(--surface);
+}
+.pay-card__title {
+  margin: 0 0 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font: 600 .6rem/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.order-summary { font-size: .88rem; }
+.order-summary .row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.order-summary .row span:first-child {
+  flex: none;
+  color: var(--muted);
+  font: 600 .58rem/1.5 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.order-summary .row span:last-child {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+/* La última fila es el total: cierra el bloque y manda. */
+.order-summary .row:last-child {
+  margin-top: 6px;
+  padding: 15px 0 0;
+  border-bottom: 0;
+  border-top: 1px solid var(--line);
+  align-items: center;
+}
+.order-summary .row:last-child span:first-child { color: var(--accent); }
+.order-summary .row:last-child span:last-child {
+  color: var(--text);
+  font: 700 1.45rem/1 var(--display);
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pix-box {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 26px 20px 24px;
+  background: var(--surface-2);
+  text-align: center;
+}
+.pix-box__title {
+  margin: 0;
+  max-width: 24ch;
+  font: 700 clamp(1rem, 3.6vw, 1.2rem)/1.2 var(--display);
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+.pix-box__sub {
+  margin: -8px 0 0;
+  color: var(--muted);
+  font: 600 .58rem/1 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+/* El QR va sobre blanco o no escanea. Las esquinas naranjas lo encuadran
+   como una mira, que es el gesto del sitio. */
+.qr-frame {
+  position: relative;
+  margin: 6px 0;
+  padding: 14px;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 20px 44px -24px #000;
+}
+.qr-frame::before,
+.qr-frame::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--accent);
+}
+.qr-frame::before {
+  top: -7px;
+  left: -7px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.qr-frame::after {
+  right: -7px;
+  bottom: -7px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.qrcode { line-height: 0; }
+.qrcode canvas,
+.qrcode img,
+.ticket__qr canvas,
+.ticket__qr img {
+  max-width: 100%;
+  height: auto;
+}
+.qrcode table,
+.ticket__qr table { border-collapse: collapse; }
+
+.pix-box__timer {
+  margin: 0;
+  color: var(--muted);
+  font: 600 .6rem/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.pix-box__timer span {
+  margin-left: 7px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--accent);
+  font-size: .78rem;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pix-copy-label {
+  display: block;
+  margin-top: 6px;
+  color: var(--dim);
+  font: 600 .56rem/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+/* El código PIX completo tiene cientos de caracteres: se muestra el arranque
+   y el botón entero es la zona de copiado. */
+.pix-copy {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color .18s var(--ease), background-color .18s var(--ease);
+}
+.pix-copy:hover { border-color: var(--accent); background: #0d0f0d; }
+.pix-copy__code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font: 500 .82rem/1.2 var(--mono);
+  letter-spacing: .08em;
+}
+.pix-copy__code::after { content: "\2026"; }
+.pix-copy__icon { flex: none; font-size: .9rem; line-height: 1; }
+.pix-copy__label {
+  flex: none;
+  color: var(--accent);
+  font: 700 .6rem/1 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+/* Confirmación: cambia el color y también el texto ("¡Copiado!"). */
+.pix-copy--copiado { border-color: var(--success); background: rgba(99, 215, 140, .07); }
+.pix-copy--copiado .pix-copy__label,
+.pix-copy--copiado .pix-copy__code { color: var(--success); }
+
+.pix-box .btn--block { margin-top: 4px; }
+
+.pago-estado {
+  margin: 0;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+.pago-estado:empty { display: none; }
+.pago-estado:not(:empty) {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--text);
+  text-align: left;
+}
+
+/* =========================================================
+   8. pagar.html — la entrada emitida
+   Es el premio de toda la compra: talón troquelado, no un recuadro.
+   ========================================================= */
+
+#entradas { margin-top: 22px; }
+
+.ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 20px 44px -30px #000;
+}
+.ticket + .ticket { margin-top: 16px; }
+
+/* Filete superior: la entrada arranca con la marca del evento. */
+.ticket::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.ticket__info {
+  min-width: 0;
+  padding: 24px 22px 22px;
+}
+.ticket__info h3 {
+  margin: 10px 0 16px;
+  font: 700 clamp(1.3rem, 5.2vw, 1.75rem)/1 var(--display);
+  letter-spacing: -.045em;
+  overflow-wrap: anywhere;
+}
+.ticket__info .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line-soft);
+  font: 600 .84rem/1.4 var(--mono);
+  letter-spacing: .02em;
+  overflow-wrap: anywhere;
+}
+.ticket__info .row strong {
+  flex: none;
+  min-width: 76px;
+  color: var(--dim);
+  font: 600 .56rem/1.6 var(--mono);
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+/* Chip de sección. Sin conocer los códigos de la base, la versión neutra
+   ya funciona; ORO / PLATA / GENERAL suman su color. */
+.ticket__area {
+  display: inline-block;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--muted);
+  font: 700 .56rem/1 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.ticket__area--ORO,
+.ticket__area--oro {
+  border-color: var(--oro);
+  color: var(--oro);
+  background: rgba(217, 184, 93, .12);
+}
+.ticket__area--PLATA,
+.ticket__area--plata {
+  border-color: var(--plata);
+  color: var(--plata);
+  background: rgba(185, 188, 182, .1);
+}
+.ticket__area--GENERAL,
+.ticket__area--general {
+  border-color: var(--info);
+  color: var(--info);
+  background: rgba(106, 169, 255, .12);
+}
+
+/* Talón: separado por el troquel y con dos muescas en los extremos. */
+.ticket__qr {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 22px 20px;
+  border-top: 2px dashed var(--line);
+  background: var(--surface-2);
+  line-height: 0;
+}
+.ticket__qr::before,
+.ticket__qr::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg);
+}
+.ticket__qr::before { left: -9px; }
+.ticket__qr::after { right: -9px; }
+
+.ticket__qr canvas,
+.ticket__qr img {
+  display: block;
+  padding: 9px;
+  border-radius: 2px;
+  background: #fff;
+}
+.ticket__qr-hint {
+  margin: 0;
+  color: var(--dim);
+  font: 600 .54rem/1.4 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+@media (min-width: 560px) {
+  .ticket { grid-template-columns: minmax(0, 1fr) auto; }
+  .ticket__qr {
+    border-top: 0;
+    border-left: 2px dashed var(--line);
+  }
+  .ticket__qr::before { top: -9px; left: -9px; right: auto; }
+  .ticket__qr::after { top: auto; bottom: -9px; left: -9px; right: auto; }
+}
+
+/* =========================================================
+   9. pagar.html — compra expirada o cancelada
+   pagar.html no carga verificar.css, así que el panel de error necesita
+   su propia versión del veredicto. Mismo lenguaje, versión compacta.
+   ========================================================= */
+
+main.container:not(.editorial-page) .verify-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 24px;
+  padding: 34px 22px 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+}
+main.container:not(.editorial-page) .verify-card__icon {
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+main.container:not(.editorial-page) .verify-card__status {
+  margin: 0 0 12px;
+  font: 700 clamp(1.4rem, 5.6vw, 2rem)/1.05 var(--display);
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+main.container:not(.editorial-page) .verify-card--invalida {
+  color: var(--danger);
+  border-color: rgba(255, 102, 96, .5);
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(255, 102, 96, .12), transparent 70%),
+    var(--surface);
+}
+/* Banda a rayas: el estado no depende solo del color. */
+main.container:not(.editorial-page) .verify-card--invalida::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: repeating-linear-gradient(45deg, var(--danger) 0 10px, #2a1417 10px 20px);
+}
+main.container:not(.editorial-page) .verify-card .hint {
+  max-width: 40ch;
+  margin: 0 auto;
+  color: var(--muted);
+}
+
+/* =========================================================
+   10. Ajustes finos de pantalla chica
+   ========================================================= */
+
+@media (max-width: 420px) {
+  .area-card__body { padding: 16px 15px 16px 19px; gap: 8px; }
+  .pay-card { padding: 20px 16px; }
+  .pix-box { padding: 22px 14px 20px; gap: 12px; }
+  .qr-frame { padding: 11px; }
+  .ticket__info { padding: 20px 16px 18px; }
+  .ticket__qr { padding: 20px 14px; }
+  .ticket__info .row strong { min-width: 100%; }
+  /* Apilados y a ancho completo. No se invierte el orden: el foco del
+     teclado tiene que recorrerlos como se ven. */
+  .actions > .btn { flex: 1 1 100%; }
+  .footer { letter-spacing: .06em; }
+}
+
+/* =========================================================
+   11. Movimiento reducido
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .area-card,
+  .area-card::before,
+  .area-card::after,
+  .btn,
+  .field input,
+  .field select,
+  .field textarea,
+  .pix-copy,
+  .text-cta,
+  .text-cta span {
+    transition: none !important;
+  }
+  .area-card:hover,
+  .btn--primary:not(:disabled):hover { transform: none; }
+  .text-cta:hover span { transform: none; }
+}

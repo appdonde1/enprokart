@@ -118,6 +118,9 @@
     suscribirRealtime();
   }
 
+  // Todo evento muestra una imagen: si no cargaron la suya, va la genérica.
+  const IMAGEN_GENERICA = "placeholders/evento-generico.jpg";
+
   function pintarEvento(event) {
     const cuando = event.event_date
       ? new Date(event.event_date).toLocaleString("es", {
@@ -125,32 +128,25 @@
       })
       : "";
 
-    const conPortada = Boolean(event.cover_image);
+    const img = $("eventoImagen");
+    img.src = event.cover_image || IMAGEN_GENERICA;
+    img.alt = event.name;
+    img.addEventListener("error", () => { img.src = IMAGEN_GENERICA; }, { once: true });
+    $("eventoPortada").hidden = false;
+    $("eventoTagline").textContent = event.tagline || "";
+    $("eventoNombre").textContent = event.name;
+    $("eventoFecha").textContent = cuando;
+    // El lugar solo se muestra si está cargado; si no, la fila queda a medias.
+    const lugar = $("eventoLugar");
+    lugar.textContent = event.venue || "";
+    lugar.closest("span").hidden = !event.venue;
 
-    if (conPortada) {
-      const img = $("eventoImagen");
-      img.src = event.cover_image;
-      img.alt = event.name;
-      $("eventoPortada").hidden = false;
-      $("eventoTagline").textContent = event.tagline || "";
-      $("eventoNombre").textContent = event.name;
-      $("eventoFecha").textContent = cuando;
-      $("eventoLugar").textContent = event.venue || "";
-    }
-
-    // El nombre y la fecha se dicen una sola vez. Con foto los lleva la
-    // portada; sin foto, la columna de la derecha, que si no queda vacía.
-    const copia = document.querySelector(".feature__copy");
-    if (copia) copia.classList.toggle("feature__copy--secundaria", conPortada);
-
-    if (conPortada) {
-      $("heroTitulo").textContent = event.tagline || event.name;
-      $("heroSubtitulo").textContent =
-        event.description || "Entradas por mesa, con tu lugar asegurado.";
-    } else {
-      $("heroTitulo").textContent = event.name;
-      $("heroSubtitulo").textContent = [cuando, event.venue].filter(Boolean).join(" · ");
-    }
+    // El nombre y la fecha ya los dice la portada, así que la columna de la
+    // derecha no los repite: lleva la bajada y de qué se trata el evento.
+    document.querySelector(".feature__copy")?.classList.add("feature__copy--secundaria");
+    $("heroTitulo").textContent = event.tagline || event.name;
+    $("heroSubtitulo").textContent =
+      event.description || "Entradas por mesa, con tu lugar asegurado.";
   }
 
   // ---------- portada: próximos eventos ----------

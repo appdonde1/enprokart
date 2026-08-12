@@ -1,0 +1,10 @@
+# El panel del personal y la pantalla de validación no son para el público.
+# Esto los saca de los buscadores; lo que impide el acceso es el inicio de
+# sesión y las políticas de la base, no este archivo.
+
+User-agent: *
+Disallow: /admin/
+Disallow: /verificar.html
+Disallow: /pagar.html
+
+Allow: /
