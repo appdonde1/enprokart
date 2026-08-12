@@ -10,8 +10,29 @@
 # La IP local se muestra automáticamente al iniciar.
 # =========================================================
 
-$puerto = 8080
+param([int]$Puerto = 8080)
+
 $raiz = $PSScriptRoot
+
+# Si el puerto está ocupado por otro proyecto, se busca el siguiente libre en vez
+# de arrancar sobre él y terminar sirviendo la carpeta equivocada.
+function Test-PuertoLibre([int]$p) {
+  try {
+    $prueba = New-Object System.Net.HttpListener
+    $prueba.Prefixes.Add("http://localhost:$p/")
+    $prueba.Start()
+    $prueba.Stop()
+    return $true
+  } catch {
+    return $false
+  }
+}
+
+$puerto = $Puerto
+while (-not (Test-PuertoLibre $puerto) -and $puerto -lt ($Puerto + 20)) {
+  Write-Host "Puerto $puerto ocupado, probando el siguiente..." -ForegroundColor Yellow
+  $puerto++
+}
 
 $mimeTypes = @{
   ".html" = "text/html; charset=utf-8"
