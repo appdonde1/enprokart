@@ -3,20 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1117" />
   <title>Venta de Entradas · Pro Kart</title>
   <link rel="icon" href="Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
   <header class="topbar">
-    <div class="topbar__brand">
-      <img src="Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
-    </div>
-    <div class="topbar__steps" id="stepsIndicator">
-      <div class="step-indicator active" data-step="1">1. Registro</div>
-      <div class="step-indicator" data-step="2">2. Pago PIX</div>
-      <div class="step-indicator" data-step="3">3. Confirmación</div>
+    <div class="topbar__inner">
+      <div class="topbar__brand">
+        <span class="brand-plate">
+          <img src="Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
+        </span>
+      </div>
+      <div class="topbar__steps steps-rail" id="stepsIndicator">
+        <div class="step-indicator active" data-step="1">
+          <span class="step-indicator__dot">1</span>
+          <span class="step-indicator__label">Registro</span>
+        </div>
+        <div class="step-indicator" data-step="2">
+          <span class="step-indicator__dot">2</span>
+          <span class="step-indicator__label">Pago</span>
+        </div>
+        <div class="step-indicator" data-step="3">
+          <span class="step-indicator__dot">3</span>
+          <span class="step-indicator__label">Entrada</span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -24,10 +43,24 @@
 
     <!-- HERO -->
     <section class="hero" id="hero">
-      <img src="Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
-      <h1 id="heroTitulo">Cargando evento...</h1>
-      <p class="hero__sub" id="heroSubtitulo"></p>
-      <button class="btn btn--primary" id="btnComprar">Comprar entrada</button>
+      <div class="hero__bg" aria-hidden="true"></div>
+      <div class="hero__inner">
+        <span class="brand-plate brand-plate--hero">
+          <img src="Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
+        </span>
+        <p class="hero__eyebrow">
+          <span class="hero__flagmark" aria-hidden="true"></span>
+          Entradas oficiales
+        </p>
+        <h1 id="heroTitulo">Cargando evento...</h1>
+        <p class="hero__sub" id="heroSubtitulo"></p>
+        <button class="btn btn--primary btn--lg" id="btnComprar">Comprar entrada</button>
+        <ul class="hero__points">
+          <li>Pago instantáneo con PIX</li>
+          <li>Elegís tu mesa en el mapa</li>
+          <li>Entrada con QR al instante</li>
+        </ul>
+      </div>
     </section>
 
     <!-- PASO 1: REGISTRO + SELECCIÓN DE ÁREA -->
@@ -121,11 +154,19 @@
       <h2>2. Pago vía PIX</h2>
 
       <div class="pay-layout">
-        <div class="order-summary" id="orderSummary"></div>
+        <div class="pay-card">
+          <p class="pay-card__title">Tu pedido</p>
+          <div class="order-summary" id="orderSummary"></div>
+        </div>
 
         <div class="pix-box">
           <p class="pix-box__title">Escanea el código con la app de tu banco</p>
-          <div id="qrcode" class="qrcode"></div>
+          <p class="pix-box__sub">El pago se acredita en segundos</p>
+
+          <div class="qr-frame">
+            <div id="qrcode" class="qrcode"></div>
+          </div>
+
           <p class="pix-box__timer">Tu lugar queda reservado <span id="timer">15:00</span></p>
 
           <label class="pix-copy-label">O copia el código PIX</label>
@@ -150,7 +191,7 @@
       <h2>3. ¡Pago confirmado!</h2>
       <div class="ticket" id="ticket"></div>
       <div class="actions">
-        <button type="button" class="btn btn--primary" id="btnNuevaCompra">Realizar nueva compra</button>
+        <button type="button" class="btn btn--ghost" id="btnNuevaCompra">Realizar nueva compra</button>
       </div>
     </section>
 

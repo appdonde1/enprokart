@@ -1,53 +1,227 @@
+/* =========================================================
+   Pantalla de validación (puerta del evento)
+   Se usa de noche, de pie y con apuro: el veredicto tiene que
+   leerse a un metro de distancia y sin interpretar matices.
+   ========================================================= */
+
 .verify-body {
   display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100vh;
-  padding: 16px;
+  padding: 20px 16px 36px;
 }
 
+/* `margin:auto` centra sin recortar cuando el contenido crece */
 .verify-container {
   width: 100%;
-  max-width: 420px;
+  max-width: 460px;
+  margin: auto;
 }
 
+/* El resultado se muestra arriba del formulario: es lo que se mira */
+#scanCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+#resultCard { order: -1; }
+
 .verify-card {
+  position: relative;
+  overflow: hidden;
   background: var(--color-panel);
-  border-radius: var(--radius);
-  border: 1px solid #262a38;
-  box-shadow: var(--shadow);
-  padding: 32px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-lg);
+  padding: 28px 22px 24px;
   text-align: center;
 }
 
+.verify-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.verify-brand__tag {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: rgba(255, 183, 3, 0.1);
+  border: 1px solid rgba(255, 183, 3, 0.32);
+  border-radius: 999px;
+  padding: 4px 11px;
+}
+
 .verify-card__icon {
-  font-size: 3.2rem;
-  margin-bottom: 8px;
+  width: 82px;
+  height: 82px;
+  margin: 4px auto 14px;
+  display: grid;
+  place-items: center;
+  font-size: 2.6rem;
+  line-height: 1;
+  border-radius: 50%;
+  border: 3px solid currentColor;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .verify-card__status {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin: 8px 0 16px;
+  font-size: clamp(1.5rem, 7vw, 2.1rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 6px 0 14px;
+  text-wrap: balance;
 }
 
+/* -------- Estados --------
+   Cada uno cambia color, patrón de la banda superior e icono, para que
+   no dependa solo del color. */
+.verify-card--valida,
+.verify-card--usada,
+.verify-card--invalida { padding-top: 34px; }
+
+.verify-card--valida::before,
+.verify-card--usada::before,
+.verify-card--invalida::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+}
+
+.verify-card--valida {
+  color: var(--color-success);
+  border-color: rgba(53, 208, 127, 0.55);
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(53, 208, 127, 0.14), transparent 70%),
+    var(--color-panel);
+  box-shadow: 0 0 0 1px rgba(53, 208, 127, 0.25), 0 26px 60px -28px rgba(53, 208, 127, 0.8);
+}
+.verify-card--valida::before { background: var(--color-success); }
 .verify-card--valida .verify-card__status { color: var(--color-success); }
-.verify-card--invalida .verify-card__status { color: var(--color-danger); }
+
+.verify-card--usada {
+  color: var(--color-primary);
+  border-color: rgba(255, 183, 3, 0.55);
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(255, 183, 3, 0.13), transparent 70%),
+    var(--color-panel);
+  box-shadow: 0 0 0 1px rgba(255, 183, 3, 0.25), 0 26px 60px -28px rgba(255, 183, 3, 0.7);
+}
+/* Banda a rayas suaves: distinta del verde incluso en blanco y negro */
+.verify-card--usada::before {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-primary) 0 12px,
+    rgba(255, 183, 3, 0.35) 12px 24px
+  );
+}
 .verify-card--usada .verify-card__status { color: var(--color-primary); }
 
+.verify-card--invalida {
+  color: var(--color-danger);
+  border-color: rgba(255, 92, 92, 0.6);
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(255, 92, 92, 0.15), transparent 70%),
+    var(--color-panel);
+  box-shadow: 0 0 0 1px rgba(255, 92, 92, 0.3), 0 26px 60px -28px rgba(255, 92, 92, 0.8);
+}
+/* Banda de peligro */
+.verify-card--invalida::before {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-danger) 0 10px,
+    #2a1417 10px 20px
+  );
+}
+.verify-card--invalida .verify-card__status { color: var(--color-danger); }
+
+/* Aviso secundario (cuándo y quién validó) */
+.verify-card--usada .hint,
+.verify-card--invalida .hint {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: 0;
+}
+
+/* -------- Detalle de la entrada -------- */
 .verify-card__details {
   text-align: left;
-  background: var(--color-panel-alt);
-  border-radius: 10px;
-  padding: 16px;
-  margin-top: 12px;
+  background: var(--color-bg-deep);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  padding: 6px 16px;
+  margin-top: 18px;
+  color: var(--color-text);
 }
 .verify-card__details .row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.9rem;
-  padding: 6px 0;
-  border-bottom: 1px dashed #2a2f3f;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 0.94rem;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 .verify-card__details .row:last-child { border-bottom: none; }
-.verify-card__details .row span:first-child { color: var(--color-muted); }
+.verify-card__details .row span:first-child {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  flex: none;
+}
+.verify-card__details .row span:last-child { text-align: right; word-break: break-word; }
+.verify-card__details .row:last-child span:last-child {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  letter-spacing: 0.5px;
+}
+
+/* -------- Formulario de escaneo -------- */
+.verify-card--scan .field { text-align: left; }
+.verify-card--scan .field label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+}
+
+#codigo {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  letter-spacing: 1.5px;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 15px 12px;
+}
+
+.verify-card--scan .error { text-align: left; }
+.verify-card--scan .btn--lg { margin-top: 14px; }
+
+#staffInfo {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line);
+  font-size: 0.78rem;
+}
+
+/* -------- Login del personal -------- */
+#loginCard .field { text-align: left; margin-bottom: 14px; }
+#loginCard .btn--primary { width: 100%; margin-top: 8px; }
+#loginCard .verify-card__status { font-size: 1.3rem; }
+#loginCard .hint { margin-bottom: 20px; }
+
+@media (max-width: 400px) {
+  .verify-card { padding: 24px 16px 20px; border-radius: var(--radius); }
+  .verify-card--valida,
+  .verify-card--usada,
+  .verify-card--invalida { padding-top: 30px; }
+  .verify-card__icon { width: 70px; height: 70px; font-size: 2.2rem; }
+}

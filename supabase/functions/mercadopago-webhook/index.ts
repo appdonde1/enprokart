@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
   const { data: order } = await db
     .from("orders")
-    .select("id, status, event_id, section_id, seat_id, buyer_name, buyer_lastname, buyer_document, buyer_whatsapp")
+    .select("id, status, event_id, section_id, seat_id, people, tables_count, buyer_name, buyer_lastname, buyer_document, buyer_whatsapp")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -83,13 +83,12 @@ Deno.serve(async (req) => {
 
   if (FALLIDO.includes(pago.status)) {
     await db.from("orders").update({ status: "failed" }).eq("id", order.id);
-    if (order.seat_id) {
-      await db
-        .from("seats")
-        .update({ status: "available", held_by: null, held_until: null })
-        .eq("id", order.seat_id)
-        .eq("status", "held");
-    }
+    // Se sueltan todas las mesas que esta compra tenía reservadas.
+    await db
+      .from("seats")
+      .update({ status: "available", held_by: null, held_until: null })
+      .eq("held_by", order.id)
+      .eq("status", "held");
     await cerrar("processed");
     return json({ ok: true });
   }
@@ -108,56 +107,55 @@ Deno.serve(async (req) => {
   const { data: section } = await db
     .from("sections").select("code, label").eq("id", order.section_id).maybeSingle();
 
-  let tableNumber: number | null = null;
-  let seatNumber: number | null = null;
-  if (order.seat_id) {
-    const { data: seat } = await db
-      .from("seats").select("number, table_id").eq("id", order.seat_id).maybeSingle();
-    seatNumber = seat?.number ?? null;
-    if (seat?.table_id) {
-      const { data: table } = await db
-        .from("tables").select("number").eq("id", seat.table_id).maybeSingle();
-      tableNumber = table?.number ?? null;
-    }
-  }
+  // Se emite una entrada por persona: cada invitado entra con su propio QR.
+  const personas = Math.max(1, order.people ?? 1);
 
-  const code = generateTicketCode(section?.code ?? "GEN");
-  const qrSignature = await signTicket(code);
+  const { data: mesas } = await db
+    .from("order_tables").select("table_code").eq("order_id", order.id).order("table_code");
 
-  const { data: ticket, error: ticketError } = await db
-    .from("tickets")
-    .insert({
+  const codigosMesa: string[] = (mesas ?? []).map((m: any) => m.table_code);
+
+  const entradas = [];
+  for (let i = 0; i < personas; i++) {
+    const code = generateTicketCode(section?.code ?? "GEN");
+    entradas.push({
       order_id: order.id,
       event_id: order.event_id,
       section_id: order.section_id,
       code,
-      qr_signature: qrSignature,
+      qr_signature: await signTicket(code),
       section_code: section?.code ?? "GEN",
       section_label: section?.label ?? "General",
-      table_number: tableNumber,
-      seat_number: seatNumber,
+      // Los invitados se reparten entre las mesas compradas, en orden.
+      table_code: codigosMesa.length
+        ? codigosMesa[Math.min(codigosMesa.length - 1, Math.floor(i / Math.ceil(personas / codigosMesa.length)))]
+        : null,
+      table_number: null,
+      seat_number: null,
+      guest_index: i + 1,
       buyer_name: order.buyer_name,
       buyer_lastname: order.buyer_lastname,
       buyer_document: order.buyer_document,
       buyer_whatsapp: order.buyer_whatsapp,
-    })
-    .select("id")
-    .single();
+    });
+  }
 
-  if (ticketError || !ticket) {
-    await cerrar("error", ticketError?.message ?? "No se pudo emitir el ticket");
-    return fail("No se pudo emitir el ticket", 500);
+  const { data: emitidas, error: ticketError } = await db
+    .from("tickets").insert(entradas).select("id");
+
+  if (ticketError || !emitidas?.length) {
+    await cerrar("error", ticketError?.message ?? "No se pudieron emitir las entradas");
+    return fail("No se pudieron emitir las entradas", 500);
   }
 
   await db.from("orders").update({ status: "paid" }).eq("id", order.id);
 
-  if (order.seat_id) {
-    await db
-      .from("seats")
-      .update({ status: "occupied", held_by: null, held_until: null, ticket_id: ticket.id })
-      .eq("id", order.seat_id);
-  }
+  // Las mesas reservadas pasan a ocupadas.
+  await db
+    .from("seats")
+    .update({ status: "occupied", held_by: null, held_until: null, ticket_id: emitidas[0].id })
+    .eq("held_by", order.id);
 
   await cerrar("processed");
-  return json({ ok: true });
+  return json({ ok: true, tickets: emitidas.length });
 });

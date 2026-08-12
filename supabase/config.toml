@@ -403,6 +403,14 @@ verify_jwt = true
 [functions.expire-holds]
 verify_jwt = false
 
+# Gestión de personal y cortesías: exigen sesión, y además la función comprueba
+# que el rol sea admin.
+[functions.staff-admin]
+verify_jwt = true
+
+[functions.courtesy-ticket]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

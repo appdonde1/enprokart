@@ -3,8 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1117" />
   <title>Validación de entradas · Pro Kart</title>
   <link rel="icon" href="Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/verificar.css" />
 </head>
@@ -14,7 +20,9 @@
 
     <!-- Solo el personal del evento puede validar entradas -->
     <section class="verify-card hidden" id="loginCard">
-      <img src="Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
+      <span class="brand-plate brand-plate--auth">
+        <img src="Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
+      </span>
       <p class="verify-card__status">Acceso del personal</p>
       <p class="hint">Inicia sesión para validar entradas.</p>
       <form id="loginForm">
@@ -32,15 +40,22 @@
     </section>
 
     <section class="hidden" id="scanCard">
-      <div class="verify-card">
+      <div class="verify-card verify-card--scan">
+        <div class="verify-brand">
+          <span class="brand-plate">
+            <img src="Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
+          </span>
+          <span class="verify-brand__tag">Puerta</span>
+        </div>
         <p class="verify-card__status">Validar entrada</p>
         <form id="codeForm">
           <div class="field">
             <label for="codigo">Código de la entrada</label>
-            <input type="text" id="codigo" placeholder="EVT-ORO-..." autocomplete="off" />
+            <input type="text" id="codigo" placeholder="EVT-ORO-..." autocomplete="off"
+                   autocapitalize="characters" spellcheck="false" />
           </div>
           <span class="error" data-for="codigo"></span>
-          <button type="submit" class="btn btn--primary" id="btnValidar">Validar</button>
+          <button type="submit" class="btn btn--primary btn--block btn--lg" id="btnValidar">Validar</button>
         </form>
         <p class="hint" id="staffInfo"></p>
         <button type="button" class="btn btn--link" id="btnLogout">Cerrar sesión</button>

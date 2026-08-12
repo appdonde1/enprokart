@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
 
   const { data: order } = await db
     .from("orders")
-    .select("id, status, amount_cents, buyer_name, buyer_lastname, expires_at")
+    .select("id, status, amount_cents, people, buyer_name, buyer_lastname, expires_at")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -30,15 +30,18 @@ Deno.serve(async (req) => {
     return json({ status: order.status, expires_at: order.expires_at });
   }
 
-  const { data: ticket } = await db
+  // Una compra puede haber emitido varias entradas, una por invitado.
+  const { data: tickets } = await db
     .from("tickets")
-    .select("code, qr_signature, section_code, section_label, table_number, seat_number, buyer_name, buyer_lastname")
+    .select("code, qr_signature, section_code, section_label, table_code, guest_index, buyer_name, buyer_lastname")
     .eq("order_id", order.id)
-    .maybeSingle();
+    .order("guest_index");
 
   return json({
     status: "paid",
     amount_cents: order.amount_cents,
-    ticket: ticket ?? null,
+    people: order.people,
+    tickets: tickets ?? [],
+    ticket: tickets?.[0] ?? null,
   });
 });

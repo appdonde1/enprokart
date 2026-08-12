@@ -3,8 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1117" />
   <title>Panel · Pro Kart</title>
   <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
 </head>
@@ -13,7 +19,9 @@
   <!-- Login (admin y meseros) -->
   <main class="login-wrap" id="loginWrap">
     <form class="login-card" id="loginForm">
-      <img src="../Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
+      <span class="brand-plate brand-plate--auth">
+        <img src="../Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
+      </span>
       <p class="hint">Acceso exclusivo del personal del evento.</p>
       <div class="field">
         <label for="email">Correo</label>
@@ -30,14 +38,18 @@
 
   <div class="admin-shell hidden" id="shell">
     <header class="topbar">
-      <div class="topbar__brand">
-        <img src="../Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
-      </div>
-      <nav class="topbar__steps" id="tabs"></nav>
-      <div class="topbar__user">
-        <select id="eventSelect" class="select-inline" aria-label="Evento activo"></select>
-        <span id="userBadge" class="badge badge--vip"></span>
-        <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
+      <div class="topbar__inner topbar__inner--wide">
+        <div class="topbar__brand">
+          <span class="brand-plate">
+            <img src="../Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
+          </span>
+        </div>
+        <nav class="topbar__steps tabs-nav" id="tabs"></nav>
+        <div class="topbar__user">
+          <select id="eventSelect" class="select-inline" aria-label="Evento activo"></select>
+          <span id="userBadge" class="badge badge--vip"></span>
+          <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
+        </div>
       </div>
     </header>
 
@@ -88,7 +100,8 @@
             <form id="validarForm">
               <div class="field">
                 <label for="codigoValidar">Escanea el QR o escribe el código</label>
-                <input type="text" id="codigoValidar" placeholder="EVT-ORO-..." autocomplete="off" />
+                <input type="text" id="codigoValidar" placeholder="EVT-ORO-..." autocomplete="off"
+                       autocapitalize="characters" spellcheck="false" />
               </div>
               <span class="error" data-for="validar"></span>
               <button type="submit" class="btn btn--primary" id="btnValidarEntrada">Validar</button>
