@@ -25,8 +25,19 @@
   --display: "Space Grotesk", var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
 
+  /* Complementos de la paleta: tonos que el flujo de reserva, la validación
+     y el panel necesitan y que no estaban definidos. */
+  --accent-dark: #e8431f;
+  --plata: #b9bcb6;
+  --info: #6aa9ff;
+  --surface-3: #202220;
+
   --max: 1180px;
   --radius: 4px;
+  --radius-sm: 3px;
+  --radius-lg: 8px;
+  --shadow: 0 10px 25px rgba(0,0,0,.45);
+  --shadow-lg: 0 24px 60px -22px rgba(0,0,0,.9);
   --ease: cubic-bezier(.2,.7,.2,1);
 }
 
@@ -78,15 +89,14 @@ img { max-width: 100%; }
   gap: 28px;
 }
 .site-brand { justify-self: start; }
+/* El logo va en su versión blanca sobre el fondo, sin placa: la marca respira
+   mejor y no aparece un rectángulo claro cortando la composición oscura. */
 .brand-plate {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--white);
-  padding: 7px 11px 8px;
-  border-radius: 3px;
 }
-.brand-logo { display: block; height: 25px; width: auto; }
+.brand-logo { display: block; height: 26px; width: auto; }
 .site-nav {
   display: flex;
   align-items: center;

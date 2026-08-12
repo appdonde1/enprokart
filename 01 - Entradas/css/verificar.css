@@ -28,9 +28,9 @@
 .verify-card {
   position: relative;
   overflow: hidden;
-  background: var(--color-panel);
+  background: var(--surface);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--line-soft);
   box-shadow: var(--shadow-lg);
   padding: 28px 22px 24px;
   text-align: center;
@@ -48,7 +48,7 @@
   font-weight: 800;
   letter-spacing: 1.4px;
   text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--accent);
   background: rgba(255, 183, 3, 0.1);
   border: 1px solid rgba(255, 183, 3, 0.32);
   border-radius: 999px;
@@ -96,69 +96,69 @@
 }
 
 .verify-card--valida {
-  color: var(--color-success);
+  color: var(--success);
   border-color: rgba(53, 208, 127, 0.55);
   background:
     radial-gradient(90% 60% at 50% 0%, rgba(53, 208, 127, 0.14), transparent 70%),
-    var(--color-panel);
+    var(--surface);
   box-shadow: 0 0 0 1px rgba(53, 208, 127, 0.25), 0 26px 60px -28px rgba(53, 208, 127, 0.8);
 }
-.verify-card--valida::before { background: var(--color-success); }
-.verify-card--valida .verify-card__status { color: var(--color-success); }
+.verify-card--valida::before { background: var(--success); }
+.verify-card--valida .verify-card__status { color: var(--success); }
 
 .verify-card--usada {
-  color: var(--color-primary);
+  color: var(--accent);
   border-color: rgba(255, 183, 3, 0.55);
   background:
     radial-gradient(90% 60% at 50% 0%, rgba(255, 183, 3, 0.13), transparent 70%),
-    var(--color-panel);
+    var(--surface);
   box-shadow: 0 0 0 1px rgba(255, 183, 3, 0.25), 0 26px 60px -28px rgba(255, 183, 3, 0.7);
 }
 /* Banda a rayas suaves: distinta del verde incluso en blanco y negro */
 .verify-card--usada::before {
   background: repeating-linear-gradient(
     -45deg,
-    var(--color-primary) 0 12px,
+    var(--accent) 0 12px,
     rgba(255, 183, 3, 0.35) 12px 24px
   );
 }
-.verify-card--usada .verify-card__status { color: var(--color-primary); }
+.verify-card--usada .verify-card__status { color: var(--accent); }
 
 .verify-card--invalida {
-  color: var(--color-danger);
+  color: var(--danger);
   border-color: rgba(255, 92, 92, 0.6);
   background:
     radial-gradient(90% 60% at 50% 0%, rgba(255, 92, 92, 0.15), transparent 70%),
-    var(--color-panel);
+    var(--surface);
   box-shadow: 0 0 0 1px rgba(255, 92, 92, 0.3), 0 26px 60px -28px rgba(255, 92, 92, 0.8);
 }
 /* Banda de peligro */
 .verify-card--invalida::before {
   background: repeating-linear-gradient(
     45deg,
-    var(--color-danger) 0 10px,
+    var(--danger) 0 10px,
     #2a1417 10px 20px
   );
 }
-.verify-card--invalida .verify-card__status { color: var(--color-danger); }
+.verify-card--invalida .verify-card__status { color: var(--danger); }
 
 /* Aviso secundario (cuándo y quién validó) */
 .verify-card--usada .hint,
 .verify-card--invalida .hint {
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--text);
   margin-top: 0;
 }
 
 /* -------- Detalle de la entrada -------- */
 .verify-card__details {
   text-align: left;
-  background: var(--color-bg-deep);
-  border: 1px solid var(--color-line);
+  background: var(--bg);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius);
   padding: 6px 16px;
   margin-top: 18px;
-  color: var(--color-text);
+  color: var(--text);
 }
 .verify-card__details .row {
   display: flex;
@@ -171,7 +171,7 @@
 }
 .verify-card__details .row:last-child { border-bottom: none; }
 .verify-card__details .row span:first-child {
-  color: var(--color-muted);
+  color: var(--muted);
   font-size: 0.76rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -180,7 +180,7 @@
 }
 .verify-card__details .row span:last-child { text-align: right; word-break: break-word; }
 .verify-card__details .row:last-child span:last-child {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   font-size: 0.84rem;
   letter-spacing: 0.5px;
 }
@@ -194,7 +194,7 @@
 }
 
 #codigo {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   font-size: 1.15rem;
   letter-spacing: 1.5px;
   text-align: center;
@@ -208,7 +208,7 @@
 #staffInfo {
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--line-soft);
   font-size: 0.78rem;
 }
 
