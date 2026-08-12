@@ -31,11 +31,23 @@ Deno.serve(async (req) => {
 
   const { data: ticket } = await db
     .from("tickets")
-    .select("id, code, section_code, section_label, table_number, seat_number, buyer_name, buyer_lastname, status, used_at, used_by")
+    .select(
+      "id, order_id, code, section_code, section_label, table_number, seat_number, table_code, guest_index, buyer_name, buyer_lastname, buyer_document, status, used_at, used_by",
+    )
     .eq("code", code)
     .maybeSingle();
 
   if (!ticket) return fail("Entrada inexistente", 404, { not_found: true });
+
+  // Datos de la compra a la que pertenece esta entrada. Se leen acá, con la
+  // clave de servicio, y no desde el navegador: la cédula sigue sin ser legible
+  // por el panel a granel. El mesero la ve de a una, en la entrada que escaneó,
+  // y cada validación queda firmada con su usuario.
+  const { data: compra } = await db
+    .from("orders")
+    .select("order_number, people, tables_count, amount_cents, created_at, paid_at")
+    .eq("id", ticket.order_id)
+    .maybeSingle();
 
   const detalle = {
     code: ticket.code,
@@ -43,8 +55,19 @@ Deno.serve(async (req) => {
     section_label: ticket.section_label,
     table_number: ticket.table_number,
     seat_number: ticket.seat_number,
+    table_code: ticket.table_code,
+
     buyer_name: ticket.buyer_name,
     buyer_lastname: ticket.buyer_lastname,
+    buyer_document: ticket.buyer_document,
+
+    // De qué compra viene: número corto, cuántas personas y cuándo se pagó.
+    order_number: compra?.order_number ?? null,
+    people: compra?.people ?? null,
+    guest_index: ticket.guest_index,
+    amount_cents: compra?.amount_cents ?? null,
+    purchased_at: compra?.created_at ?? null,
+    paid_at: compra?.paid_at ?? null,
   };
 
   if (ticket.status === "canceled") {

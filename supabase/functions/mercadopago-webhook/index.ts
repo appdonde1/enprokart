@@ -144,11 +144,25 @@ Deno.serve(async (req) => {
     .from("tickets").insert(entradas).select("id");
 
   if (ticketError || !emitidas?.length) {
+    // El pago entró y las entradas no salieron: es el peor estado posible. Se
+    // deja la orden marcada como pagada igual, porque el dinero está cobrado y
+    // negarlo sería peor; el panel de Operaciones lista las compras pagadas sin
+    // entradas para que alguien las resuelva a mano. Se devuelve 500 a propósito:
+    // Mercado Pago reintenta la notificación y el problema puede resolverse solo.
+    await db
+      .from("orders")
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", order.id);
+
     await cerrar("error", ticketError?.message ?? "No se pudieron emitir las entradas");
+    console.error("mercadopago-webhook/emision", order.id, ticketError);
     return fail("No se pudieron emitir las entradas", 500);
   }
 
-  await db.from("orders").update({ status: "paid" }).eq("id", order.id);
+  await db
+    .from("orders")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("id", order.id);
 
   // Las mesas reservadas pasan a ocupadas.
   await db
