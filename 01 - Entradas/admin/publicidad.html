@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1117" />
+  <title>Publicidad · Pro Kart</title>
+  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <div class="admin-shell" id="panelShell" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__marca">
+        <span class="brand-plate">
+          <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo" />
+        </span>
+      </div>
+      <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
+      <div class="sidebar__pie">
+        <span id="userBadge" class="badge badge--vip"></span>
+        <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
+      </div>
+    </aside>
+
+    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+
+    <div class="panel-cuerpo">
+      <header class="panel-topbar">
+        <button type="button" class="hamburguesa" id="btnMenu"
+                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+          <span></span><span></span><span></span>
+        </button>
+        <h1 class="panel-topbar__titulo" id="tituloModulo"></h1>
+      </header>
+
+      <main class="container container--wide">
+        <section class="tab-panel active">
+
+          <div class="modulo-tabs" role="tablist">
+            <button type="button" class="modulo-tab active" data-sub="hoy" role="tab">Al aire hoy</button>
+            <button type="button" class="modulo-tab" data-sub="campanas" role="tab">Campañas</button>
+            <button type="button" class="modulo-tab" data-sub="vitalicias" role="tab">Piezas vitalicias</button>
+          </div>
+
+          <!-- ---------------------------------------------- al aire hoy -->
+          <div class="modulo-panel active" data-sub="hoy">
+            <p class="hint">
+              Lo que está viendo ahora mismo un visitante. Si no hay campaña vigente,
+              salen las piezas vitalicias ofreciendo el espacio.
+            </p>
+            <div class="al-aire" id="alAire"></div>
+          </div>
+
+          <!-- ---------------------------------------------- campañas -->
+          <div class="modulo-panel" data-sub="campanas">
+            <div class="panel-card">
+              <h3>Abrir una campaña</h3>
+              <p class="hint">
+                Vale mientras la fecha de hoy esté dentro del rango. Podés cargar una
+                pieza o las dos: el espacio que quede sin pieza usa su vitalicia.
+              </p>
+
+              <form id="campanaForm" class="form-grid">
+                <div class="field">
+                  <label for="cNombre">Nombre de la campaña</label>
+                  <input type="text" id="cNombre" placeholder="Ej: Parrilla Don José · septiembre" />
+                </div>
+                <div class="field">
+                  <label for="cAnunciante">Anunciante</label>
+                  <input type="text" id="cAnunciante" placeholder="Comercio o persona" />
+                </div>
+                <div class="field">
+                  <label for="cDesde">Desde</label>
+                  <input type="date" id="cDesde" />
+                </div>
+                <div class="field">
+                  <label for="cHasta">Hasta</label>
+                  <input type="date" id="cHasta" />
+                </div>
+              </form>
+
+              <div class="piezas-grid">
+                <div class="pieza-carga">
+                  <h4>Banner <small>1200 × 400 · 3:1</small></h4>
+                  <input type="file" id="cBannerArchivo" accept="image/*" />
+                  <label class="archivo__boton" for="cBannerArchivo" id="cBannerBoton">
+                    Elegir imagen del banner
+                  </label>
+                  <div class="field">
+                    <label for="cBannerLink">Enlace del banner</label>
+                    <input type="url" id="cBannerLink" placeholder="https://..." />
+                  </div>
+                </div>
+
+                <div class="pieza-carga">
+                  <h4>Overlay <small>1080 × 1350 · 4:5</small></h4>
+                  <input type="file" id="cOverlayArchivo" accept="image/*" />
+                  <label class="archivo__boton" for="cOverlayArchivo" id="cOverlayBoton">
+                    Elegir imagen del overlay
+                  </label>
+                  <div class="field">
+                    <label for="cOverlayLink">Enlace del overlay</label>
+                    <input type="url" id="cOverlayLink" placeholder="https://..." />
+                  </div>
+                </div>
+              </div>
+
+              <span class="error" data-for="campana"></span>
+              <button type="button" class="btn btn--primary" id="btnCrearCampana">Abrir campaña</button>
+            </div>
+
+            <div class="table-scroll">
+              <table class="data-table" id="tablaCampanas"></table>
+            </div>
+          </div>
+
+          <!-- ---------------------------------------------- vitalicias -->
+          <div class="modulo-panel" data-sub="vitalicias">
+            <div class="panel-card">
+              <h3>Piezas vitalicias</h3>
+              <p class="hint">
+                Son las de la casa: se muestran cuando no hay campaña activa. Si dejás
+                el enlace vacío, llevan al formulario para alquilar el espacio.
+              </p>
+
+              <div class="piezas-grid">
+                <div class="pieza-carga">
+                  <h4>Banner <small>1200 × 400 · 3:1</small></h4>
+                  <div class="pieza-previa" id="previaBanner"></div>
+                  <input type="file" id="vBannerArchivo" accept="image/*" />
+                  <label class="archivo__boton" for="vBannerArchivo" id="vBannerBoton">
+                    Reemplazar imagen
+                  </label>
+                  <div class="field">
+                    <label for="vBannerLink">Enlace <small>(vacío = anunciar.html)</small></label>
+                    <input type="url" id="vBannerLink" placeholder="https://..." />
+                  </div>
+                  <button type="button" class="btn btn--ghost" data-guardar-vitalicia="banner">
+                    Guardar banner
+                  </button>
+                </div>
+
+                <div class="pieza-carga">
+                  <h4>Overlay <small>1080 × 1350 · 4:5</small></h4>
+                  <div class="pieza-previa" id="previaOverlay"></div>
+                  <input type="file" id="vOverlayArchivo" accept="image/*" />
+                  <label class="archivo__boton" for="vOverlayArchivo" id="vOverlayBoton">
+                    Reemplazar imagen
+                  </label>
+                  <div class="field">
+                    <label for="vOverlayLink">Enlace <small>(vacío = anunciar.html)</small></label>
+                    <input type="url" id="vOverlayLink" placeholder="https://..." />
+                  </div>
+                  <button type="button" class="btn btn--ghost" data-guardar-vitalicia="overlay">
+                    Guardar overlay
+                  </button>
+                </div>
+              </div>
+
+              <span class="error" data-for="vitalicia"></span>
+            </div>
+          </div>
+
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="js/panel-base.js"></script>
+  <script src="js/publicidad-admin.js"></script>
+</body>
+</html>

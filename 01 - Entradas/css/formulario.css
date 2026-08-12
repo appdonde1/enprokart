@@ -1,0 +1,169 @@
+/* Páginas de formulario: empleos y publicidad.
+
+   Comparten la paleta y la tipografía del sitio (style.css) y solo agregan lo
+   que necesita una página de una sola columna centrada. */
+
+.form-page {
+  width: min(620px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 40px 0 90px;
+}
+
+.form-page__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  text-decoration: none;
+  font: 600 .64rem/1 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 12px 0;
+  transition: color .15s ease;
+}
+
+.form-page__volver:hover { color: var(--accent); }
+
+.form-page__titulo {
+  margin: 18px 0 6px;
+  font: 800 clamp(1.8rem, 6vw, 2.6rem)/1.05 var(--display);
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+
+.form-page__bajada {
+  margin: 0 0 30px;
+  color: var(--muted);
+  font-size: .92rem;
+  line-height: 1.55;
+  max-width: 46ch;
+}
+
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: clamp(20px, 5vw, 32px);
+}
+
+.form-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.campo { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+
+.campo label {
+  color: var(--muted);
+  font: 600 .64rem/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.campo input,
+.campo textarea {
+  width: 100%;
+  padding: 13px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--sans);
+  /* 16px como mínimo: por debajo de eso, iOS hace zoom al enfocar el campo y
+     el formulario se desarma. */
+  font-size: max(1rem, 16px);
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.campo input:focus,
+.campo textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.campo textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+
+.campo__ayuda { color: var(--dim); font-size: .74rem; }
+.campo__ayuda.cumple { color: var(--success); }
+
+/* Subida de archivo: el input nativo no se puede estilar, así que se oculta y
+   la etiqueta hace de botón. */
+.archivo input[type="file"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.archivo__boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 14px 18px;
+  background: var(--bg-2);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .88rem;
+  text-align: center;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+
+.archivo__boton:hover,
+.archivo input[type="file"]:focus-visible + .archivo__boton {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.archivo__boton.cargado {
+  border-style: solid;
+  border-color: var(--success);
+  color: var(--text);
+}
+
+.form-error {
+  display: block;
+  min-height: 18px;
+  margin: 4px 0 14px;
+  color: var(--danger);
+  font-size: .82rem;
+}
+
+.form-enviar {
+  width: 100%;
+  min-height: 52px;
+  font-size: .95rem;
+}
+
+/* Pantalla de gracias: reemplaza al formulario, no se apila debajo. */
+.form-gracias { text-align: center; padding: 26px 0; }
+
+.form-gracias__marca {
+  width: 56px; height: 56px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--success);
+  border-radius: 50%;
+  color: var(--success);
+  font-size: 1.6rem;
+}
+
+.form-gracias h2 {
+  margin: 0 0 10px;
+  font: 800 1.5rem/1.15 var(--display);
+  color: var(--text);
+}
+
+.form-gracias p { margin: 0 auto 22px; color: var(--muted); max-width: 34ch; line-height: 1.55; }
+
+@media (max-width: 620px) {
+  .form-fila { grid-template-columns: 1fr; gap: 0; }
+  .form-page { padding-bottom: 60px; }
+}

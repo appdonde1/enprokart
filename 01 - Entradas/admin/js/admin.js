@@ -7,14 +7,23 @@
 
   const db = window.supabaseClient;
 
+  /* Los módulos de esta página, agrupados como se usan: lo del evento, lo de
+     la puerta y lo que se administra. Un mesero solo ve el grupo de la puerta. */
   const TABS = {
-    resumen: { label: "Resumen", roles: ["admin"] },
-    salon: { label: "Salón", roles: ["admin"] },
-    validar: { label: "Validar", roles: ["admin", "mesero"] },
-    entradas: { label: "Entradas", roles: ["admin", "mesero"] },
-    portada: { label: "Portada", roles: ["admin"] },
-    eventos: { label: "Eventos", roles: ["admin"] },
+    resumen: { label: "Resumen", roles: ["admin"], grupo: "Evento" },
+    salon: { label: "Salón", roles: ["admin"], grupo: "Evento" },
+    portada: { label: "Portada", roles: ["admin"], grupo: "Evento" },
+    eventos: { label: "Eventos", roles: ["admin"], grupo: "Evento" },
+    validar: { label: "Validar", roles: ["admin", "mesero"], grupo: "Puerta" },
+    entradas: { label: "Entradas", roles: ["admin", "mesero"], grupo: "Puerta" },
   };
+
+  // Módulos que viven en su propia página porque tienen filtros y estado propios.
+  const PAGINAS = [
+    { href: "operaciones.html", label: "Operaciones", roles: ["admin"], grupo: "Gestión" },
+    { href: "solicitudes.html", label: "Solicitudes", roles: ["admin"], grupo: "Gestión" },
+    { href: "publicidad.html", label: "Publicidad", roles: ["admin"], grupo: "Gestión" },
+  ];
 
   const ui = {
     loginWrap: document.getElementById("loginWrap"),
@@ -75,23 +84,78 @@
   }
 
   // ---------- sesión ----------
+
+  const DOMINIO = "enprokart.com";
+
+  // El campo pide solo el usuario; el dominio lo pone el sistema. Si alguien
+  // escribe el correo entero por costumbre, se le recorta en vez de rechazarlo.
+  function correoDelUsuario() {
+    const escrito = document.getElementById("usuario").value.trim().toLowerCase();
+    return `${escrito.replace(/@.*$/, "")}@${DOMINIO}`;
+  }
+
   ui.loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     setError("login", "");
     ui.btnLogin.disabled = true;
 
     const { error } = await db.auth.signInWithPassword({
-      email: document.getElementById("email").value.trim(),
+      email: correoDelUsuario(),
       password: document.getElementById("password").value,
     });
 
     ui.btnLogin.disabled = false;
     if (error) {
-      setError("login", "Correo o contraseña incorrectos.");
+      setError("login", "Usuario o contraseña incorrectos.");
       return;
     }
     ui.loginForm.reset();
     await iniciar();
+  });
+
+  // Ver la contraseña: en un teléfono, escribir a ciegas una clave generada
+  // como "Vbugq-KRXNk-Npxo" es la causa más común de no poder entrar.
+  document.getElementById("verClave")?.addEventListener("click", () => {
+    const campo = document.getElementById("password");
+    const boton = document.getElementById("verClave");
+    const visible = campo.type === "text";
+    campo.type = visible ? "password" : "text";
+    boton.setAttribute("aria-pressed", String(!visible));
+    boton.setAttribute("aria-label", visible ? "Mostrar contraseña" : "Ocultar contraseña");
+    boton.classList.toggle("viendo", !visible);
+    campo.focus();
+  });
+
+  // Olvidé mi contraseña: no manda correo (el dominio no tiene buzones). Deja
+  // el pedido en el panel y un admin genera una clave nueva.
+  document.getElementById("btnOlvide")?.addEventListener("click", async () => {
+    const escrito = document.getElementById("usuario").value.trim();
+    if (!escrito) {
+      setError("login", "Escribí tu usuario y volvé a tocar el enlace.");
+      document.getElementById("usuario").focus();
+      return;
+    }
+
+    setError("login", "");
+    try {
+      await fetch(`${window.PROKART_CONFIG.SUPABASE_URL}/functions/v1/crear-solicitud`, {
+        method: "POST",
+        headers: {
+          apikey: window.PROKART_CONFIG.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${window.PROKART_CONFIG.SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ kind: "clave", usuario: escrito }),
+      });
+    } catch { /* se responde igual: ver abajo */ }
+
+    // Siempre el mismo mensaje, exista o no ese usuario. Decir "ese usuario no
+    // existe" le confirma a un desconocido qué cuentas hay.
+    const caja = document.querySelector('.error[data-for="login"]');
+    if (caja) {
+      caja.textContent = "Listo. Un administrador te va a entregar una clave nueva.";
+      caja.classList.add("error--ok");
+    }
   });
 
   ui.btnLogout.addEventListener("click", async () => {
@@ -135,13 +199,33 @@
     await cargarEventos();
   }
 
-  // ---------- pestañas ----------
+  // ---------- barra lateral ----------
   function renderTabs() {
-    const visibles = Object.entries(TABS).filter(([, cfg]) => cfg.roles.includes(state.role));
+    const modulos = Object.entries(TABS).filter(([, cfg]) => cfg.roles.includes(state.role));
+    const paginas = PAGINAS.filter((p) => p.roles.includes(state.role));
 
-    ui.tabs.innerHTML = visibles
-      .map(([key, cfg]) => `<button type="button" class="step-indicator" data-tab="${key}">${cfg.label}</button>`)
-      .join("");
+    // Se arma por grupos y en el orden en que aparecen, sin ordenar alfabético:
+    // el orden dice cómo se usa el panel.
+    const grupos = [];
+    const agregar = (grupo, html) => {
+      const existente = grupos.find((g) => g.nombre === grupo);
+      if (existente) existente.items.push(html);
+      else grupos.push({ nombre: grupo, items: [html] });
+    };
+
+    for (const [key, cfg] of modulos) {
+      agregar(cfg.grupo, `<button type="button" class="sidebar__item" data-tab="${key}">${cfg.label}</button>`);
+    }
+    for (const p of paginas) {
+      agregar(p.grupo, `<a class="sidebar__item" href="${p.href}">${p.label}</a>`);
+    }
+
+    ui.tabs.innerHTML = grupos.map((g) => `
+      <div class="sidebar__grupo">
+        <p class="sidebar__rotulo">${g.nombre}</p>
+        ${g.items.join("")}
+      </div>
+    `).join("");
 
     ui.tabs.querySelectorAll("[data-tab]").forEach((btn) => {
       btn.addEventListener("click", () => abrirTab(btn.dataset.tab));
@@ -159,8 +243,57 @@
     document.querySelectorAll(".tab-panel").forEach((panel) => {
       panel.classList.toggle("active", panel.id === `tab-${tab}`);
     });
+
+    const titulo = document.getElementById("tituloModulo");
+    if (titulo) titulo.textContent = TABS[tab]?.label ?? "";
+
+    // En el teléfono la barra tapa el contenido: elegir algo tiene que cerrarla.
+    cerrarMenu();
+
     if (tab === "validar") ui.codigoValidar.focus();
   }
+
+  // ---------- menú en teléfono ----------
+  function abrirMenu() {
+    document.getElementById("sidebar")?.classList.add("abierta");
+    document.getElementById("sidebarVelo")?.removeAttribute("hidden");
+    document.getElementById("btnMenu")?.setAttribute("aria-expanded", "true");
+    document.body.classList.add("menu-abierto");
+  }
+
+  function cerrarMenu() {
+    document.getElementById("sidebar")?.classList.remove("abierta");
+    document.getElementById("sidebarVelo")?.setAttribute("hidden", "");
+    document.getElementById("btnMenu")?.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("menu-abierto");
+  }
+
+  document.getElementById("btnMenu")?.addEventListener("click", () => {
+    const abierta = document.getElementById("sidebar")?.classList.contains("abierta");
+    abierta ? cerrarMenu() : abrirMenu();
+  });
+  document.getElementById("sidebarVelo")?.addEventListener("click", cerrarMenu);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenu(); });
+
+  // ---------- pestañas dentro de un módulo ----------
+  // Delegado: sirve para los módulos que ya existen y para los que se agreguen,
+  // sin volver a cablear nada.
+  document.addEventListener("click", (e) => {
+    const boton = e.target.closest(".modulo-tab");
+    if (!boton) return;
+
+    const modulo = boton.closest(".tab-panel");
+    if (!modulo) return;
+
+    modulo.querySelectorAll(".modulo-tab").forEach((b) => {
+      b.classList.toggle("active", b === boton);
+    });
+    modulo.querySelectorAll(".modulo-panel").forEach((p) => {
+      p.classList.toggle("active", p.dataset.sub === boton.dataset.sub);
+    });
+
+    if (boton.dataset.sub === "visitas") cargarVisitas();
+  });
 
   // ---------- datos ----------
   async function cargarEventos() {
@@ -906,5 +1039,102 @@
     }
   }
 
-  iniciar();
+  // ---------- visitas al sitio ----------
+
+  /* El resumen diario de visitas. Se carga al abrir la pestaña y no al entrar
+     al panel: es un dato que se consulta, no que se vigila. */
+  async function cargarVisitas() {
+    const desde = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+
+    const { data, error } = await db
+      .from("visits_totals")
+      .select("day, uniques, pageviews")
+      .gte("day", desde)
+      .order("day");
+
+    const caja = document.getElementById("kpiVisitas");
+    if (error || !data) {
+      if (caja) caja.innerHTML = `<p class="hint">No se pudieron leer las visitas.</p>`;
+      return;
+    }
+
+    const hoy = new Date().toISOString().slice(0, 10);
+    const deHoy = data.find((d) => d.day === hoy);
+    const unicos = data.reduce((acc, d) => acc + d.uniques, 0);
+    const vistas = data.reduce((acc, d) => acc + Number(d.pageviews), 0);
+    const promedio = data.length ? Math.round(unicos / data.length) : 0;
+    const nUtil = (n) => Number(n).toLocaleString("es");
+
+    window.charts.kpis(caja, [
+      { label: "Visitantes hoy", value: nUtil(deHoy?.uniques ?? 0), detail: "Personas distintas" },
+      { label: "Últimos 30 días", value: nUtil(unicos) },
+      { label: "Promedio diario", value: nUtil(promedio) },
+      { label: "Páginas vistas", value: nUtil(vistas), detail: "Incluye recargas" },
+    ]);
+
+    // Se rellenan los días sin visitas: un hueco en la serie se lee como un día
+    // que no existió, no como un día sin nadie.
+    const dias = [];
+    for (let i = 29; i >= 0; i--) {
+      const fecha = new Date();
+      fecha.setHours(0, 0, 0, 0);
+      fecha.setDate(fecha.getDate() - i);
+      dias.push({
+        clave: fecha.toISOString().slice(0, 10),
+        label: fecha.toLocaleDateString("es", { day: "2-digit", month: "2-digit" }),
+        value: 0,
+      });
+    }
+    const indice = new Map(dias.map((d) => [d.clave, d]));
+    for (const fila of data) {
+      const dia = indice.get(fila.day);
+      if (dia) dia.value = fila.uniques;
+    }
+
+    window.charts.lineaTemporal(document.getElementById("chartVisitas"), dias);
+  }
+
+  // ---------- redes del pie ----------
+  async function cargarRedes() {
+    const { data } = await db
+      .from("site_settings")
+      .select("instagram_url, tiktok_url, whatsapp_url")
+      .limit(1)
+      .maybeSingle();
+
+    if (!data) return;
+    const campo = (id, valor) => {
+      const el = document.getElementById(id);
+      if (el) el.value = valor ?? "";
+    };
+    campo("rInstagram", data.instagram_url);
+    campo("rTiktok", data.tiktok_url);
+    campo("rWhatsapp", data.whatsapp_url);
+  }
+
+  document.getElementById("btnGuardarRedes")?.addEventListener("click", async () => {
+    setError("redes", "");
+    const valor = (id) => document.getElementById(id).value.trim() || null;
+
+    const { error } = await db.from("site_settings").update({
+      instagram_url: valor("rInstagram"),
+      tiktok_url: valor("rTiktok"),
+      whatsapp_url: valor("rWhatsapp"),
+      updated_at: new Date().toISOString(),
+    }).eq("id", true);
+
+    setError("redes", error ? "No se pudieron guardar las redes." : "");
+    if (!error) {
+      const caja = document.querySelector('.error[data-for="redes"]');
+      if (caja) {
+        caja.textContent = "Guardado.";
+        caja.classList.add("error--ok");
+        setTimeout(() => { caja.textContent = ""; caja.classList.remove("error--ok"); }, 2500);
+      }
+    }
+  });
+
+  iniciar().then(() => {
+    if (state.role === "admin") cargarRedes();
+  });
 })();

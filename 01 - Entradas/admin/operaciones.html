@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1117" />
+  <title>Operaciones · Pro Kart</title>
+  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <div class="admin-shell" id="panelShell" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__marca">
+        <span class="brand-plate">
+          <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo" />
+        </span>
+      </div>
+      <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
+      <div class="sidebar__pie">
+        <span id="userBadge" class="badge badge--vip"></span>
+        <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
+      </div>
+    </aside>
+
+    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+
+    <div class="panel-cuerpo">
+      <header class="panel-topbar">
+        <button type="button" class="hamburguesa" id="btnMenu"
+                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+          <span></span><span></span><span></span>
+        </button>
+        <h1 class="panel-topbar__titulo" id="tituloModulo"></h1>
+      </header>
+
+      <main class="container container--wide">
+
+      <section class="tab-panel active">
+
+        <div class="kpi-row" id="resumen"></div>
+
+        <div class="panel-card" id="alertaSinEntregar" hidden>
+          <h3 class="alerta-titulo">Compras pagadas sin entradas</h3>
+          <p class="hint">
+            Entró el dinero y las entradas no se emitieron. Hay que resolverlo a mano
+            antes del evento: esas personas no tienen con qué entrar.
+          </p>
+          <div id="listaSinEntregar"></div>
+        </div>
+
+        <div class="table-toolbar">
+          <select id="filtroEvento" aria-label="Evento">
+            <option value="">Todos los eventos</option>
+          </select>
+          <select id="filtroEstado" aria-label="Estado">
+            <option value="paid">Pagadas</option>
+            <option value="">Todas</option>
+            <option value="pending">Pendientes</option>
+            <option value="expired">Vencidas</option>
+            <option value="failed">Fallidas</option>
+            <option value="canceled">Canceladas</option>
+          </select>
+          <input type="search" id="buscar" placeholder="Buscar por nombre, cédula o N.º" />
+        </div>
+
+        <div class="table-scroll">
+          <table class="data-table" id="tablaOperaciones"></table>
+        </div>
+
+        <p class="hint" id="pieTabla"></p>
+      </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="js/panel-base.js"></script>
+  <script src="js/operaciones.js"></script>
+</body>
+</html>

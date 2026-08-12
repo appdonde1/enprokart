@@ -785,3 +785,233 @@ img { max-width: 100%; }
     animation-duration: .001ms !important;
   }
 }
+
+/* =========================================================
+   14. PUBLICIDAD, PIE AMPLIADO Y CONTADOR
+   El espacio se alquila: tiene que verse cuidado, no como un
+   hueco de banner. Y tiene que entrar en un teléfono.
+   ========================================================= */
+
+/* ---------------------------------------------- banner en medio de la página */
+
+.ad-slot {
+  margin: 90px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ad-slot__link {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  transition: border-color .18s var(--ease), transform .18s var(--ease);
+}
+
+.ad-slot__link:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* 3:1 reservado desde el principio: el hueco existe antes de que cargue la
+   imagen, así la página no salta cuando llega. */
+.ad-slot__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+}
+
+.ad-slot__nota {
+  margin: 0;
+  color: var(--dim);
+  font: 600 .58rem/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-align: right;
+}
+
+/* ---------------------------------------------- pie */
+
+.site-footer {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.site-footer__enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.site-footer__enlaces a {
+  color: var(--muted);
+  text-decoration: none;
+  font: 600 .64rem/1 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  /* 44px de alto real: es el mínimo para tocar sin errar en un teléfono. */
+  padding: 15px 0;
+  border-bottom: 1px solid transparent;
+  transition: color .15s ease, border-color .15s ease;
+}
+
+.site-footer__enlaces a:hover {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.site-footer__legal { width: 100%; margin-top: 4px; }
+
+/* ---------------------------------------------- redes */
+
+.redes {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.redes a {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.redes a:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.redes svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Las partes macizas del ícono (el punto de Instagram, la cola del globo) */
+.redes svg .relleno { fill: currentColor; stroke: none; }
+
+/* ---------------------------------------------- overlay */
+
+.overlay-ad {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(9, 10, 9, .88);
+  backdrop-filter: blur(3px);
+  animation: overlay-entra .22s var(--ease);
+}
+
+@keyframes overlay-entra { from { opacity: 0 } to { opacity: 1 } }
+
+body.overlay-abierto { overflow: hidden; }
+
+.overlay-ad__caja {
+  position: relative;
+  width: min(420px, 100%);
+  /* La imagen es 4:5. Con el tope de alto, en una pantalla baja se achica
+     entera en vez de recortarse o empujar el botón fuera de la vista. */
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.overlay-ad__link {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  min-height: 0;
+}
+
+.overlay-ad__img {
+  display: block;
+  width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  background: var(--surface);
+}
+
+/* El botón de cierre es el contador. Va debajo y ancho completo, no como una
+   × chiquita en la esquina: tiene que leerse el número y tiene que ser fácil
+   de tocar con el pulgar. */
+.overlay-ad__cerrar {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+
+.overlay-ad__cerrar:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.overlay-ad__visitas {
+  color: var(--text);
+  font: 800 1.05rem/1 var(--display);
+  letter-spacing: .01em;
+}
+
+.overlay-ad__visitas-rotulo {
+  font: 600 .58rem/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.overlay-ad__x {
+  margin-left: auto;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--dim);
+}
+
+.overlay-ad__cerrar:hover .overlay-ad__x { color: var(--accent); }
+
+/* ---------------------------------------------- teléfonos */
+
+@media (max-width: 700px) {
+  .ad-slot { margin-top: 64px; }
+  .ad-slot__nota { text-align: left; }
+
+  .site-footer {
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 80px;
+  }
+
+  .site-footer__enlaces { gap: 14px; }
+
+  .overlay-ad { padding: 14px; }
+  .overlay-ad__caja { width: 100%; }
+  .overlay-ad__visitas-rotulo { letter-spacing: .1em; }
+}

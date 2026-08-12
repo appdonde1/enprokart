@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090a09" />
+  <title>Trabajá con nosotros · Pro Kart</title>
+  <meta name="description" content="Dejanos tu currículum y nos ponemos en contacto." />
+  <link rel="icon" href="Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/formulario.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="site-brand" href="index.html" aria-label="Pro Kart, inicio">
+        <span class="brand-plate">
+          <img src="Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo" />
+        </span>
+      </a>
+      <div class="header-actions">
+        <a class="header-book" href="index.html#reservar">Comprar entradas <span>↗</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main class="form-page">
+    <a class="form-page__volver" href="index.html">← Volver al inicio</a>
+
+    <h1 class="form-page__titulo">Trabajá con nosotros</h1>
+    <p class="form-page__bajada">
+      Dejanos tus datos y tu currículum. Lo revisamos y nos ponemos en contacto
+      cuando haya una búsqueda que encaje.
+    </p>
+
+    <div class="form-card" id="formCard">
+      <form id="empleoForm" novalidate>
+        <div class="form-fila">
+          <div class="campo">
+            <label for="nombre">Nombre</label>
+            <input type="text" id="nombre" autocomplete="given-name" required />
+          </div>
+          <div class="campo">
+            <label for="apellido">Apellido</label>
+            <input type="text" id="apellido" autocomplete="family-name" required />
+          </div>
+        </div>
+
+        <div class="form-fila">
+          <div class="campo">
+            <label for="documento">Cédula</label>
+            <input type="text" id="documento" inputmode="numeric" autocomplete="off" required />
+          </div>
+          <div class="campo">
+            <label for="whatsapp">WhatsApp</label>
+            <input type="tel" id="whatsapp" inputmode="tel" autocomplete="tel" required />
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="email">Correo <span style="text-transform:none">(opcional)</span></label>
+          <input type="email" id="email" autocomplete="email" />
+        </div>
+
+        <div class="campo archivo">
+          <label for="cv">Currículum</label>
+          <input type="file" id="cv" accept=".pdf,.doc,.docx" />
+          <label class="archivo__boton" for="cv" id="cvBoton">
+            <span aria-hidden="true">📎</span>
+            <span id="cvTexto">Subir currículum · PDF, DOC o DOCX · hasta 5 MB</span>
+          </label>
+        </div>
+
+        <span class="form-error" id="formError"></span>
+
+        <button type="submit" class="btn btn--primary form-enviar" id="btnEnviar">
+          Enviar postulación
+        </button>
+      </form>
+    </div>
+
+    <div class="form-gracias" id="formGracias" hidden>
+      <div class="form-gracias__marca" aria-hidden="true">✓</div>
+      <h2 id="graciasTitulo"></h2>
+      <p id="graciasTexto"></p>
+      <a class="btn btn--ghost" href="index.html">Volver al inicio</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__marca">
+      <span>PRO KART</span>
+      <p>Eventos · Karting · Paddock</p>
+    </div>
+    <p class="site-footer__legal">© 2026 Pro Kart · Todos los derechos reservados</p>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/solicitud.js"></script>
+  <script>
+    (() => {
+      const S = window.ProKartSolicitud;
+      const $ = (id) => document.getElementById(id);
+
+      // El nombre del archivo confirma que se adjuntó: sin eso, uno no sabe si
+      // el toque en el botón hizo algo.
+      $("cv").addEventListener("change", () => {
+        const archivo = $("cv").files[0];
+        $("cvTexto").textContent = archivo
+          ? `${archivo.name} · ${(archivo.size / 1024 / 1024).toFixed(1)} MB`
+          : "Subir currículum · PDF, DOC o DOCX · hasta 5 MB";
+        $("cvBoton").classList.toggle("cargado", Boolean(archivo));
+        S.mostrarError("");
+      });
+
+      $("empleoForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        S.mostrarError("");
+
+        const datos = {
+          kind: "empleo",
+          nombre: $("nombre").value.trim(),
+          apellido: $("apellido").value.trim(),
+          documento: $("documento").value.trim(),
+          whatsapp: $("whatsapp").value.trim(),
+          email: $("email").value.trim(),
+        };
+
+        if (!datos.nombre || !datos.apellido) return S.mostrarError("Completá tu nombre y apellido");
+        if (!datos.documento) return S.mostrarError("Completá tu cédula");
+        if (datos.whatsapp.replace(/\D/g, "").length < 10) {
+          return S.mostrarError("Ese WhatsApp no parece válido");
+        }
+
+        const archivo = $("cv").files[0];
+        const problema = S.validarArchivo(archivo);
+        if (problema) return S.mostrarError(problema);
+
+        await S.conBoton($("btnEnviar"), "Enviando...", async () => {
+          try {
+            datos.cv_nombre = archivo.name;
+            datos.cv_base64 = await S.leerArchivo(archivo);
+            await S.enviar(datos);
+            S.mostrarGracias(
+              "¡Gracias!",
+              "Recibimos tu postulación. Nos pondremos en contacto contigo.",
+            );
+          } catch (error) {
+            S.mostrarError(error.message);
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
