@@ -64,8 +64,9 @@
   const orderSummary = document.getElementById("orderSummary");
   const qrcodeContainer = document.getElementById("qrcode");
   const pixCodeInput = document.getElementById("pixCode");
-  const timerEl = document.getElementById("timer");
+  const pixCodePreview = document.getElementById("pixCodePreview");
   const btnCopyPix = document.getElementById("btnCopyPix");
+  const timerEl = document.getElementById("timer");
   const btnConfirmarPago = document.getElementById("btnConfirmarPago");
   const btnVolverRegistro = document.getElementById("btnVolverRegistro");
   const pagoEstado = document.getElementById("pagoEstado");
@@ -496,8 +497,8 @@
     state.silla = data.seat_number ?? "";
 
     renderResumenPedido(data);
-    renderQrPix(data.pix_qr_code);
-    iniciarTemporizador(data.pix_expires_at);
+    renderPix(data);
+    iniciarTemporizador(data.expires_at);
     iniciarPolling();
     goToStep(2);
   });
@@ -529,27 +530,52 @@
     `;
   }
 
-  function renderQrPix(payload) {
-    pixCodeInput.value = payload;
+  function renderPix(data) {
+    pixCodeInput.value = data.pix_qr_code;
+    // El código completo tiene cientos de caracteres: se muestran los primeros
+    // seis solo para que se vea que hay algo copiable.
+    pixCodePreview.textContent = data.pix_qr_code.slice(0, 6);
+
     qrcodeContainer.innerHTML = "";
-    new QRCode(qrcodeContainer, {
-      text: payload,
-      width: 200,
-      height: 200,
-      colorDark: "#0f1117",
-      colorLight: "#ffffff",
-    });
+
+    if (data.pix_qr_base64) {
+      // Mercado Pago ya devuelve la imagen: se usa esa en vez de redibujarla.
+      const img = document.createElement("img");
+      img.src = `data:image/png;base64,${data.pix_qr_base64}`;
+      img.alt = "Código QR para pagar con PIX";
+      img.width = 200;
+      img.height = 200;
+      qrcodeContainer.appendChild(img);
+    } else {
+      new QRCode(qrcodeContainer, {
+        text: data.pix_qr_code,
+        width: 200,
+        height: 200,
+        colorDark: "#0f1117",
+        colorLight: "#ffffff",
+      });
+    }
   }
 
   btnCopyPix.addEventListener("click", async () => {
+    const original = btnCopyPix.querySelector(".pix-copy__label").textContent;
     try {
       await navigator.clipboard.writeText(pixCodeInput.value);
-      btnCopyPix.textContent = "¡Copiado!";
-      setTimeout(() => (btnCopyPix.textContent = "Copiar"), 1500);
     } catch (err) {
-      pixCodeInput.select();
+      // navigator.clipboard no existe fuera de contextos seguros (http en LAN).
+      const temporal = document.createElement("textarea");
+      temporal.value = pixCodeInput.value;
+      document.body.appendChild(temporal);
+      temporal.select();
       document.execCommand("copy");
+      temporal.remove();
     }
+    btnCopyPix.classList.add("pix-copy--copiado");
+    btnCopyPix.querySelector(".pix-copy__label").textContent = "¡Copiado!";
+    setTimeout(() => {
+      btnCopyPix.classList.remove("pix-copy--copiado");
+      btnCopyPix.querySelector(".pix-copy__label").textContent = original;
+    }, 1600);
   });
 
   // El vencimiento lo define el servidor, no un contador local.
@@ -566,7 +592,8 @@
       if (restante <= 0) {
         detenerTemporizador();
         detenerPolling();
-        pagoEstado.textContent = "El código PIX expiró. Vuelve atrás y genera una compra nueva.";
+        pagoEstado.textContent =
+          "La reserva expiró. Vuelve atrás y elige tu lugar de nuevo.";
         pagoEstado.className = "pago-estado pago-estado--error";
       }
     };

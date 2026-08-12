@@ -1,5 +1,5 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { createPixOrder } from "../_shared/pagarme.ts";
+import { createPixPayment } from "../_shared/mercadopago.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
 
 const HOLD_MINUTES = 15;
@@ -171,32 +171,37 @@ Deno.serve(async (req) => {
       .eq("status", "held");
   };
 
+  const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000).toISOString();
+
+  const ubicacion = heldSeat
+    ? `Mesa ${tableNumber} · Silla ${heldSeat.number}`
+    : "Acceso general";
+
   let pix;
   try {
-    pix = await createPixOrder({
+    pix = await createPixPayment({
+      orderId: order.id,
       amountCents: section.price_cents,
-      description: `${event.name} · ${section.label}`,
-      ticketCodeRef: order.id,
-      expiresInSeconds: HOLD_MINUTES * 60,
+      description: `${event.name} · ${section.label} · ${ubicacion}`,
+      expiresAt,
+      notificationUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook`,
       buyer: { name: nombre, lastname: apellido, document: documento, whatsapp },
     });
   } catch (error) {
     await releaseSeat();
     await db.from("orders").update({ status: "failed" }).eq("id", order.id);
-    console.error("create-order/pagarme", error);
+    console.error("create-order/mercadopago", error);
     return fail("No se pudo generar el cobro PIX. Intenta de nuevo.", 502);
   }
-
-  const expiresAt = pix.expiresAt ?? new Date(Date.now() + HOLD_MINUTES * 60_000).toISOString();
 
   await db
     .from("orders")
     .update({
-      pagarme_order_id: pix.pagarmeOrderId,
-      pagarme_charge_id: pix.pagarmeChargeId,
+      provider_ref: pix.paymentId,
+      provider_payment_id: pix.paymentId,
       pix_qr_code: pix.qrCode,
-      pix_qr_code_url: pix.qrCodeUrl,
-      pix_expires_at: expiresAt,
+      pix_qr_base64: pix.qrCodeBase64,
+      expires_at: expiresAt,
     })
     .eq("id", order.id);
 
@@ -207,7 +212,7 @@ Deno.serve(async (req) => {
     table_number: tableNumber,
     seat_number: heldSeat?.number ?? null,
     pix_qr_code: pix.qrCode,
-    pix_qr_code_url: pix.qrCodeUrl,
-    pix_expires_at: expiresAt,
+    pix_qr_base64: pix.qrCodeBase64,
+    expires_at: expiresAt,
   });
 });

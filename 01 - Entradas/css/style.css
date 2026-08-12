@@ -446,16 +446,46 @@ h3 { color: var(--color-muted); font-size: 1rem; text-transform: uppercase; lett
 .pix-box__timer { color: var(--color-primary); font-weight: 600; margin-bottom: 16px; }
 
 .pix-copy-label { display: block; font-size: 0.8rem; color: var(--color-muted); text-align: left; margin-bottom: 6px; }
-.pix-copy { display: flex; gap: 8px; margin-bottom: 16px; }
-.pix-copy input {
-  flex: 1;
+
+/* El código PIX es larguísimo: se muestran solo los primeros caracteres, porque
+   lo que importa es poder copiarlo, no leerlo. */
+.pix-copy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 16px;
   background: #10131b;
   border: 1px solid #2a2f3f;
   border-radius: 8px;
-  padding: 8px 10px;
-  color: var(--color-muted);
-  font-size: 0.75rem;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: var(--color-text);
+  font-family: inherit;
+  transition: border-color 0.15s ease;
 }
+.pix-copy:hover { border-color: var(--color-primary); }
+.pix-copy__code {
+  flex: 1;
+  text-align: left;
+  font-family: ui-monospace, "Consolas", monospace;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  color: var(--color-text);
+}
+.pix-copy__code::after {
+  content: "…";
+  color: var(--color-muted);
+  letter-spacing: 0;
+}
+.pix-copy__icon { font-size: 1rem; }
+.pix-copy__label { font-size: 0.8rem; color: var(--color-muted); font-weight: 600; }
+.pix-copy--copiado { border-color: var(--color-success); }
+.pix-copy--copiado .pix-copy__label { color: var(--color-success); }
+
+.qrcode img { display: block; border-radius: 4px; }
+
+.btn--block { display: block; width: 100%; text-align: center; margin-bottom: 8px; }
 
 /* Ticket final */
 .ticket {

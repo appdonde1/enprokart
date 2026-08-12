@@ -20,14 +20,14 @@ Deno.serve(async (req) => {
 
   const { data: order } = await db
     .from("orders")
-    .select("id, status, amount_cents, buyer_name, buyer_lastname, pix_expires_at")
+    .select("id, status, amount_cents, buyer_name, buyer_lastname, expires_at")
     .eq("id", orderId)
     .maybeSingle();
 
   if (!order) return fail("Orden no encontrada", 404);
 
   if (order.status !== "paid") {
-    return json({ status: order.status, pix_expires_at: order.pix_expires_at });
+    return json({ status: order.status, expires_at: order.expires_at });
   }
 
   const { data: ticket } = await db

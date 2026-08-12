@@ -392,8 +392,8 @@ verify_jwt = false
 [functions.get-order-status]
 verify_jwt = false
 
-# Pagar.me llama con su propia firma HMAC, no con un JWT de Supabase.
-[functions.pagarme-webhook]
+# Mercado Pago firma con HMAC en x-signature, no manda JWT de Supabase.
+[functions.mercadopago-webhook]
 verify_jwt = false
 
 # Validar entradas exige sesión de staff; la función además comprueba el rol.

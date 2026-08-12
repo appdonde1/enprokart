@@ -347,6 +347,7 @@
             <header class="salon-section__head">
               <h3>${esc(section.label)}</h3>
               <span class="hint">Sin mesas · acceso de pie</span>
+              ${campoPrecio(section)}
             </header>
           </section>
         `;
@@ -360,6 +361,7 @@
           <header class="salon-section__head">
             <h3>${esc(section.label)}</h3>
             <span class="hint">${tablas.length} mesa(s) · ${sillas} lugares · ${esc(descripcionModo(section))}</span>
+            ${campoPrecio(section)}
           </header>
           <div class="salon-grid" style="grid-template-columns: repeat(${columnas}, minmax(64px, 1fr));">
             ${tablas.map((t) => celdaMesa(t)).join("")}
@@ -374,6 +376,70 @@
         cambiarSillas(btn.dataset.tableId, Number(btn.dataset.step));
       });
     });
+
+    ui.salonEditor.querySelectorAll("[data-precio-guardar]").forEach((btn) => {
+      btn.addEventListener("click", () => guardarPrecio(btn.dataset.precioGuardar));
+    });
+    ui.salonEditor.querySelectorAll("[data-precio-input]").forEach((input) => {
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          guardarPrecio(input.dataset.precioInput);
+        }
+      });
+    });
+  }
+
+  // El precio vive solo en la base: `create-order` lo lee de ahí en cada venta,
+  // así que lo que se guarde acá es lo que se cobra. RLS ya rechaza a quien no
+  // sea admin; esconder el campo es solo para no ofrecer algo que fallaría.
+  function campoPrecio(section) {
+    if (state.role !== "admin") {
+      return `<span class="precio-lectura">${money(section.price_cents)}</span>`;
+    }
+    return `
+      <div class="precio-editor">
+        <label for="precio-${section.id}">Precio</label>
+        <span class="precio-editor__moneda">R$</span>
+        <input type="number" id="precio-${section.id}" data-precio-input="${section.id}"
+               min="0" step="0.01" value="${(section.price_cents / 100).toFixed(2)}" />
+        <button type="button" class="btn btn--ghost btn--sm" data-precio-guardar="${section.id}">
+          Guardar
+        </button>
+        <span class="precio-editor__estado" id="precio-estado-${section.id}"></span>
+      </div>
+    `;
+  }
+
+  async function guardarPrecio(sectionId) {
+    const input = ui.salonEditor.querySelector(`[data-precio-input="${sectionId}"]`);
+    const estado = document.getElementById(`precio-estado-${sectionId}`);
+    if (!input) return;
+
+    const reales = Number(input.value);
+    if (!Number.isFinite(reales) || reales < 0) {
+      estado.textContent = "Precio inválido";
+      estado.className = "precio-editor__estado precio-editor__estado--error";
+      return;
+    }
+
+    const centavos = Math.round(reales * 100);
+    const { error } = await db
+      .from("sections").update({ price_cents: centavos }).eq("id", sectionId);
+
+    if (error) {
+      estado.textContent = "No se pudo guardar";
+      estado.className = "precio-editor__estado precio-editor__estado--error";
+      return;
+    }
+
+    const section = state.sections.find((s) => s.id === sectionId);
+    if (section) section.price_cents = centavos;
+
+    estado.textContent = "Guardado";
+    estado.className = "precio-editor__estado precio-editor__estado--ok";
+    setTimeout(() => { estado.textContent = ""; }, 2500);
+    renderResumen();
   }
 
   function descripcionModo(section) {

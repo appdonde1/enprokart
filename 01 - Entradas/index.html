@@ -111,7 +111,7 @@
       </div>
     </div>
 
-    <!-- PASO 2: PAGO PIX -->
+    <!-- PASO 2: PAGO PIX (Mercado Pago, sin salir del sitio) -->
     <section class="step-panel" id="panel-2">
       <h2>2. Pago vía PIX</h2>
 
@@ -119,18 +119,20 @@
         <div class="order-summary" id="orderSummary"></div>
 
         <div class="pix-box">
-          <p class="pix-box__title">Escanea el código QR con tu app bancaria</p>
+          <p class="pix-box__title">Escanea el código con la app de tu banco</p>
           <div id="qrcode" class="qrcode"></div>
-          <p class="pix-box__timer">Expira en <span id="timer">15:00</span></p>
+          <p class="pix-box__timer">Tu lugar queda reservado <span id="timer">15:00</span></p>
 
-          <label class="pix-copy-label">Código PIX (copia y pega)</label>
-          <div class="pix-copy">
-            <input type="text" id="pixCode" readonly />
-            <button type="button" class="btn btn--ghost" id="btnCopyPix">Copiar</button>
-          </div>
+          <label class="pix-copy-label">O copia el código PIX</label>
+          <button type="button" class="pix-copy" id="btnCopyPix">
+            <span class="pix-copy__code" id="pixCodePreview">------</span>
+            <span class="pix-copy__icon" aria-hidden="true">📋</span>
+            <span class="pix-copy__label">Copiar</span>
+          </button>
+          <input type="hidden" id="pixCode" />
 
-          <button type="button" class="btn btn--primary" id="btnConfirmarPago">
-            Ya realicé el pago
+          <button type="button" class="btn btn--primary btn--block" id="btnConfirmarPago">
+            Ya pagué, verificar
           </button>
           <p class="pago-estado" id="pagoEstado"></p>
           <button type="button" class="btn btn--link" id="btnVolverRegistro">← Volver a editar datos</button>
