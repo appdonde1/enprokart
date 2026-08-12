@@ -43,11 +43,37 @@ Contra el proyecto real, no en teoría:
   después del intento.
 - Las funciones pasan `deno check` y el JavaScript pasa `node --check`.
 
+## Con credenciales de prueba cargadas
+
+Se cargó `MP_ACCESS_TOKEN` de prueba y se hicieron compras reales contra
+Mercado Pago. Aparecieron dos problemas, los dos corregidos:
+
+**El email de relleno era inválido.** El formulario no pide correo, así que se
+armaba uno con dominio `.local` y Mercado Pago lo rechazaba con
+`payer.email must be a valid email`. Ahora el dominio es válido y además se
+agregó un campo de correo **opcional**: quien lo deje recibe el comprobante de
+Mercado Pago.
+
+**Una silla ya reservada no cortaba la venta.** `hold_seat_manual` devuelve una
+fila con todos los campos en `null` cuando no reserva nada, y eso en JavaScript
+es un objeto verdadero: el código creía haber reservado y seguía hasta el cobro.
+El comprador podía terminar pagando por un lugar que no era suyo. Se corrigió
+mirando el `id` de la fila. Reprobado: la silla tomada devuelve 409 y la de al
+lado vende normal.
+
+## Estado verificado de punta a punta
+
+- Compra real: orden creada, QR de Mercado Pago (3784 caracteres en base64) y
+  copia-e-cola de 165 caracteres empezando en `000201`.
+- El monto sale de la base: R$ 150 para ORO.
+- La silla queda `held` mientras el pago está pendiente.
+- Un segundo comprador sobre la misma silla recibe 409.
+- Se borraron las órdenes de prueba y se liberaron las sillas.
+
 ## Pendiente
 
-1. Cargar `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET`.
-2. Registrar la URL del webhook en el panel de Mercado Pago.
-3. Probar una compra real de punta a punta con credenciales de prueba.
-4. Crear los usuarios del personal y sus filas en `staff_profiles`.
-5. Confirmar los precios de Mesa Única y VIP Plata, que siguen con los valores
+1. Cargar `MP_WEBHOOK_SECRET` y registrar la URL del webhook en Mercado Pago.
+   Sin eso el webhook rechaza todo y ningún pago llega a confirmarse.
+2. Crear los usuarios del personal y sus filas en `staff_profiles`.
+3. Confirmar los precios de Mesa Única y VIP Plata, que siguen con los valores
    que se pusieron por defecto.

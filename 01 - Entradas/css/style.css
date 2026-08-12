@@ -175,6 +175,7 @@ h3 { color: var(--color-muted); font-size: 1rem; text-transform: uppercase; lett
 
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 0.85rem; color: var(--color-muted); }
+.field__opcional { opacity: 0.65; font-size: 0.78rem; }
 .field input {
   background: var(--color-panel-alt);
   border: 1px solid #2a2f3f;

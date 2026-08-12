@@ -69,6 +69,13 @@ compradores simultáneos, el segundo recibe cero filas y ve el error. En VIP
 Plata se suma `FOR UPDATE SKIP LOCKED` para que cada uno tome la siguiente silla
 libre en vez de pelear por la misma.
 
+**Al leer el resultado de esa reserva hay que mirar el `id`, no si vino algo.**
+Una función `returns seats` que no encuentra fila no devuelve `null`: devuelve
+una fila con todos los campos en `null`, que en JavaScript es un objeto
+perfectamente verdadero. Confiar en `if (!resultado)` hacía que una silla ya
+tomada pareciera reservada y el comprador terminara pagando por un lugar que no
+era suyo. Por eso existe `seatOrNull()` en `create-order`.
+
 **Sin secreto de webhook configurado no entra ninguna notificación.** Es
 preferible no emitir entradas a emitirlas por pagos que nadie hizo.
 

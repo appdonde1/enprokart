@@ -18,7 +18,13 @@ export type PixPaymentInput = {
   description: string;
   expiresAt: string;
   notificationUrl: string;
-  buyer: { name: string; lastname: string; document: string; whatsapp: string };
+  buyer: {
+    name: string;
+    lastname: string;
+    document: string;
+    whatsapp: string;
+    email?: string;
+  };
 };
 
 export type PixPaymentResult = {
@@ -36,6 +42,12 @@ function toOffsetIso(iso: string): string {
 export async function createPixPayment(input: PixPaymentInput): Promise<PixPaymentResult> {
   const document = input.buyer.document.replace(/\D/g, "");
 
+  // Mercado Pago exige un email con formato válido y rechaza dominios como
+  // `.local`. Si el comprador no dejó el suyo se arma uno con su documento:
+  // se pierde el comprobante que manda Mercado Pago, no la entrada, que la
+  // emite este sistema.
+  const email = input.buyer.email?.trim() || `${document || "comprador"}@prokart.com.br`;
+
   const body = {
     transaction_amount: Number((input.amountCents / 100).toFixed(2)),
     description: input.description,
@@ -44,7 +56,7 @@ export async function createPixPayment(input: PixPaymentInput): Promise<PixPayme
     notification_url: input.notificationUrl,
     date_of_expiration: toOffsetIso(input.expiresAt),
     payer: {
-      email: `${document || "comprador"}@entradas.prokart.local`,
+      email,
       first_name: input.buyer.name,
       last_name: input.buyer.lastname,
       ...(document

@@ -14,11 +14,24 @@ type Body = {
     apellido?: string;
     documento?: string;
     whatsapp?: string;
+    email?: string;
   };
 };
 
 function cleanText(value: unknown, max = 120): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+type HeldSeat = { id: string; table_id: string; number: number };
+
+/* Una función que devuelve `returns seats` y no encuentra fila no responde null:
+   responde una fila con todos los campos en null. Sin mirar el id, el código
+   creería que reservó y dejaría al comprador pagando por un lugar que no tiene. */
+function seatOrNull(raw: unknown): HeldSeat | null {
+  const fila = Array.isArray(raw) ? raw[0] : raw;
+  if (!fila || typeof fila !== "object") return null;
+  const seat = fila as Partial<HeldSeat>;
+  return seat.id ? (seat as HeldSeat) : null;
 }
 
 Deno.serve(async (req) => {
@@ -37,6 +50,9 @@ Deno.serve(async (req) => {
   const apellido = cleanText(body.buyer?.apellido);
   const documento = cleanText(body.buyer?.documento, 40);
   const whatsapp = cleanText(body.buyer?.whatsapp, 40);
+  const emailBruto = cleanText(body.buyer?.email, 120);
+  // Opcional: solo se usa si tiene forma de email, si no se ignora.
+  const email = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(emailBruto) ? emailBruto : "";
 
   if (!nombre || !apellido || !documento || !whatsapp) {
     return fail("Faltan datos del comprador (nombre, apellido, documento y WhatsApp son obligatorios)");
@@ -89,7 +105,7 @@ Deno.serve(async (req) => {
     await db.from("orders").update({ status: "canceled" }).eq("id", order.id);
   };
 
-  let heldSeat: { id: string; table_id: string; number: number } | null = null;
+  let heldSeat: HeldSeat | null = null;
 
   if (section.assignment_mode === "manual") {
     if (!body.table_number || !body.seat_number) {
@@ -127,7 +143,7 @@ Deno.serve(async (req) => {
       p_ttl_minutes: HOLD_MINUTES,
     });
 
-    heldSeat = Array.isArray(held) ? held[0] ?? null : held;
+    heldSeat = seatOrNull(held);
     if (!heldSeat) {
       await rollback();
       return fail("Esa silla acaba de ser reservada por otra persona", 409, { seat_taken: true });
@@ -140,7 +156,7 @@ Deno.serve(async (req) => {
       p_ttl_minutes: HOLD_MINUTES,
     });
 
-    heldSeat = Array.isArray(held) ? held[0] ?? null : held;
+    heldSeat = seatOrNull(held);
     if (!heldSeat) {
       await rollback();
       return fail("La sección está agotada", 409, { sold_out: true });
@@ -185,7 +201,7 @@ Deno.serve(async (req) => {
       description: `${event.name} · ${section.label} · ${ubicacion}`,
       expiresAt,
       notificationUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook`,
-      buyer: { name: nombre, lastname: apellido, document: documento, whatsapp },
+      buyer: { name: nombre, lastname: apellido, document: documento, whatsapp, email },
     });
   } catch (error) {
     await releaseSeat();

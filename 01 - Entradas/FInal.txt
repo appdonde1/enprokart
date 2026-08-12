@@ -1,0 +1,12 @@
+Una decisión de diseño que vale la pena que sepas: el webhook no confía en lo que le llega. Mercado Pago solo avisa "algo cambió"; el sistema consulta la API para saber el estado real del pago. Así una notificación falsificada no puede emitir entradas.
+
+Bóveda actualizada con ambos cambios y la tabla de secretos pendientes.
+
+Para vender de verdad faltan dos credenciales tuyas (sin ellas el cobro falla, como viste en las pruebas):
+
+MP_ACCESS_TOKEN → Mercado Pago → Tus integraciones → Credenciales
+MP_WEBHOOK_SECRET → Webhooks → Configurar notificación
+Y registrar esta URL como notificación en Mercado Pago:
+https://tgilgfwxtghcqskfyzif.supabase.co/functions/v1/mercadopago-webhook
+
+¿Me pasás las credenciales de prueba para dejar una compra funcionando de punta a punta, o preferís que arranque creando los usuarios del personal?

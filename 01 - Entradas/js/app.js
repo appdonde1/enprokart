@@ -20,6 +20,7 @@
     apellido: "",
     documento: "",
     whatsapp: "",
+    email: "",
     section: null,
     mesa: "",
     silla: "",
@@ -459,6 +460,7 @@
     state.apellido = document.getElementById("apellido").value.trim();
     state.documento = document.getElementById("documento").value.trim();
     state.whatsapp = document.getElementById("whatsapp").value.trim();
+    state.email = document.getElementById("email").value.trim();
     state.mesa = mesaInput.value;
     state.silla = sillaInput.value;
 
@@ -475,6 +477,7 @@
         apellido: state.apellido,
         documento: state.documento,
         whatsapp: state.whatsapp,
+        email: state.email,
       },
     });
 
