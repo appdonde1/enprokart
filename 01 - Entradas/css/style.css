@@ -51,8 +51,28 @@ body {
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .topbar__brand span { color: var(--color-primary); }
+
+/* El logo es gris oscuro sobre transparente: sobre el fondo casi negro del sitio
+   quedaría en 1.7:1, así que se aclara al mostrarlo sin tocar el archivo. */
+.brand-logo {
+  height: 34px;
+  width: auto;
+  display: block;
+  filter: brightness(1.85);
+}
+.hero__logo {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto 18px;
+  display: block;
+  filter: brightness(1.85);
+}
 
 .topbar__steps {
   display: flex;
@@ -206,7 +226,8 @@ h3 { color: var(--color-muted); font-size: 1rem; text-transform: uppercase; lett
 .area-card .price { font-weight: 700; color: var(--color-primary); font-size: 1.05rem; }
 
 .area-card--oro:has(input:checked) { border-color: var(--color-oro); }
-.area-card--plata:has(input:checked) { border-color: var(--color-plata); }
+.area-card--unica:has(input:checked) { border-color: var(--color-oro); }
+.area-card--vip_plata:has(input:checked) { border-color: var(--color-plata); }
 .area-card--general:has(input:checked) { border-color: var(--color-general); }
 
 .badge {
@@ -247,6 +268,7 @@ h3 { color: var(--color-muted); font-size: 1rem; text-transform: uppercase; lett
   justify-content: center;
 }
 .mesa-item {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -297,6 +319,7 @@ h3 { color: var(--color-muted); font-size: 1rem; text-transform: uppercase; lett
   gap: 10px;
 }
 .silla-item {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -314,6 +337,59 @@ h3 { color: var(--color-muted); font-size: 1rem; text-transform: uppercase; lett
   background: rgba(255,92,92,0.12);
   color: var(--color-muted);
   cursor: not-allowed;
+}
+
+/* Badge de estado al pasar el mouse sobre una mesa o silla */
+.mesa-item::after,
+.silla-item::after {
+  content: attr(data-badge);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 5;
+}
+.mesa-item[data-status="disponible"]::after,
+.silla-item[data-status="disponible"]::after {
+  background: rgba(53,208,127,0.16);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+.mesa-item[data-status="reservado"]::after,
+.silla-item[data-status="reservado"]::after {
+  background: rgba(255,92,92,0.16);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+.mesa-item:hover::after,
+.silla-item:hover::after,
+.mesa-item:focus-visible::after,
+.silla-item:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* En pantallas táctiles no hay hover: el badge queda siempre visible debajo */
+@media (hover: none) {
+  .mesa-item::after,
+  .silla-item::after {
+    bottom: auto;
+    top: calc(100% + 4px);
+    opacity: 1;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    padding: 2px 6px;
+  }
+  .venue-map__grid, .seats-panel__grid { row-gap: 30px; }
 }
 
 .seleccion-actual {
@@ -410,14 +486,53 @@ h3 { color: var(--color-muted); font-size: 1rem; text-transform: uppercase; lett
   font-size: 0.75rem;
   letter-spacing: 0.5px;
 }
-.ticket__area--ORO { background: rgba(212,175,55,0.2); color: var(--color-oro); }
-.ticket__area--PLATA { background: rgba(192,192,200,0.2); color: var(--color-plata); }
+.ticket__area--ORO,
+.ticket__area--UNICA { background: rgba(212,175,55,0.2); color: var(--color-oro); }
+.ticket__area--VIP_PLATA { background: rgba(192,192,200,0.2); color: var(--color-plata); }
 .ticket__area--GENERAL { background: rgba(58,160,255,0.2); color: var(--color-general); }
 .ticket__qr-hint {
   color: var(--color-muted);
   font-size: 0.78rem;
   margin-top: 12px;
   max-width: 280px;
+}
+
+/* Estado del pago (paso 2) */
+.pago-estado {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  margin: 12px 0 4px;
+  min-height: 18px;
+}
+.pago-estado--error { color: var(--color-danger); }
+
+/* Aviso inline (secciones por orden de llegada) */
+.aviso-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,10,15,0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+  animation: fadeIn 0.18s ease;
+}
+.aviso-card {
+  background: var(--color-panel);
+  border: 1px solid #2a2f3f;
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  max-width: 420px;
+}
+.aviso-card p { margin: 0 0 20px; line-height: 1.5; }
+.aviso-card__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .footer {

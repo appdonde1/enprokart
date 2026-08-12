@@ -1,75 +1,42 @@
 /* =========================================================
-   Flujo de venta de entradas - Noche VIP Fest
+   Flujo de venta de entradas - Pro Kart
    Pasos: 1) Registro y selección de área
-          2) Pago vía PIX (QR)
+          2) Pago vía PIX (Pagar.me)
           3) Confirmación / Ticket
+
+   La disponibilidad vive en Supabase y se sincroniza por Realtime:
+   lo que ve un comprador es lo que ven todos.
    ========================================================= */
 
 (function () {
   "use strict";
 
-  // ---------- Estado de la compra ----------
+  const db = window.supabaseClient;
+  const EVENT_SLUG = window.PROKART_CONFIG.EVENT_SLUG;
+
+  // ---------- Estado ----------
   const state = {
     nombre: "",
     apellido: "",
     documento: "",
-    area: "",       // ORO | PLATA | GENERAL
-    precio: 0,
+    whatsapp: "",
+    section: null,
     mesa: "",
     silla: "",
-    codigoEntrada: "",
+    orderId: "",
+    ticket: null,
   };
 
-  const AREA_LABELS = { ORO: "Área Oro (VIP)", PLATA: "Área Plata (VIP)", GENERAL: "Área General" };
-  const AREAS_CON_ASIENTO = ["ORO", "PLATA"];
-
-  // ---------- Configuración del mapa de mesas (referencial) ----------
-  const MESAS_CONFIG = {
-    ORO: { cantidadMesas: 8, sillasPorMesa: 6 },
-    PLATA: { cantidadMesas: 12, sillasPorMesa: 6 },
+  const catalogo = {
+    sections: [],
+    tablesBySection: new Map(),
+    seatsByTable: new Map(),
+    tableById: new Map(),
   };
 
-  // Ocupación "de fábrica" simulada (otros clientes ya compraron esas sillas)
-  const OCUPACION_INICIAL = {
-    ORO: { 3: [1, 2], 5: [4] },
-    PLATA: { 2: [1, 2, 3, 4, 5, 6], 7: [1] },
-  };
-
-  const CLAVE_OCUPACION = "ocupacionMesasEvento";
-
-  function obtenerOcupacion() {
-    let guardada = {};
-    try {
-      guardada = JSON.parse(localStorage.getItem(CLAVE_OCUPACION)) || {};
-    } catch (e) {
-      guardada = {};
-    }
-    const combinada = { ORO: {}, PLATA: {} };
-    ["ORO", "PLATA"].forEach((area) => {
-      const base = OCUPACION_INICIAL[area] || {};
-      const extra = guardada[area] || {};
-      const mesas = new Set([...Object.keys(base), ...Object.keys(extra)]);
-      mesas.forEach((mesa) => {
-        const sillasBase = base[mesa] || [];
-        const sillasExtra = extra[mesa] || [];
-        combinada[area][mesa] = Array.from(new Set([...sillasBase, ...sillasExtra]));
-      });
-    });
-    return combinada;
-  }
-
-  function guardarSillaOcupada(area, mesa, silla) {
-    let guardada = {};
-    try {
-      guardada = JSON.parse(localStorage.getItem(CLAVE_OCUPACION)) || {};
-    } catch (e) {
-      guardada = {};
-    }
-    if (!guardada[area]) guardada[area] = {};
-    if (!guardada[area][mesa]) guardada[area][mesa] = [];
-    if (!guardada[area][mesa].includes(silla)) guardada[area][mesa].push(silla);
-    localStorage.setItem(CLAVE_OCUPACION, JSON.stringify(guardada));
-  }
+  let pollTimer = null;
+  let timerInterval = null;
+  let realtimeChannel = null;
 
   // ---------- Referencias DOM ----------
   const hero = document.getElementById("hero");
@@ -82,7 +49,7 @@
   const stepIndicators = document.querySelectorAll(".step-indicator");
 
   const formRegistro = document.getElementById("formRegistro");
-  const areaInputs = document.querySelectorAll('input[name="area"]');
+  const areasGrid = document.getElementById("areasGrid");
   const seatFields = document.getElementById("seatFields");
   const generalHint = document.getElementById("generalHint");
   const mesaInput = document.getElementById("mesa");
@@ -92,6 +59,7 @@
   const sillaGrid = document.getElementById("sillaGrid");
   const mesaSeleccionadaLabel = document.getElementById("mesaSeleccionadaLabel");
   const seleccionActual = document.getElementById("seleccionActual");
+  const btnContinuar = document.getElementById("btnContinuar");
 
   const orderSummary = document.getElementById("orderSummary");
   const qrcodeContainer = document.getElementById("qrcode");
@@ -100,13 +68,15 @@
   const btnCopyPix = document.getElementById("btnCopyPix");
   const btnConfirmarPago = document.getElementById("btnConfirmarPago");
   const btnVolverRegistro = document.getElementById("btnVolverRegistro");
+  const pagoEstado = document.getElementById("pagoEstado");
   const ticketEl = document.getElementById("ticket");
   const btnNuevaCompra = document.getElementById("btnNuevaCompra");
+  const avisoModal = document.getElementById("avisoModal");
+  const avisoTexto = document.getElementById("avisoTexto");
+  const avisoAceptar = document.getElementById("avisoAceptar");
+  const avisoCancelar = document.getElementById("avisoCancelar");
 
-  let qrInstance = null;
-  let timerInterval = null;
-
-  // ---------- Navegación entre pasos ----------
+  // ---------- Navegación ----------
   function goToStep(step) {
     Object.values(panels).forEach((p) => p.classList.remove("active"));
     panels[step].classList.add("active");
@@ -123,89 +93,316 @@
   }
 
   btnComprar.addEventListener("click", () => {
-    document.getElementById("panel-1").scrollIntoView({ behavior: "smooth" });
+    panels[1].scrollIntoView({ behavior: "smooth" });
   });
 
-  // ---------- Paso 1: mostrar/ocultar mesa y silla según área ----------
-  areaInputs.forEach((input) => {
-    input.addEventListener("change", () => {
-      const areaSeleccionada = input.value;
-      const requiereAsiento = AREAS_CON_ASIENTO.includes(areaSeleccionada);
-      seatFields.classList.toggle("hidden", !requiereAsiento);
-      generalHint.classList.toggle("hidden", requiereAsiento);
-      mesaInput.required = requiereAsiento;
-      sillaInput.required = requiereAsiento;
-      mesaInput.value = "";
-      sillaInput.value = "";
-      seatsPanel.classList.add("hidden");
-      seleccionActual.textContent = "";
+  // ---------- Carga del catálogo ----------
+  function formatPrice(cents) {
+    return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+  }
 
-      if (requiereAsiento) {
-        renderMapaMesas(areaSeleccionada);
+  async function cargarCatalogo() {
+    const { data: event, error: eventError } = await db
+      .from("events")
+      .select("id, name, event_date, venue")
+      .eq("slug", EVENT_SLUG)
+      .maybeSingle();
+
+    if (eventError || !event) {
+      document.getElementById("heroTitulo").textContent = "Evento no disponible";
+      areasGrid.innerHTML =
+        '<p class="hint">No se pudo cargar el evento. Revisa la configuración de Supabase.</p>';
+      return;
+    }
+
+    document.getElementById("heroTitulo").textContent = event.name;
+    const cuando = event.event_date
+      ? new Date(event.event_date).toLocaleString("es", {
+        weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+      })
+      : "";
+    document.getElementById("heroSubtitulo").textContent =
+      [cuando, event.venue].filter(Boolean).join(" · ");
+
+    const { data: sections } = await db
+      .from("sections")
+      .select("id, code, label, price_cents, has_seating, assignment_mode, capacity, notice")
+      .eq("event_id", event.id)
+      .order("sort_order");
+
+    catalogo.sections = sections || [];
+
+    const sectionIds = catalogo.sections.map((s) => s.id);
+    const { data: tables } = await db
+      .from("tables")
+      .select("id, section_id, number, seat_count, label")
+      .in("section_id", sectionIds)
+      .order("number");
+
+    catalogo.tablesBySection = new Map();
+    catalogo.tableById = new Map();
+    (tables || []).forEach((table) => {
+      if (!catalogo.tablesBySection.has(table.section_id)) {
+        catalogo.tablesBySection.set(table.section_id, []);
       }
+      catalogo.tablesBySection.get(table.section_id).push(table);
+      catalogo.tableById.set(table.id, table);
     });
-  });
 
-  // ---------- Mapa referencial de mesas (al elegir Oro / Plata) ----------
-  function renderMapaMesas(area) {
-    const config = MESAS_CONFIG[area];
-    const ocupacion = obtenerOcupacion()[area] || {};
-    mesaGrid.innerHTML = "";
+    await cargarSillas();
+    renderAreas();
+    suscribirRealtime();
+  }
+
+  // Solo se traen las sillas de las secciones donde el comprador elige asiento;
+  // VIP Plata tiene 480 y no se dibuja nunca.
+  async function cargarSillas() {
+    const manualSections = catalogo.sections.filter((s) => s.assignment_mode === "manual");
+    const tableIds = manualSections.flatMap((s) =>
+      (catalogo.tablesBySection.get(s.id) || []).map((t) => t.id)
+    );
+    if (tableIds.length === 0) return;
+
+    const { data: seats } = await db
+      .from("seats_public")
+      .select("id, table_id, number, status")
+      .in("table_id", tableIds)
+      .order("number");
+
+    catalogo.seatsByTable = new Map();
+    (seats || []).forEach((seat) => {
+      if (!catalogo.seatsByTable.has(seat.table_id)) catalogo.seatsByTable.set(seat.table_id, []);
+      catalogo.seatsByTable.get(seat.table_id).push(seat);
+    });
+  }
+
+  function disponiblesEnMesa(tableId) {
+    const seats = catalogo.seatsByTable.get(tableId) || [];
+    return seats.filter((s) => s.status === "available").length;
+  }
+
+  // ---------- Áreas ----------
+  function renderAreas() {
+    areasGrid.innerHTML = "";
+
+    catalogo.sections.forEach((section) => {
+      const card = document.createElement("label");
+      card.className = `area-card area-card--${section.code.toLowerCase()}`;
+
+      const esVip = section.assignment_mode !== "none";
+      const detalle = section.assignment_mode === "manual"
+        ? "Mesa y silla asignada"
+        : section.assignment_mode === "auto_fcfs"
+        ? "Mesa asignada por orden de llegada"
+        : "Acceso de pie · Sin mesa ni silla asignada";
+
+      card.innerHTML = `
+        <input type="radio" name="area" value="${section.code}" />
+        <div class="area-card__body">
+          <span class="badge ${esVip ? "badge--vip" : "badge--general"}">${esVip ? "VIP" : "GENERAL"}</span>
+          <h4>${section.label}</h4>
+          <p>${detalle}</p>
+          <span class="price">${formatPrice(section.price_cents)}</span>
+        </div>
+      `;
+
+      card.querySelector("input").addEventListener("change", () => seleccionarArea(section));
+      areasGrid.appendChild(card);
+    });
+  }
+
+  function limpiarSeleccionAsiento() {
+    mesaInput.value = "";
+    sillaInput.value = "";
     seatsPanel.classList.add("hidden");
+    seleccionActual.textContent = "";
+    mesaGrid.innerHTML = "";
+    sillaGrid.innerHTML = "";
+  }
 
-    for (let numMesa = 1; numMesa <= config.cantidadMesas; numMesa++) {
-      const sillasOcupadas = ocupacion[numMesa] || [];
-      const mesaLlena = sillasOcupadas.length >= config.sillasPorMesa;
+  function seleccionarArea(section) {
+    // VIP Plata avisa antes de continuar: el comprador no elige su mesa.
+    if (section.assignment_mode === "auto_fcfs" && section.notice) {
+      mostrarAviso(section.notice, () => aplicarArea(section), () => deseleccionarArea());
+      return;
+    }
+    aplicarArea(section);
+  }
 
-      const mesaEl = document.createElement("button");
-      mesaEl.type = "button";
-      mesaEl.className = "mesa-item" + (mesaLlena ? " mesa-item--occupied" : "");
-      mesaEl.textContent = numMesa;
-      mesaEl.title = mesaLlena
-        ? `Mesa ${numMesa} - sin sillas disponibles`
-        : `Mesa ${numMesa} - ${config.sillasPorMesa - sillasOcupadas.length} silla(s) disponible(s)`;
-      mesaEl.disabled = mesaLlena;
+  function aplicarArea(section) {
+    state.section = section;
+    limpiarSeleccionAsiento();
+    setError("area", "");
+    setError("mesa", "");
 
-      mesaEl.addEventListener("click", () => {
-        mesaGrid.querySelectorAll(".mesa-item").forEach((el) => el.classList.remove("mesa-item--selected"));
-        mesaEl.classList.add("mesa-item--selected");
-        renderSillas(area, numMesa, config.sillasPorMesa, sillasOcupadas);
-      });
+    const eligeAsiento = section.assignment_mode === "manual";
+    seatFields.classList.toggle("hidden", !eligeAsiento);
+    generalHint.classList.toggle("hidden", eligeAsiento);
 
-      mesaGrid.appendChild(mesaEl);
+    if (eligeAsiento) {
+      renderMapaMesas(section);
+    } else if (section.notice) {
+      generalHint.innerHTML = `<strong>${section.label}:</strong> ${section.notice}`;
     }
   }
 
-  function renderSillas(area, numMesa, sillasPorMesa, sillasOcupadas) {
+  function deseleccionarArea() {
+    state.section = null;
+    document.querySelectorAll('input[name="area"]').forEach((input) => (input.checked = false));
+    seatFields.classList.add("hidden");
+    generalHint.classList.add("hidden");
+    limpiarSeleccionAsiento();
+  }
+
+  // ---------- Aviso inline (VIP Plata) ----------
+  let avisoOnCancel = null;
+
+  function mostrarAviso(texto, onAceptar, onCancelar) {
+    avisoTexto.textContent = texto;
+    avisoOnCancel = onCancelar;
+    avisoModal.classList.remove("hidden");
+
+    avisoAceptar.onclick = () => {
+      avisoModal.classList.add("hidden");
+      avisoOnCancel = null;
+      onAceptar();
+    };
+    avisoCancelar.onclick = () => {
+      avisoModal.classList.add("hidden");
+      avisoOnCancel = null;
+      onCancelar();
+    };
+  }
+
+  avisoModal.addEventListener("click", (event) => {
+    if (event.target === avisoModal && avisoOnCancel) {
+      avisoModal.classList.add("hidden");
+      avisoOnCancel();
+      avisoOnCancel = null;
+    }
+  });
+
+  // ---------- Mapa de mesas ----------
+  function renderMapaMesas(section) {
+    const tables = catalogo.tablesBySection.get(section.id) || [];
+    mesaGrid.innerHTML = "";
+    seatsPanel.classList.add("hidden");
+
+    tables.forEach((table) => {
+      const libres = disponiblesEnMesa(table.id);
+      const llena = libres === 0;
+
+      const mesaEl = document.createElement("button");
+      mesaEl.type = "button";
+      mesaEl.className = "mesa-item" + (llena ? " mesa-item--occupied" : "");
+      mesaEl.dataset.tableId = table.id;
+      mesaEl.dataset.status = llena ? "reservado" : "disponible";
+      mesaEl.dataset.badge = llena ? "Reservado" : `Disponible · ${libres}`;
+      mesaEl.textContent = table.label || table.number;
+      mesaEl.disabled = llena;
+
+      mesaEl.addEventListener("click", () => {
+        mesaGrid.querySelectorAll(".mesa-item").forEach((el) =>
+          el.classList.remove("mesa-item--selected")
+        );
+        mesaEl.classList.add("mesa-item--selected");
+        renderSillas(table);
+      });
+
+      mesaGrid.appendChild(mesaEl);
+    });
+  }
+
+  function renderSillas(table) {
     seatsPanel.classList.remove("hidden");
-    mesaSeleccionadaLabel.textContent = numMesa;
+    mesaSeleccionadaLabel.textContent = table.label || table.number;
     sillaGrid.innerHTML = "";
     mesaInput.value = "";
     sillaInput.value = "";
     seleccionActual.textContent = "";
 
-    for (let numSilla = 1; numSilla <= sillasPorMesa; numSilla++) {
-      const ocupada = sillasOcupadas.includes(numSilla);
+    const seats = catalogo.seatsByTable.get(table.id) || [];
+
+    seats.forEach((seat) => {
+      const libre = seat.status === "available";
       const sillaEl = document.createElement("button");
       sillaEl.type = "button";
-      sillaEl.className = "silla-item" + (ocupada ? " silla-item--occupied" : "");
-      sillaEl.textContent = numSilla;
-      sillaEl.disabled = ocupada;
+      sillaEl.className = "silla-item" + (libre ? "" : " silla-item--occupied");
+      sillaEl.dataset.seatId = seat.id;
+      sillaEl.dataset.status = libre ? "disponible" : "reservado";
+      sillaEl.dataset.badge = libre ? "Disponible" : "Reservado";
+      sillaEl.textContent = seat.number;
+      sillaEl.disabled = !libre;
 
       sillaEl.addEventListener("click", () => {
-        sillaGrid.querySelectorAll(".silla-item").forEach((el) => el.classList.remove("silla-item--selected"));
+        sillaGrid.querySelectorAll(".silla-item").forEach((el) =>
+          el.classList.remove("silla-item--selected")
+        );
         sillaEl.classList.add("silla-item--selected");
-        mesaInput.value = numMesa;
-        sillaInput.value = numSilla;
+        mesaInput.value = table.number;
+        sillaInput.value = seat.number;
         setError("mesa", "");
-        seleccionActual.textContent = `Seleccionaste: Mesa ${numMesa}, Silla ${numSilla} (Área ${AREA_LABELS[area]})`;
+        seleccionActual.textContent =
+          `Seleccionaste: Mesa ${table.label || table.number}, Silla ${seat.number} · ${state.section.label}`;
       });
 
       sillaGrid.appendChild(sillaEl);
+    });
+  }
+
+  // ---------- Realtime ----------
+  function suscribirRealtime() {
+    if (realtimeChannel) db.removeChannel(realtimeChannel);
+
+    realtimeChannel = db
+      .channel("seats-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "seats" },
+        (payload) => aplicarCambioSilla(payload.new),
+      )
+      .subscribe();
+  }
+
+  function aplicarCambioSilla(seat) {
+    if (!seat || !catalogo.seatsByTable.has(seat.table_id)) return;
+
+    const seats = catalogo.seatsByTable.get(seat.table_id);
+    const actual = seats.find((s) => s.id === seat.id);
+    if (!actual || actual.status === seat.status) return;
+    actual.status = seat.status;
+
+    const libre = seat.status === "available";
+
+    const sillaEl = sillaGrid.querySelector(`[data-seat-id="${seat.id}"]`);
+    if (sillaEl) {
+      sillaEl.classList.toggle("silla-item--occupied", !libre);
+      sillaEl.dataset.status = libre ? "disponible" : "reservado";
+      sillaEl.dataset.badge = libre ? "Disponible" : "Reservado";
+      sillaEl.disabled = !libre;
+
+      // Si otro comprador se adelantó, se avisa en vez de dejarlo avanzar.
+      if (!libre && sillaEl.classList.contains("silla-item--selected")) {
+        sillaEl.classList.remove("silla-item--selected");
+        mesaInput.value = "";
+        sillaInput.value = "";
+        seleccionActual.textContent = "";
+        setError("mesa", "Esa silla acaba de ser reservada. Elige otra.");
+      }
+    }
+
+    const mesaEl = mesaGrid.querySelector(`[data-table-id="${seat.table_id}"]`);
+    if (mesaEl) {
+      const libres = disponiblesEnMesa(seat.table_id);
+      const llena = libres === 0;
+      mesaEl.classList.toggle("mesa-item--occupied", llena);
+      mesaEl.dataset.status = llena ? "reservado" : "disponible";
+      mesaEl.dataset.badge = llena ? "Reservado" : `Disponible · ${libres}`;
+      mesaEl.disabled = llena;
     }
   }
 
-  // ---------- Validación simple ----------
+  // ---------- Validación ----------
   function setError(fieldName, message) {
     const el = document.querySelector(`.error[data-for="${fieldName}"]`);
     if (el) el.textContent = message || "";
@@ -216,143 +413,126 @@
   function validarRegistro() {
     let valido = true;
 
-    if (!document.getElementById("nombre").value.trim()) {
-      setError("nombre", "Ingresa el nombre.");
-      valido = false;
-    } else setError("nombre", "");
+    const requeridos = [
+      ["nombre", "Ingresa el nombre."],
+      ["apellido", "Ingresa el apellido."],
+      ["documento", "Ingresa la cédula/CPF."],
+    ];
 
-    if (!document.getElementById("apellido").value.trim()) {
-      setError("apellido", "Ingresa el apellido.");
-      valido = false;
-    } else setError("apellido", "");
+    requeridos.forEach(([campo, mensaje]) => {
+      if (!document.getElementById(campo).value.trim()) {
+        setError(campo, mensaje);
+        valido = false;
+      } else setError(campo, "");
+    });
 
-    const documento = document.getElementById("documento").value.trim();
-    if (!documento) {
-      setError("documento", "Ingresa la cédula/CPF.");
+    const whatsapp = document.getElementById("whatsapp").value.trim();
+    if (!whatsapp) {
+      setError("whatsapp", "Ingresa tu número de WhatsApp.");
       valido = false;
-    } else setError("documento", "");
+    } else if (whatsapp.replace(/\D/g, "").length < 10) {
+      setError("whatsapp", "Incluye el código de área. Ej: (11) 99999-9999");
+      valido = false;
+    } else setError("whatsapp", "");
 
-    const areaSeleccionada = document.querySelector('input[name="area"]:checked');
-    if (!areaSeleccionada) {
+    if (!state.section) {
       setError("area", "Selecciona un área.");
       valido = false;
     } else {
       setError("area", "");
-      if (AREAS_CON_ASIENTO.includes(areaSeleccionada.value)) {
-        if (!mesaInput.value || !sillaInput.value) {
-          setError("mesa", "Selecciona una mesa y una silla en el mapa.");
-          valido = false;
-        } else setError("mesa", "");
+      if (state.section.assignment_mode === "manual" && (!mesaInput.value || !sillaInput.value)) {
+        setError("mesa", "Selecciona una mesa y una silla en el mapa.");
+        valido = false;
       }
     }
 
     return valido;
   }
 
-  // ---------- Envío del formulario de registro ----------
-  formRegistro.addEventListener("submit", (event) => {
+  // ---------- Paso 1 -> 2 ----------
+  formRegistro.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!validarRegistro()) return;
-
-    const areaSeleccionada = document.querySelector('input[name="area"]:checked');
 
     state.nombre = document.getElementById("nombre").value.trim();
     state.apellido = document.getElementById("apellido").value.trim();
     state.documento = document.getElementById("documento").value.trim();
-    state.area = areaSeleccionada.value;
-    state.precio = Number(areaSeleccionada.dataset.price);
-    state.mesa = AREAS_CON_ASIENTO.includes(state.area) ? mesaInput.value : "";
-    state.silla = AREAS_CON_ASIENTO.includes(state.area) ? sillaInput.value : "";
-    state.codigoEntrada = generarCodigoEntrada();
+    state.whatsapp = document.getElementById("whatsapp").value.trim();
+    state.mesa = mesaInput.value;
+    state.silla = sillaInput.value;
 
-    renderResumenPedido();
-    generarQrPix();
-    iniciarTemporizador(15 * 60);
+    btnContinuar.disabled = true;
+    btnContinuar.textContent = "Generando cobro...";
+
+    const { ok, status, data } = await window.callFunction("create-order", {
+      event_slug: EVENT_SLUG,
+      section_code: state.section.code,
+      table_number: state.mesa ? Number(state.mesa) : null,
+      seat_number: state.silla ? Number(state.silla) : null,
+      buyer: {
+        nombre: state.nombre,
+        apellido: state.apellido,
+        documento: state.documento,
+        whatsapp: state.whatsapp,
+      },
+    });
+
+    btnContinuar.disabled = false;
+    btnContinuar.textContent = "Continuar al pago";
+
+    if (!ok) {
+      if (status === 409) {
+        setError("mesa", data.error || "Esa ubicación ya no está disponible.");
+        await cargarSillas();
+        if (state.section.assignment_mode === "manual") renderMapaMesas(state.section);
+      } else {
+        setError("area", data.error || "No se pudo iniciar la compra.");
+      }
+      return;
+    }
+
+    state.orderId = data.order_id;
+    state.mesa = data.table_number ?? "";
+    state.silla = data.seat_number ?? "";
+
+    renderResumenPedido(data);
+    renderQrPix(data.pix_qr_code);
+    iniciarTemporizador(data.pix_expires_at);
+    iniciarPolling();
     goToStep(2);
   });
 
   btnVolverRegistro.addEventListener("click", () => {
     detenerTemporizador();
+    detenerPolling();
     goToStep(1);
   });
 
-  // ---------- Paso 2: resumen del pedido ----------
-  function renderResumenPedido() {
-    const filaAsiento =
-      state.mesa || state.silla
-        ? `<div class="row"><span>Mesa / Silla</span><span>Mesa ${state.mesa} · Silla ${state.silla}</span></div>`
-        : `<div class="row"><span>Ubicación</span><span>Acceso general (de pie)</span></div>`;
+  // ---------- Paso 2 ----------
+  function renderResumenPedido(data) {
+    const ubicacion = data.seat_number
+      ? `Mesa ${data.table_number} · Silla ${data.seat_number}`
+      : "Acceso general (de pie)";
+
+    const asignada = state.section.assignment_mode === "auto_fcfs"
+      ? '<div class="row"><span></span><span class="hint">Asignada por orden de llegada</span></div>'
+      : "";
 
     orderSummary.innerHTML = `
       <div class="row"><span>Comprador</span><span>${state.nombre} ${state.apellido}</span></div>
       <div class="row"><span>Documento</span><span>${state.documento}</span></div>
-      <div class="row"><span>Área</span><span>${AREA_LABELS[state.area]}</span></div>
-      ${filaAsiento}
-      <div class="row"><span>Total a pagar</span><span>R$ ${state.precio.toFixed(2)}</span></div>
+      <div class="row"><span>WhatsApp</span><span>${state.whatsapp}</span></div>
+      <div class="row"><span>Área</span><span>${data.section.label}</span></div>
+      <div class="row"><span>Ubicación</span><span>${ubicacion}</span></div>
+      ${asignada}
+      <div class="row"><span>Total a pagar</span><span>${formatPrice(data.amount_cents)}</span></div>
     `;
   }
 
-  // ---------- Generación código de entrada único ----------
-  function generarCodigoEntrada() {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).slice(2, 8).toUpperCase();
-    return `EVT-${state.area || "GEN"}-${timestamp}-${random}`;
-  }
-
-  // ---------- PIX: generación de payload "copia e cola" (EMV) ----------
-  function crc16(payload) {
-    let polinomio = 0x1021;
-    let resultado = 0xffff;
-
-    for (let i = 0; i < payload.length; i++) {
-      resultado ^= payload.charCodeAt(i) << 8;
-      for (let j = 0; j < 8; j++) {
-        if ((resultado & 0x8000) !== 0) {
-          resultado = (resultado << 1) ^ polinomio;
-        } else {
-          resultado <<= 1;
-        }
-        resultado &= 0xffff;
-      }
-    }
-    return resultado.toString(16).toUpperCase().padStart(4, "0");
-  }
-
-  function emvField(id, value) {
-    const length = String(value.length).padStart(2, "0");
-    return `${id}${length}${value}`;
-  }
-
-  function construirPayloadPix() {
-    const chavePix = "evento-vip-fest@pagamento.com";
-    const nombreComerciante = "NOCHE VIP FEST".slice(0, 25);
-    const ciudad = "SAO PAULO".slice(0, 15);
-    const valor = state.precio.toFixed(2);
-    const idTransaccion = state.codigoEntrada.slice(0, 25);
-
-    const merchantAccountInfo = emvField("00", "BR.GOV.BCB.PIX") + emvField("01", chavePix);
-
-    let payload =
-      emvField("00", "01") +
-      emvField("26", merchantAccountInfo) +
-      emvField("52", "0000") +
-      emvField("53", "986") +
-      emvField("54", valor) +
-      emvField("58", "BR") +
-      emvField("59", nombreComerciante) +
-      emvField("60", ciudad) +
-      emvField("62", emvField("05", idTransaccion));
-
-    payload += "6304";
-    const checksum = crc16(payload);
-    return payload + checksum;
-  }
-
-  function generarQrPix() {
-    const payload = construirPayloadPix();
+  function renderQrPix(payload) {
     pixCodeInput.value = payload;
     qrcodeContainer.innerHTML = "";
-    qrInstance = new QRCode(qrcodeContainer, {
+    new QRCode(qrcodeContainer, {
       text: payload,
       width: 200,
       height: 200,
@@ -372,117 +552,110 @@
     }
   });
 
-  // ---------- Temporizador de expiración del QR ----------
-  function iniciarTemporizador(segundosIniciales) {
+  // El vencimiento lo define el servidor, no un contador local.
+  function iniciarTemporizador(expiresAt) {
     detenerTemporizador();
-    let segundosRestantes = segundosIniciales;
-    actualizarTimerUI(segundosRestantes);
+    const limite = new Date(expiresAt).getTime();
 
-    timerInterval = setInterval(() => {
-      segundosRestantes -= 1;
-      actualizarTimerUI(segundosRestantes);
-      if (segundosRestantes <= 0) {
+    const tick = () => {
+      const restante = Math.max(0, Math.floor((limite - Date.now()) / 1000));
+      const minutos = Math.floor(restante / 60).toString().padStart(2, "0");
+      const segundos = (restante % 60).toString().padStart(2, "0");
+      timerEl.textContent = `${minutos}:${segundos}`;
+
+      if (restante <= 0) {
         detenerTemporizador();
-        alert("El código PIX expiró. Genera uno nuevo.");
-        generarQrPix();
-        iniciarTemporizador(15 * 60);
+        detenerPolling();
+        pagoEstado.textContent = "El código PIX expiró. Vuelve atrás y genera una compra nueva.";
+        pagoEstado.className = "pago-estado pago-estado--error";
       }
-    }, 1000);
-  }
+    };
 
-  function actualizarTimerUI(segundos) {
-    const minutos = Math.floor(segundos / 60).toString().padStart(2, "0");
-    const segs = (segundos % 60).toString().padStart(2, "0");
-    timerEl.textContent = `${minutos}:${segs}`;
+    tick();
+    timerInterval = setInterval(tick, 1000);
   }
 
   function detenerTemporizador() {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
   }
 
-  // ---------- Confirmar pago (simulado) -> Paso 3 ----------
-  btnConfirmarPago.addEventListener("click", () => {
-    detenerTemporizador();
-    if (AREAS_CON_ASIENTO.includes(state.area) && state.mesa && state.silla) {
-      guardarSillaOcupada(state.area, state.mesa, state.silla);
+  // El pago lo confirma el webhook de Pagar.me; acá solo se consulta el estado.
+  function iniciarPolling() {
+    detenerPolling();
+    pagoEstado.textContent = "Esperando la confirmación del pago...";
+    pagoEstado.className = "pago-estado";
+    pollTimer = setInterval(consultarEstadoPago, 4000);
+  }
+
+  function detenerPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  async function consultarEstadoPago(manual) {
+    const { ok, data } = await window.callFunction("get-order-status", { order_id: state.orderId });
+    if (!ok) return false;
+
+    if (data.status === "paid" && data.ticket) {
+      detenerPolling();
+      detenerTemporizador();
+      state.ticket = data.ticket;
+      renderTicket();
+      goToStep(3);
+      return true;
     }
-    registrarEntradaEmitida();
-    renderTicket();
-    goToStep(3);
+
+    if (["expired", "canceled", "failed"].includes(data.status)) {
+      detenerPolling();
+      pagoEstado.textContent = "La compra expiró o fue cancelada. Vuelve atrás e inténtalo de nuevo.";
+      pagoEstado.className = "pago-estado pago-estado--error";
+      return false;
+    }
+
+    if (manual) {
+      pagoEstado.textContent =
+        "Todavía no recibimos la confirmación del banco. Puede tardar unos segundos.";
+      pagoEstado.className = "pago-estado";
+    }
+    return false;
+  }
+
+  btnConfirmarPago.addEventListener("click", async () => {
+    btnConfirmarPago.disabled = true;
+    btnConfirmarPago.textContent = "Verificando...";
+    await consultarEstadoPago(true);
+    btnConfirmarPago.disabled = false;
+    btnConfirmarPago.textContent = "Ya realicé el pago";
   });
 
-  // ---------- Registro de la entrada emitida (para validar "ya utilizada") ----------
-  const CLAVE_ENTRADAS = "entradasEmitidasEvento";
-
-  function registrarEntradaEmitida() {
-    let entradas = {};
-    try {
-      entradas = JSON.parse(localStorage.getItem(CLAVE_ENTRADAS)) || {};
-    } catch (e) {
-      entradas = {};
-    }
-    entradas[state.codigoEntrada] = {
-      nombre: state.nombre,
-      apellido: state.apellido,
-      documento: state.documento,
-      area: state.area,
-      mesa: state.mesa,
-      silla: state.silla,
-      usada: false,
-    };
-    localStorage.setItem(CLAVE_ENTRADAS, JSON.stringify(entradas));
-  }
-
-  // ---------- Construcción de la URL de verificación (firmada) ----------
-  function construirUrlVerificacion() {
-    const firma = firmarTicket(
-      state.codigoEntrada,
-      state.nombre,
-      state.apellido,
-      state.area,
-      state.mesa,
-      state.silla
-    );
-    const params = new URLSearchParams({
-      codigo: state.codigoEntrada,
-      nombre: state.nombre,
-      apellido: state.apellido,
-      area: state.area,
-      mesa: state.mesa || "",
-      silla: state.silla || "",
-      firma,
-    });
+  // ---------- Paso 3 ----------
+  function construirUrlVerificacion(ticket) {
+    const params = new URLSearchParams({ codigo: ticket.code, firma: ticket.qr_signature });
     const base = window.location.href.replace(/index\.html.*$/i, "").replace(/\/?$/, "/");
     return `${base}verificar.html?${params.toString()}`;
   }
 
   function renderTicket() {
-    const filaAsiento =
-      state.mesa || state.silla
-        ? `<div class="row"><strong>Mesa / Silla:</strong> Mesa ${state.mesa} · Silla ${state.silla}</div>`
-        : `<div class="row"><strong>Ubicación:</strong> Acceso general (de pie)</div>`;
-
-    const urlVerificacion = construirUrlVerificacion();
+    const ticket = state.ticket;
+    const ubicacion = ticket.seat_number
+      ? `<div class="row"><strong>Mesa / Silla:</strong> Mesa ${ticket.table_number} · Silla ${ticket.seat_number}</div>`
+      : `<div class="row"><strong>Ubicación:</strong> Acceso general (de pie)</div>`;
 
     ticketEl.innerHTML = `
       <div class="ticket__info">
-        <span class="ticket__area ticket__area--${state.area}">${AREA_LABELS[state.area]}</span>
-        <h3>${state.nombre} ${state.apellido}</h3>
+        <span class="ticket__area ticket__area--${ticket.section_code}">${ticket.section_label}</span>
+        <h3>${ticket.buyer_name} ${ticket.buyer_lastname}</h3>
         <div class="row"><strong>Documento:</strong> ${state.documento}</div>
-        ${filaAsiento}
-        <div class="row"><strong>Código de entrada:</strong> ${state.codigoEntrada}</div>
-        <div class="row"><strong>Total pagado:</strong> R$ ${state.precio.toFixed(2)}</div>
-        <p class="ticket__qr-hint">Escanea este QR con la cámara del celular para verificar la entrada</p>
+        ${ubicacion}
+        <div class="row"><strong>Código de entrada:</strong> ${ticket.code}</div>
+        <p class="ticket__qr-hint">Presenta este QR en la entrada del evento</p>
       </div>
       <div class="ticket__qr" id="ticketQr"></div>
     `;
 
-    const ticketQrContainer = document.getElementById("ticketQr");
-    new QRCode(ticketQrContainer, {
-      text: urlVerificacion,
+    new QRCode(document.getElementById("ticketQr"), {
+      text: construirUrlVerificacion(ticket),
       width: 150,
       height: 150,
       colorDark: "#0f1117",
@@ -490,20 +663,18 @@
     });
   }
 
-  // ---------- Nueva compra: reinicia el flujo ----------
-  btnNuevaCompra.addEventListener("click", () => {
+  btnNuevaCompra.addEventListener("click", async () => {
     formRegistro.reset();
-    seatFields.classList.add("hidden");
-    generalHint.classList.add("hidden");
-    seatsPanel.classList.add("hidden");
-    seleccionActual.textContent = "";
-    mesaGrid.innerHTML = "";
-    sillaGrid.innerHTML = "";
+    deseleccionarArea();
+    state.orderId = "";
+    state.ticket = null;
     document.querySelectorAll(".error").forEach((el) => (el.textContent = ""));
     document.querySelectorAll(".invalid").forEach((el) => el.classList.remove("invalid"));
+    await cargarSillas();
     goToStep(1);
   });
 
-  // ---------- Estado inicial ----------
+  // ---------- Inicio ----------
   goToStep(1);
+  cargarCatalogo();
 })();

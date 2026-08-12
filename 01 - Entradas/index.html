@@ -3,13 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Venta de Entradas - Evento</title>
+  <title>Venta de Entradas · Pro Kart</title>
+  <link rel="icon" href="Logo Prokart.png" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
   <header class="topbar">
-    <div class="topbar__brand">🎫 <span>NOCHE VIP FEST</span></div>
+    <div class="topbar__brand">
+      <img src="Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
+    </div>
     <div class="topbar__steps" id="stepsIndicator">
       <div class="step-indicator active" data-step="1">1. Registro</div>
       <div class="step-indicator" data-step="2">2. Pago PIX</div>
@@ -21,8 +24,9 @@
 
     <!-- HERO -->
     <section class="hero" id="hero">
-      <h1>Noche VIP Fest</h1>
-      <p class="hero__sub">Sábado 20 de Diciembre · 21:00 hs · Arena Central</p>
+      <img src="Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
+      <h1 id="heroTitulo">Cargando evento...</h1>
+      <p class="hero__sub" id="heroSubtitulo"></p>
       <button class="btn btn--primary" id="btnComprar">Comprar entrada</button>
     </section>
 
@@ -47,41 +51,16 @@
             <input type="text" id="documento" name="documento" required placeholder="Ej: 123.456.789-00" />
             <span class="error" data-for="documento"></span>
           </div>
+          <div class="field">
+            <label for="whatsapp">Número de WhatsApp</label>
+            <input type="tel" id="whatsapp" name="whatsapp" required placeholder="Ej: (11) 99999-9999" />
+            <span class="error" data-for="whatsapp"></span>
+          </div>
         </div>
 
         <h3>Selecciona el área</h3>
         <div class="areas-grid" id="areasGrid">
-
-          <label class="area-card area-card--oro">
-            <input type="radio" name="area" value="ORO" data-price="150" />
-            <div class="area-card__body">
-              <span class="badge badge--vip">VIP</span>
-              <h4>Área Oro</h4>
-              <p>Mesa y silla asignada · Ubicación preferencial</p>
-              <span class="price">R$ 150,00</span>
-            </div>
-          </label>
-
-          <label class="area-card area-card--plata">
-            <input type="radio" name="area" value="PLATA" data-price="100" />
-            <div class="area-card__body">
-              <span class="badge badge--vip">VIP</span>
-              <h4>Área Plata</h4>
-              <p>Mesa y silla asignada</p>
-              <span class="price">R$ 100,00</span>
-            </div>
-          </label>
-
-          <label class="area-card area-card--general">
-            <input type="radio" name="area" value="GENERAL" data-price="50" />
-            <div class="area-card__body">
-              <span class="badge badge--general">GENERAL</span>
-              <h4>Área General</h4>
-              <p>Acceso de pie · Sin mesa ni silla asignada</p>
-              <span class="price">R$ 50,00</span>
-            </div>
-          </label>
-
+          <p class="hint">Cargando áreas disponibles...</p>
         </div>
         <span class="error" data-for="area"></span>
 
@@ -116,10 +95,21 @@
         </p>
 
         <div class="actions">
-          <button type="submit" class="btn btn--primary">Continuar al pago</button>
+          <button type="submit" class="btn btn--primary" id="btnContinuar">Continuar al pago</button>
         </div>
       </form>
     </section>
+
+    <!-- Aviso inline: secciones asignadas por orden de llegada -->
+    <div class="aviso-overlay hidden" id="avisoModal">
+      <div class="aviso-card">
+        <p id="avisoTexto"></p>
+        <div class="aviso-card__actions">
+          <button type="button" class="btn btn--ghost" id="avisoCancelar">Cancelar</button>
+          <button type="button" class="btn btn--primary" id="avisoAceptar">Aceptar</button>
+        </div>
+      </div>
+    </div>
 
     <!-- PASO 2: PAGO PIX -->
     <section class="step-panel" id="panel-2">
@@ -142,6 +132,7 @@
           <button type="button" class="btn btn--primary" id="btnConfirmarPago">
             Ya realicé el pago
           </button>
+          <p class="pago-estado" id="pagoEstado"></p>
           <button type="button" class="btn btn--link" id="btnVolverRegistro">← Volver a editar datos</button>
         </div>
       </div>
@@ -158,10 +149,12 @@
 
   </main>
 
-  <footer class="footer">© 2026 Noche VIP Fest · Todos los derechos reservados</footer>
+  <footer class="footer">© 2026 Pro Kart · Todos los derechos reservados</footer>
 
   <script src="js/qrcode.min.js"></script>
-  <script src="js/firma.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabaseClient.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
