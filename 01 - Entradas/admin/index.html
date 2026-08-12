@@ -125,6 +125,79 @@
         <div class="table-scroll"><table class="data-table" id="tablaEntradas"></table></div>
       </section>
 
+      <!-- Portada: qué ve el público -->
+      <section class="tab-panel" id="tab-portada">
+        <div class="panel-card">
+          <h3>Evento en portada</h3>
+          <p class="hint">
+            Estos datos son los que aparecen sobre la imagen del evento y en la
+            fila del calendario. El plano del salón no cambia.
+          </p>
+          <form id="portadaForm" class="form-grid">
+            <div class="field">
+              <label for="pNombre">Nombre del evento</label>
+              <input type="text" id="pNombre" placeholder="Ej: Jorge Guerrero en vivo" />
+            </div>
+            <div class="field">
+              <label for="pTagline">Bajada</label>
+              <input type="text" id="pTagline" placeholder="Ej: Noche de folklor venezolano" />
+            </div>
+            <div class="field">
+              <label for="pFecha">Fecha y hora</label>
+              <input type="datetime-local" id="pFecha" />
+            </div>
+            <div class="field">
+              <label for="pLugar">Lugar</label>
+              <input type="text" id="pLugar" placeholder="Arena Central" />
+            </div>
+            <div class="field">
+              <label for="pTipo">Etiqueta</label>
+              <input type="text" id="pTipo" placeholder="NIGHT RACE" />
+            </div>
+            <div class="field">
+              <label for="pDescripcion">Descripción corta</label>
+              <input type="text" id="pDescripcion" placeholder="Competición · Música · Paddock" />
+            </div>
+            <div class="field">
+              <label for="pCiudad">Ciudad</label>
+              <input type="text" id="pCiudad" placeholder="São Paulo" />
+            </div>
+            <div class="field">
+              <label for="pCiudadCorta">Sigla</label>
+              <input type="text" id="pCiudadCorta" maxlength="4" placeholder="SP" />
+            </div>
+            <div class="field">
+              <label for="pImagen">Imagen de portada</label>
+              <input type="text" id="pImagen" placeholder="evento.jpg" />
+            </div>
+          </form>
+          <span class="error" data-for="portada"></span>
+          <button type="button" class="btn btn--primary" id="btnGuardarPortada">Guardar portada</button>
+        </div>
+
+        <div class="panel-card">
+          <h3>Productos destacados del menú</h3>
+          <p class="hint">Lo que se muestra en la sección Menú de la portada.</p>
+          <div class="table-scroll"><table class="data-table" id="tablaMenu"></table></div>
+          <form id="menuForm" class="form-grid" style="margin-top:16px">
+            <div class="field">
+              <label for="mNombre">Producto</label>
+              <input type="text" id="mNombre" placeholder="Ej: Pro Burger" />
+            </div>
+            <div class="field">
+              <label for="mDescripcion">Descripción</label>
+              <input type="text" id="mDescripcion" placeholder="La clásica de la casa" />
+            </div>
+            <div class="field">
+              <label for="mPrecio">Precio (R$, vacío = sin precio)</label>
+              <input type="number" id="mPrecio" min="0" step="0.01" placeholder="45.00" />
+            </div>
+          </form>
+          <span class="error" data-for="menu"></span>
+          <button type="button" class="btn btn--primary" id="btnAgregarMenu">Agregar producto</button>
+        </div>
+      </section>
+
       <!-- Apertura de eventos -->
       <section class="tab-panel" id="tab-eventos">
         <div class="panel-card">

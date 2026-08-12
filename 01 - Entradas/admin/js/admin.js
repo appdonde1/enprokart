@@ -12,6 +12,7 @@
     salon: { label: "Salón", roles: ["admin"] },
     validar: { label: "Validar", roles: ["admin", "mesero"] },
     entradas: { label: "Entradas", roles: ["admin", "mesero"] },
+    portada: { label: "Portada", roles: ["admin"] },
     eventos: { label: "Eventos", roles: ["admin"] },
   };
 
@@ -159,7 +160,7 @@
   async function cargarEventos() {
     const { data: events } = await db
       .from("events")
-      .select("id, slug, name, event_date, venue, status")
+      .select("id, slug, name, event_date, venue, status, tagline, cover_image, event_type, city, city_code, description, is_main, sells_tickets")
       .order("event_date", { ascending: false });
 
     state.events = events || [];
@@ -244,8 +245,154 @@
       renderResumen();
       renderSalon();
       renderEventos();
+      renderPortada();
+      cargarMenu();
     }
     renderEntradas();
+  }
+
+  // ---------- portada del sitio ----------
+  function renderPortada() {
+    const e = state.events.find((x) => x.id === state.eventId);
+    if (!e) return;
+
+    const campos = {
+      pNombre: e.name, pTagline: e.tagline, pLugar: e.venue,
+      pTipo: e.event_type, pDescripcion: e.description,
+      pCiudad: e.city, pCiudadCorta: e.city_code, pImagen: e.cover_image,
+    };
+    Object.entries(campos).forEach(([id, valor]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = valor ?? "";
+    });
+
+    const fecha = document.getElementById("pFecha");
+    if (fecha) {
+      // El input datetime-local necesita hora local sin zona.
+      fecha.value = e.event_date
+        ? new Date(new Date(e.event_date).getTime() - new Date().getTimezoneOffset() * 60000)
+          .toISOString().slice(0, 16)
+        : "";
+    }
+  }
+
+  const btnPortada = document.getElementById("btnGuardarPortada");
+  if (btnPortada) {
+    btnPortada.addEventListener("click", async () => {
+      setError("portada", "");
+      btnPortada.disabled = true;
+
+      const valor = (id) => document.getElementById(id).value.trim() || null;
+      const fecha = document.getElementById("pFecha").value;
+
+      const { error } = await db.from("events").update({
+        name: valor("pNombre"),
+        tagline: valor("pTagline"),
+        venue: valor("pLugar"),
+        event_type: valor("pTipo"),
+        description: valor("pDescripcion"),
+        city: valor("pCiudad"),
+        city_code: valor("pCiudadCorta"),
+        cover_image: valor("pImagen"),
+        event_date: fecha ? new Date(fecha).toISOString() : null,
+      }).eq("id", state.eventId);
+
+      btnPortada.disabled = false;
+
+      if (error) {
+        setError("portada", "No se pudo guardar.");
+        return;
+      }
+      setError("portada", "");
+      btnPortada.textContent = "Guardado";
+      setTimeout(() => (btnPortada.textContent = "Guardar portada"), 2000);
+      await cargarEventos();
+    });
+  }
+
+  // ---------- menú ----------
+  async function cargarMenu() {
+    const tabla = document.getElementById("tablaMenu");
+    if (!tabla) return;
+
+    const { data } = await db
+      .from("menu_items")
+      .select("id, name, description, price_cents, active, sort_order")
+      .order("sort_order");
+
+    const items = data || [];
+
+    if (!items.length) {
+      tabla.innerHTML = '<tbody><tr><td class="empty">Todavía no hay productos.</td></tr></tbody>';
+      return;
+    }
+
+    tabla.innerHTML = `
+      <thead><tr><th>Producto</th><th>Descripción</th><th>Precio</th><th>Visible</th><th></th></tr></thead>
+      <tbody>
+        ${items.map((p) => `
+          <tr>
+            <td>${esc(p.name)}</td>
+            <td>${esc(p.description || "—")}</td>
+            <td>${p.price_cents == null ? "—" : money(p.price_cents)}</td>
+            <td>${p.active ? '<span class="pill pill--ok">Sí</span>' : '<span class="pill pill--bad">No</span>'}</td>
+            <td>
+              <button type="button" class="btn btn--ghost btn--sm" data-menu-toggle="${p.id}" data-activo="${p.active}">
+                ${p.active ? "Ocultar" : "Mostrar"}
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm" data-menu-borrar="${p.id}">Borrar</button>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    `;
+
+    tabla.querySelectorAll("[data-menu-toggle]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await db.from("menu_items")
+          .update({ active: btn.dataset.activo !== "true" })
+          .eq("id", btn.dataset.menuToggle);
+        await cargarMenu();
+      });
+    });
+
+    tabla.querySelectorAll("[data-menu-borrar]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await db.from("menu_items").delete().eq("id", btn.dataset.menuBorrar);
+        await cargarMenu();
+      });
+    });
+  }
+
+  const btnMenu = document.getElementById("btnAgregarMenu");
+  if (btnMenu) {
+    btnMenu.addEventListener("click", async () => {
+      setError("menu", "");
+      const nombre = document.getElementById("mNombre").value.trim();
+      if (!nombre) {
+        setError("menu", "Poné el nombre del producto.");
+        return;
+      }
+
+      const precio = document.getElementById("mPrecio").value;
+      btnMenu.disabled = true;
+
+      const { error } = await db.from("menu_items").insert({
+        name: nombre,
+        description: document.getElementById("mDescripcion").value.trim() || null,
+        price_cents: precio === "" ? null : Math.round(Number(precio) * 100),
+        sort_order: 99,
+      });
+
+      btnMenu.disabled = false;
+
+      if (error) {
+        setError("menu", "No se pudo agregar.");
+        return;
+      }
+      document.getElementById("menuForm").reset();
+      await cargarMenu();
+    });
   }
 
   // ---------- realtime ----------
@@ -649,14 +796,19 @@
   // ---------- apertura de eventos ----------
   function renderEventos() {
     ui.tablaEventos.innerHTML = `
-      <thead><tr><th>Evento</th><th>Fecha</th><th>Lugar</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr><th>Evento</th><th>Fecha</th><th>Lugar</th><th>Estado</th><th>Portada</th><th></th></tr></thead>
       <tbody>
         ${state.events.map((e) => `
           <tr>
             <td>${esc(e.name)}</td>
             <td>${e.event_date ? new Date(e.event_date).toLocaleString("es") : "—"}</td>
             <td>${esc(e.venue || "—")}</td>
-            <td>${esc(e.status)}</td>
+            <td>${e.status === "published"
+              ? '<span class="pill pill--ok">Publicado</span>'
+              : '<span class="pill pill--bad">Borrador</span>'}</td>
+            <td>${e.is_main
+              ? '<span class="pill pill--used">En portada</span>'
+              : `<button type="button" class="btn btn--ghost btn--sm" data-portada="${e.id}">Poner</button>`}</td>
             <td>
               <button type="button" class="btn btn--ghost btn--sm"
                       data-toggle-event="${e.id}" data-status="${e.status}">
@@ -672,6 +824,15 @@
       btn.addEventListener("click", async () => {
         const nuevo = btn.dataset.status === "published" ? "draft" : "published";
         await db.from("events").update({ status: nuevo }).eq("id", btn.dataset.toggleEvent);
+        await cargarEventos();
+      });
+    });
+
+    // Solo un evento puede estar en portada, así que primero se baja el anterior.
+    ui.tablaEventos.querySelectorAll("[data-portada]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await db.from("events").update({ is_main: false }).eq("is_main", true);
+        await db.from("events").update({ is_main: true }).eq("id", btn.dataset.portada);
         await cargarEventos();
       });
     });

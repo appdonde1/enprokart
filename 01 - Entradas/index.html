@@ -3,27 +3,231 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0f1117" />
-  <title>Entradas · Pro Kart</title>
+  <meta name="theme-color" content="#0a0a09" />
+  <meta name="color-scheme" content="dark" />
+  <title>Pro Kart · Eventos y entradas</title>
   <link rel="icon" href="Logo Prokart.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/plano.css" />
 </head>
-<body>
 
-  <header class="topbar">
-    <div class="topbar__inner">
-      <div class="topbar__brand">
+<body>
+  <!-- =====================================================
+       NAVEGACIÓN EDITORIAL
+       ===================================================== -->
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="site-brand" href="#inicio" aria-label="Pro Kart, inicio">
         <span class="brand-plate">
           <img src="Logo Prokart.png" alt="Pro Kart" class="brand-logo" />
         </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Navegación principal">
+        <a href="#eventos">Eventos</a>
+        <a href="#novedades">Novedades</a>
+        <a href="#menu">Menú</a>
+        <a href="#experiencias">Experiencias</a>
+      </nav>
+
+      <a class="header-book" href="#reservar" id="headerReservar">Reservar <span>↗</span></a>
+    </div>
+  </header>
+
+  <main id="inicio" class="editorial-page container">
+
+    <!-- =====================================================
+         01 / EVENTO PRINCIPAL
+         Los IDs heroTitulo/heroSubtitulo/btnComprar siguen vivos
+         para que app.js pueda continuar cargando el evento desde DB.
+         ===================================================== -->
+    <section class="feature" id="hero">
+      <div class="feature__media">
+        <div class="feature__grid" aria-hidden="true"></div>
+
+        <!-- Portada dinámica: app.js puede poblarla -->
+        <section class="evento" id="eventoPortada" hidden>
+          <img id="eventoImagen" alt="" />
+          <div class="evento__velo"></div>
+          <div class="evento__texto">
+            <p class="evento__tipo" id="eventoTagline"></p>
+            <h2 class="evento__nombre" id="eventoNombre"></h2>
+            <p class="evento__cuando">
+              <span><i></i><span id="eventoFecha"></span></span>
+              <span><i></i><span id="eventoLugar"></span></span>
+            </p>
+          </div>
+        </section>
+
+        <div class="feature__art" aria-hidden="true">
+          <span class="feature__number">01</span>
+          <div class="feature__marker">PK / LIVE</div>
+        </div>
       </div>
-      <div class="topbar__steps steps-rail" id="stepsIndicator">
+
+      <div class="feature__info">
+        <div class="eyebrow"><span></span> PRÓXIMO EVENTO</div>
+        <div class="feature__copy">
+          <p class="feature__kicker">PRO KART / 2026</p>
+          <h1 id="heroTitulo">Cargando evento...</h1>
+          <p id="heroSubtitulo" class="feature__sub">
+            Experiencias, carreras y noches especiales en un solo lugar.
+          </p>
+        </div>
+
+        <div class="feature__footer">
+          <div class="feature__meta">
+            <span>01</span>
+            <span>EVENTO DESTACADO</span>
+          </div>
+          <button class="editorial-cta" id="btnComprar" type="button">
+            Reservar entrada <span>↗</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         02 / MOSAICO EDITORIAL
+         ===================================================== -->
+    <section class="content-section" id="novedades">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">02 / CONTENIDO</p>
+          <h2>Novedades</h2>
+        </div>
+        <p>Lo que está pasando dentro y fuera de la pista.</p>
+      </div>
+
+      <div class="editorial-grid editorial-grid--news">
+        <a class="story-card story-card--wide" href="#eventos">
+          <div class="story-art story-art--night">
+            <span>PK NIGHT</span>
+            <b>NOCHES<br />A FONDO</b>
+            <i></i>
+          </div>
+          <div class="story-copy">
+            <div class="story-meta"><span>NOVEDAD</span><span>01</span></div>
+            <h3>La pista cambia cuando cae la noche.</h3>
+            <p>Una nueva forma de vivir Pro Kart: luces, música y competición.</p>
+            <span class="story-link">Ver eventos <b>↗</b></span>
+          </div>
+        </a>
+
+        <a class="story-card" href="#experiencias">
+          <div class="story-art story-art--paddock">
+            <span>PADDOCK</span>
+            <b>BEHIND<br />THE RACE</b>
+          </div>
+          <div class="story-copy">
+            <div class="story-meta"><span>EXPERIENCIA</span><span>02</span></div>
+            <h3>Más cerca de la acción.</h3>
+            <span class="story-link">Descubrir <b>↗</b></span>
+          </div>
+        </a>
+
+        <a class="story-card" href="#menu">
+          <div class="story-art story-art--menu">
+            <span>PRO KART / FOOD</span>
+            <b>COMER.<br />CORRER.<br />REPETIR.</b>
+          </div>
+          <div class="story-copy">
+            <div class="story-meta"><span>MENÚ</span><span>03</span></div>
+            <h3>La experiencia no termina en la pista.</h3>
+            <span class="story-link">Ver menú <b>↗</b></span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         03 / EVENTOS
+         ===================================================== -->
+    <section class="content-section content-section--events" id="eventos">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">03 / CALENDARIO</p>
+          <h2>Próximos eventos</h2>
+        </div>
+        <p>Elige una fecha y entra directo al proceso de reserva.</p>
+      </div>
+
+      <!-- Se llena desde la base: los edita el admin en el panel -->
+      <div class="event-list" id="listaEventos">
+        <p class="hint">Cargando eventos...</p>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         04 / MENÚ
+         ===================================================== -->
+    <section class="content-section content-section--split" id="menu">
+      <div class="menu-intro">
+        <p class="section-index">04 / PADDOCK</p>
+        <h2>Menú</h2>
+        <p>Antes de la bandera verde, hay una regla importante: nadie corre con hambre.</p>
+        <a href="#reservar" class="text-cta">Reservar experiencia <span>↗</span></a>
+      </div>
+
+      <!-- Productos destacados: los edita el admin en el panel -->
+      <div class="menu-list" id="listaMenu">
+        <div><span>—</span><strong>Cargando menú...</strong><em></em></div>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         05 / EXPERIENCIAS
+         ===================================================== -->
+    <section class="content-section experiences" id="experiencias">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">05 / EXPERIENCIAS</p>
+          <h2>No todo es correr.</h2>
+        </div>
+      </div>
+
+      <div class="experience-grid">
+        <a href="#reservar" class="experience-card experience-card--dark">
+          <span>01</span>
+          <strong>PADDOCK</strong>
+          <p>Vive el evento desde el centro de la acción.</p>
+          <b>↗</b>
+        </a>
+        <a href="#reservar" class="experience-card experience-card--light">
+          <span>02</span>
+          <strong>GRUPOS</strong>
+          <p>Una experiencia pensada para equipos y amigos.</p>
+          <b>↗</b>
+        </a>
+        <a href="#reservar" class="experience-card experience-card--accent">
+          <span>03</span>
+          <strong>PRIVATE</strong>
+          <p>Eventos corporativos y celebraciones a medida.</p>
+          <b>↗</b>
+        </a>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         FLUJO DE COMPRA
+         Se mantiene la estructura original y sus IDs para app.js.
+         Solo aparece cuando el usuario decide reservar.
+         ===================================================== -->
+    <section class="booking-shell" id="reservar" hidden aria-label="Reservar entrada">
+      <div class="booking-shell__header">
+        <div>
+          <p class="section-index">RESERVA</p>
+          <h2>Tu entrada, paso a paso.</h2>
+        </div>
+        <button type="button" class="close-booking" id="closeBooking">Cerrar ×</button>
+      </div>
+
+      <div class="booking-steps steps-rail topbar__steps" id="stepsIndicator">
         <div class="step-indicator active" data-step="1">
           <span class="step-indicator__dot">1</span>
           <span class="step-indicator__label">Área</span>
@@ -37,182 +241,183 @@
           <span class="step-indicator__label">Datos</span>
         </div>
       </div>
-    </div>
-  </header>
 
-  <main class="container">
+      <div class="booking-panels">
+        <!-- PASO 1 -->
+        <section class="step-panel active" id="panel-1">
+          <h2>1. Elegí tu área</h2>
+          <div class="areas-grid" id="areasGrid">
+            <p class="hint">Cargando áreas disponibles...</p>
+          </div>
+          <span class="error" data-for="area"></span>
+        </section>
 
-    <!-- HERO -->
-    <section class="hero" id="hero">
-      <div class="hero__bg" aria-hidden="true"></div>
-      <div class="hero__inner">
-        <span class="brand-plate brand-plate--hero">
-          <img src="Logo Prokart.png" alt="Pro Kart" class="hero__logo" />
-        </span>
-        <p class="hero__eyebrow">
-          <span class="hero__flagmark" aria-hidden="true"></span>
-          Entradas oficiales
-        </p>
-        <h1 id="heroTitulo">Cargando evento...</h1>
-        <p class="hero__sub" id="heroSubtitulo"></p>
-        <button class="btn btn--primary btn--lg" id="btnComprar">Reservar entrada</button>
-      </div>
-    </section>
+        <!-- PASO 2 -->
+        <section class="step-panel" id="panel-2">
+          <h2 id="tituloLugar">2. Elegí tu lugar</h2>
 
-    <!-- Portada del evento: nombre, fecha y lugar salen de la base -->
-    <section class="evento" id="eventoPortada" hidden>
-      <img id="eventoImagen" alt="" />
-      <div class="evento__velo"></div>
-      <div class="evento__texto">
-        <p class="evento__tipo" id="eventoTagline"></p>
-        <h2 class="evento__nombre" id="eventoNombre"></h2>
-        <p class="evento__cuando">
-          <span><i></i><span id="eventoFecha"></span></span>
-          <span><i></i><span id="eventoLugar"></span></span>
-        </p>
-      </div>
-    </section>
+          <div class="grupo" id="grupo" hidden>
+            <span class="grupo__dato" id="grupoDato"></span>
+            <button type="button" class="grupo__editar" id="grupoEditar">Cambiar</button>
+          </div>
 
-    <!-- PASO 1: ÁREA -->
-    <section class="step-panel active" id="panel-1">
-      <h2>1. Elegí tu área</h2>
-      <div class="areas-grid" id="areasGrid">
-        <p class="hint">Cargando áreas disponibles...</p>
-      </div>
-      <span class="error" data-for="area"></span>
-    </section>
+          <div id="planoWrap" hidden>
+            <div class="floor-scroll">
+              <div class="floor">
+                <div class="tarima">
+                  <div class="tarima__focos"><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="tarima__rotulo">
+                    <b>TARIMA</b>
+                    <small>Escenario principal</small>
+                  </div>
+                </div>
 
-    <!-- PASO 2: LUGAR (mapa o cantidad) -->
-    <section class="step-panel" id="panel-2">
-      <h2 id="tituloLugar">2. Elegí tu lugar</h2>
+                <div class="mid">
+                  <section class="zone">
+                    <p class="zone__name">Sección A</p>
+                    <div class="grid-3" id="zonaA"></div>
+                  </section>
 
-      <div class="grupo" id="grupo" hidden>
-        <span class="grupo__dato" id="grupoDato"></span>
-        <button type="button" class="grupo__editar" id="grupoEditar">Cambiar</button>
-      </div>
+                  <div class="pasarela"><span>Pasarela</span></div>
 
-      <!-- Secciones con plano -->
-      <div id="planoWrap" hidden>
-        <div class="floor-scroll">
-          <div class="floor">
-            <div class="tarima">
-              <div class="tarima__focos"><i></i><i></i><i></i><i></i><i></i></div>
-              <div class="tarima__rotulo">
-                <b>TARIMA</b>
-                <small>Escenario principal</small>
+                  <section class="zone">
+                    <p class="zone__name">Sección B</p>
+                    <div class="grid-3" id="zonaB"></div>
+                  </section>
+                </div>
+
+                <section class="zone zone--c">
+                  <p class="zone__name">Sección C</p>
+                  <div class="fila-c" id="zonaC"></div>
+                </section>
+
+                <div class="legend">
+                  <span><i class="swatch swatch--libre"></i> Disponible</span>
+                  <span><i class="swatch swatch--sel"></i> Tu selección</span>
+                  <span><i class="swatch swatch--tomado"></i> Reservada</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-simple" id="sinPlano" hidden>
+            <p id="sinPlanoTexto"></p>
+          </div>
+
+          <span class="error" data-for="lugar"></span>
+
+          <div class="actions">
+            <button type="button" class="btn btn--ghost" id="btnVolverArea">← Cambiar área</button>
+            <button type="button" class="btn btn--primary" id="btnIrDatos" disabled>Continuar</button>
+          </div>
+        </section>
+
+        <!-- PASO 3 -->
+        <section class="step-panel" id="panel-3">
+          <h2>3. Tus datos</h2>
+          <div class="resumen-compra" id="resumenCompra"></div>
+
+          <form id="formRegistro" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" name="nombre" required placeholder="Ej: Juan" />
+                <span class="error" data-for="nombre"></span>
+              </div>
+              <div class="field">
+                <label for="apellido">Apellido</label>
+                <input type="text" id="apellido" name="apellido" required placeholder="Ej: Pérez" />
+                <span class="error" data-for="apellido"></span>
+              </div>
+              <div class="field">
+                <label for="documento">Cédula de identidad / CPF</label>
+                <input type="text" id="documento" name="documento" required placeholder="Ej: 123.456.789-00" />
+                <span class="error" data-for="documento"></span>
+              </div>
+              <div class="field">
+                <label for="whatsapp">Número de WhatsApp</label>
+                <input type="tel" id="whatsapp" name="whatsapp" required placeholder="Ej: (11) 99999-9999" />
+                <span class="error" data-for="whatsapp"></span>
+              </div>
+              <div class="field">
+                <label for="email">Correo <span class="field__opcional">(opcional)</span></label>
+                <input type="email" id="email" name="email" placeholder="Para recibir el comprobante" />
+                <span class="error" data-for="email"></span>
               </div>
             </div>
 
-            <div class="mid">
-              <section class="zone">
-                <p class="zone__name">Sección A</p>
-                <div class="grid-3" id="zonaA"></div>
-              </section>
-              <div class="pasarela"><span>Pasarela</span></div>
-              <section class="zone">
-                <p class="zone__name">Sección B</p>
-                <div class="grid-3" id="zonaB"></div>
-              </section>
+            <div class="actions">
+              <button type="button" class="btn btn--ghost" id="btnVolverLugar">← Volver</button>
+              <button type="submit" class="btn btn--primary" id="btnContinuar">Ir a pagar</button>
             </div>
+          </form>
+        </section>
+      </div>
 
-            <section class="zone zone--c">
-              <p class="zone__name">Sección C</p>
-              <div class="fila-c" id="zonaC"></div>
-            </section>
-
-            <div class="legend">
-              <span><i class="swatch swatch--libre"></i> Disponible</span>
-              <span><i class="swatch swatch--sel"></i> Tu selección</span>
-              <span><i class="swatch swatch--tomado"></i> Reservada</span>
-            </div>
-          </div>
+      <div class="resumen" id="resumen" hidden>
+        <div class="resumen__detalle">
+          <p class="resumen__mesas" id="resumenMesas"></p>
+          <p class="resumen__aviso" id="resumenAviso"></p>
         </div>
-      </div>
-
-      <!-- Secciones sin plano: Plata y General -->
-      <div class="panel-simple" id="sinPlano" hidden>
-        <p id="sinPlanoTexto"></p>
-      </div>
-
-      <span class="error" data-for="lugar"></span>
-
-      <div class="actions">
-        <button type="button" class="btn btn--ghost" id="btnVolverArea">← Cambiar área</button>
-        <button type="button" class="btn btn--primary" id="btnIrDatos" disabled>Continuar</button>
+        <div class="resumen__total">
+          <small>Total</small>
+          <strong id="total">R$ 0,00</strong>
+        </div>
       </div>
     </section>
 
-    <!-- PASO 3: DATOS DEL COMPRADOR -->
-    <section class="step-panel" id="panel-3">
-      <h2>3. Tus datos</h2>
-      <div class="resumen-compra" id="resumenCompra"></div>
-
-      <form id="formRegistro" novalidate>
-        <div class="form-grid">
-          <div class="field">
-            <label for="nombre">Nombre</label>
-            <input type="text" id="nombre" name="nombre" required placeholder="Ej: Juan" />
-            <span class="error" data-for="nombre"></span>
-          </div>
-          <div class="field">
-            <label for="apellido">Apellido</label>
-            <input type="text" id="apellido" name="apellido" required placeholder="Ej: Pérez" />
-            <span class="error" data-for="apellido"></span>
-          </div>
-          <div class="field">
-            <label for="documento">Cédula de identidad / CPF</label>
-            <input type="text" id="documento" name="documento" required placeholder="Ej: 123.456.789-00" />
-            <span class="error" data-for="documento"></span>
-          </div>
-          <div class="field">
-            <label for="whatsapp">Número de WhatsApp</label>
-            <input type="tel" id="whatsapp" name="whatsapp" required placeholder="Ej: (11) 99999-9999" />
-            <span class="error" data-for="whatsapp"></span>
-          </div>
-          <div class="field">
-            <label for="email">Correo <span class="field__opcional">(opcional)</span></label>
-            <input type="email" id="email" name="email" placeholder="Para recibir el comprobante" />
-            <span class="error" data-for="email"></span>
-          </div>
+    <!-- Modal original -->
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo" hidden>
+      <div class="modal__caja">
+        <h3 id="modalTitulo">¿Cuántas personas son?</h3>
+        <p id="modalSub">Con eso calculamos cuántas mesas necesitás.</p>
+        <div class="stepper">
+          <button type="button" id="menos" aria-label="Quitar una persona">−</button>
+          <output id="personas">2</output>
+          <button type="button" id="mas" aria-label="Agregar una persona">+</button>
         </div>
-
-        <div class="actions">
-          <button type="button" class="btn btn--ghost" id="btnVolverLugar">← Volver</button>
-          <button type="submit" class="btn btn--primary" id="btnContinuar">Ir a pagar</button>
-        </div>
-      </form>
-    </section>
-
+        <p class="modal__calculo" id="modalCalculo"></p>
+        <button type="button" class="modal__ok" id="modalOk">Continuar</button>
+      </div>
+    </div>
   </main>
 
-  <!-- Barra fija con el total -->
-  <div class="resumen" id="resumen" hidden>
-    <div class="resumen__detalle">
-      <p class="resumen__mesas" id="resumenMesas"></p>
-      <p class="resumen__aviso" id="resumenAviso"></p>
+  <footer class="site-footer">
+    <div>
+      <span>PRO KART</span>
+      <p>Eventos · Karting · Paddock</p>
     </div>
-    <div class="resumen__total">
-      <small>Total</small>
-      <strong id="total">R$ 0,00</strong>
-    </div>
-  </div>
+    <p>© 2026 Pro Kart · Todos los derechos reservados</p>
+    <a class="footer-staff" href="admin/index.html">Acceso del personal ↗</a>
+  </footer>
 
-  <!-- Cuántas personas: se abre al primer toque sobre una mesa -->
-  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo" hidden>
-    <div class="modal__caja">
-      <h3 id="modalTitulo">¿Cuántas personas son?</h3>
-      <p id="modalSub">Con eso calculamos cuántas mesas necesitás.</p>
-      <div class="stepper">
-        <button type="button" id="menos" aria-label="Quitar una persona">−</button>
-        <output id="personas">2</output>
-        <button type="button" id="mas" aria-label="Agregar una persona">+</button>
-      </div>
-      <p class="modal__calculo" id="modalCalculo"></p>
-      <button type="button" class="modal__ok" id="modalOk">Continuar</button>
-    </div>
-  </div>
+  <script>
+    (() => {
+      const booking = document.getElementById("reservar");
+      const openers = [
+        document.getElementById("btnComprar"),
+        document.getElementById("headerReservar")
+      ].filter(Boolean);
+      const closer = document.getElementById("closeBooking");
 
-  <footer class="footer">© 2026 Pro Kart · Todos los derechos reservados</footer>
+      function openBooking(event) {
+        if (event) event.preventDefault();
+        booking.hidden = false;
+        document.body.classList.add("booking-open");
+        booking.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      openers.forEach(el => el.addEventListener("click", openBooking));
+      closer?.addEventListener("click", () => {
+        booking.hidden = true;
+        document.body.classList.remove("booking-open");
+        document.getElementById("inicio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+
+      // Los eventos de la portada son enlaces internos; no necesitamos
+      // inventar contenido dinámico que la base de datos aún no provee.
+    })();
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js"></script>

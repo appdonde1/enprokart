@@ -66,11 +66,27 @@
 
   // ---------- carga ----------
   async function cargar() {
-    const { data: event } = await db
+    // La portada y el listado se llenan aunque el evento principal falle.
+    cargarProximosEventos();
+    cargarMenu();
+
+    // El evento del flujo de reserva es el marcado como principal en el panel;
+    // si no hay ninguno, se cae al configurado en config.js.
+    let { data: event } = await db
       .from("events")
-      .select("id, name, tagline, event_date, venue, cover_image")
-      .eq("slug", EVENT_SLUG)
+      .select("id, slug, name, tagline, event_date, venue, cover_image")
+      .eq("status", "published")
+      .eq("is_main", true)
       .maybeSingle();
+
+    if (!event) {
+      const alterno = await db
+        .from("events")
+        .select("id, slug, name, tagline, event_date, venue, cover_image")
+        .eq("slug", EVENT_SLUG)
+        .maybeSingle();
+      event = alterno.data;
+    }
 
     if (!event) {
       $("heroTitulo").textContent = "Evento no disponible";
@@ -121,6 +137,88 @@
     $("eventoNombre").textContent = event.name;
     $("eventoFecha").textContent = cuando;
     $("eventoLugar").textContent = event.venue || "";
+  }
+
+  // ---------- portada: próximos eventos ----------
+  const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+
+  async function cargarProximosEventos() {
+    const cont = $("listaEventos");
+    if (!cont) return;
+
+    const { data } = await db
+      .from("events")
+      .select("slug, name, event_date, event_type, city, city_code, description, sells_tickets, is_main")
+      .eq("status", "published")
+      .order("event_date");
+
+    const eventos = (data || []).filter((e) => {
+      if (!e.event_date) return true;
+      // Se muestran los de hoy en adelante.
+      return new Date(e.event_date).getTime() >= Date.now() - 12 * 3600 * 1000;
+    });
+
+    if (!eventos.length) {
+      cont.innerHTML = '<p class="hint">Todavía no hay fechas publicadas.</p>';
+      return;
+    }
+
+    cont.innerHTML = eventos.map((e) => {
+      const f = e.event_date ? new Date(e.event_date) : null;
+      const dia = f ? String(f.getDate()).padStart(2, "0") : "--";
+      const mes = f ? MESES[f.getMonth()] : "";
+      const destino = e.is_main && e.sells_tickets ? "#reservar" : "#eventos";
+
+      return `
+        <a class="event-row" href="${destino}"${e.is_main && e.sells_tickets ? ' data-abre-reserva="1"' : ""}>
+          <time><strong>${dia}</strong><span>${mes}</span></time>
+          <div class="event-row__main">
+            <span class="event-row__type">${esc(e.event_type || "EVENTO")}</span>
+            <h3>${esc(e.name)}</h3>
+            <p>${esc(e.description || "")}</p>
+          </div>
+          <div class="event-row__place">
+            <span>${esc(e.city_code || "")}</span>
+            <small>${esc(e.city || "")}</small>
+          </div>
+          <span class="event-row__arrow">↗</span>
+        </a>
+      `;
+    }).join("");
+
+    // Las filas se crean después del script que abre la reserva, así que se
+    // reutiliza el mismo botón en vez de duplicar esa lógica.
+    cont.querySelectorAll("[data-abre-reserva]").forEach((fila) => {
+      fila.addEventListener("click", (e) => {
+        e.preventDefault();
+        $("btnComprar")?.click();
+      });
+    });
+  }
+
+  // ---------- portada: menú ----------
+  async function cargarMenu() {
+    const cont = $("listaMenu");
+    if (!cont) return;
+
+    const { data } = await db
+      .from("menu_items")
+      .select("name, description, price_cents")
+      .eq("active", true)
+      .order("sort_order");
+
+    if (!data?.length) {
+      cont.innerHTML = '<div><span>—</span><strong>Menú en preparación</strong><em></em></div>';
+      return;
+    }
+
+    cont.innerHTML = data.map((p, i) => `
+      <div>
+        <span>${String(i + 1).padStart(2, "0")}</span>
+        <strong>${esc(p.name)}</strong>
+        <em>${p.price_cents == null ? "R$ —" : money(p.price_cents)}</em>
+      </div>
+    `).join("");
   }
 
   // ---------- paso 1: áreas ----------
@@ -423,7 +521,8 @@
     btn.textContent = "Generando cobro...";
 
     const cuerpo = {
-      event_slug: EVENT_SLUG,
+      // El del evento realmente cargado, no el de la configuración.
+      event_slug: state.event?.slug || EVENT_SLUG,
       people: state.personas,
       buyer: {
         nombre: $("nombre").value.trim(),
