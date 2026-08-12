@@ -961,50 +961,45 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
 /* El botón de cierre es el contador. Va debajo y ancho completo, no como una
    × chiquita en la esquina: tiene que leerse el número y tiene que ser fácil
    de tocar con el pulgar. */
+/* Cerrar y nada más. El anuncio es lo único que el visitante tiene que ver acá;
+   cuántas visitas recibe el sitio es un dato del negocio y vive en el panel.
+
+   Va sobre la esquina de la imagen, no debajo: así el anuncio ocupa toda la
+   caja y el control no le roba altura en un teléfono. El fondo sólido lo
+   mantiene legible sobre cualquier imagen que suba un anunciante. */
 .bienvenida__cerrar {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  width: 100%;
-  min-height: 48px;
-  padding: 10px 16px;
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 50%;
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  transition: border-color .15s ease, color .15s ease, background .15s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+  transition: border-color .15s ease, color .15s ease, background .15s ease, transform .15s var(--ease);
 }
 
 .bienvenida__cerrar:hover {
   border-color: var(--accent);
   color: var(--text);
   background: var(--surface-2);
-}
-
-.bienvenida__visitas {
-  color: var(--text);
-  font: 800 1.05rem/1 var(--display);
-  letter-spacing: .01em;
-}
-
-.bienvenida__rotulo {
-  font: 600 .58rem/1 var(--mono);
-  letter-spacing: .14em;
-  text-transform: uppercase;
+  transform: scale(1.06);
 }
 
 .bienvenida__x {
-  margin-left: auto;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   line-height: 1;
-  color: var(--dim);
+  /* La equis óptica queda un pelo alta dentro de su caja. */
+  margin-top: -2px;
 }
-
-.bienvenida__cerrar:hover .bienvenida__x { color: var(--accent); }
 
 /* ---------------------------------------------- teléfonos */
 
@@ -1022,7 +1017,15 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
 
   .bienvenida { padding: 14px; }
   .bienvenida__caja { width: 100%; }
-  .bienvenida__rotulo { letter-spacing: .1em; }
+
+  /* En el teléfono el botón se mete adentro de la imagen: colgado por fuera se
+     saldría de la pantalla, que es justo donde no se puede tocar. */
+  .bienvenida__cerrar {
+    top: 10px;
+    right: 10px;
+    background: rgba(9, 10, 9, .82);
+    backdrop-filter: blur(4px);
+  }
 }
 
 /* =========================================================
@@ -1071,7 +1074,6 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
 .area-card__precio,
 .kpi__value,
 .ticket__code,
-.bienvenida__visitas,
 .num,
 .event-row__day {
   font-variant-numeric: tabular-nums;

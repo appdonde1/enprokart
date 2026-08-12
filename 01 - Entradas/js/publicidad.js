@@ -14,11 +14,10 @@
 
   const cabeceras = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
-  // La imagen vive en el bucket público `publicidad`; en la base guardamos solo
-  // la ruta, así el dominio de Supabase no queda incrustado en cada fila.
-  // El bucket se llama `medios` y no `publicidad` a propósito: los bloqueadores
-  // de anuncios cancelan cualquier descarga cuya URL contenga esa palabra, y el
-  // espacio que alguien pagó quedaba vacío.
+  // En la base se guarda solo la ruta, así el dominio de Supabase no queda
+  // incrustado en cada fila. El bucket se llama `medios` y no `publicidad` a
+  // propósito: los bloqueadores de anuncios cancelan cualquier descarga cuya
+  // URL contenga esa palabra, y el espacio que alguien pagó quedaba vacío.
   const urlDeImagen = (ruta) =>
     /^https?:\/\//i.test(ruta) ? ruta : `${SB}/storage/v1/object/public/medios/${ruta}`;
 
@@ -151,8 +150,8 @@
       if (!caja.hidden && caja.offsetHeight === 0) cerrar();
     });
 
-    // Tres formas de salir. El botón muestra un número, y un número no se lee
-    // como "cerrar": si alguien no lo interpreta, tiene que poder irse igual.
+    // Tres formas de salir: la equis, tocar afuera y Escape. Una pantalla que
+    // tapa el sitio entero no puede depender de que se acierte un solo control.
     const conEscape = (e) => { if (e.key === "Escape") cerrar(); };
     $("bienvenidaCerrar")?.addEventListener("click", cerrar);
     caja.addEventListener("click", (e) => { if (e.target === caja) cerrar(); });
@@ -183,24 +182,17 @@
     return d.visitas_hoy;
   }
 
-  function pintarVisitas(n) {
-    const el = $("visitasHoy");
-    if (!el) return;
-    // Sin dato se deja el guion: inventar un número en un contador que se le
-    // muestra a un anunciante sería exactamente lo contrario de lo que se pidió.
-    el.textContent = typeof n === "number" ? n.toLocaleString("es") : "—";
-  }
-
   // ------------------------------------------------------------ arranque
   document.addEventListener("DOMContentLoaded", async () => {
     pintarRedes().catch(() => {});
 
-    const [anuncios, visitas] = await Promise.all([
-      traerAnuncios().catch(() => ({})),
-      contarVisita().catch(() => null),
-    ]);
+    // La visita se registra siempre; el número es un dato del negocio y se ve
+    // en el panel, no en la cara del visitante. Por eso ya no se espera su
+    // respuesta: que el anuncio aparezca no depende del contador.
+    contarVisita().catch(() => {});
 
-    pintarVisitas(visitas);
+    const anuncios = await traerAnuncios().catch(() => ({}));
+
     // Ambas esperan a que la imagen cargue antes de mostrar nada, así que se
     // dejan correr en paralelo: el banner no tiene por qué esperar al overlay.
     pintarBanner(anuncios.banner).catch(() => {});
