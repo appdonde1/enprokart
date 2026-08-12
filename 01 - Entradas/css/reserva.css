@@ -413,8 +413,12 @@ button:focus-visible,
     box-shadow .18s var(--ease);
 }
 
+/* Las variantes repiten fondo y color aunque style.css ya los declare: esta
+   hoja carga después, así que la base .btn de arriba los pisaría. */
 .btn--primary {
+  background: var(--accent);
   border-color: var(--accent);
+  color: var(--black);
   box-shadow: 0 0 0 0 rgba(255, 89, 54, .5);
 }
 .btn--primary:not(:disabled):hover {
@@ -426,7 +430,9 @@ button:focus-visible,
 .btn--primary:not(:disabled):active { transform: translateY(0); }
 
 .btn--ghost {
+  background: transparent;
   border-color: var(--line);
+  color: var(--muted);
 }
 .btn--ghost:not(:disabled):hover {
   background: var(--surface-2);

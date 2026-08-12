@@ -280,7 +280,15 @@
     `).join("");
 
     $("areasGrid").querySelectorAll("[data-area]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", "false");
       btn.addEventListener("click", () => elegirArea(btn.dataset.area));
+    });
+  }
+
+  // Al volver con "Cambiar área" hay que ver cuál se había elegido.
+  function marcarAreaElegida(code) {
+    $("areasGrid").querySelectorAll("[data-area]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", btn.dataset.area === code ? "true" : "false");
     });
   }
 
@@ -289,6 +297,7 @@
     state.grupoDefinido = false;
     setError("area", "");
     setError("lugar", "");
+    marcarAreaElegida(code);
 
     if (code === AREA_ORO) {
       state.seccion = { code: AREA_ORO, conPlano: true };
