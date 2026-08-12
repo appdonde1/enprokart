@@ -8,7 +8,12 @@ import { fail, json, preflight } from "../_shared/http.ts";
    toma completa. Las secciones sin mapa (Plata, General) se venden por persona.
    El precio siempre sale de la base, nunca de lo que mande el navegador. */
 
-const HOLD_MINUTES = 15;
+/* Cuánto vive la reserva mientras el comprador paga.
+
+   Es el mismo plazo que se le pide a Mercado Pago para el vencimiento del QR:
+   si el PIX vence, la mesa tiene que volver a estar en venta enseguida. Tenerla
+   bloqueada más tiempo que el QR es una mesa muerta, nadie puede pagarla. */
+const HOLD_MINUTES = 5;
 const MAX_MESAS = 8;
 const MAX_PERSONAS = 60;
 
