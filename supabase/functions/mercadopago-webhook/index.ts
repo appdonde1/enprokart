@@ -104,6 +104,21 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   }
 
+  /* El documento lo pone quien pagó, no quien llenó el formulario.
+
+     El sitio dejó de pedirlo: pedir un número que la pasarela ya conoce es
+     hacer tipear un dato para después no poder confirmarlo. Mercado Pago
+     devuelve la identificación de la cuenta que hizo la transferencia, y ése
+     es el que sirve en la puerta, porque es el que está respaldado por el pago.
+
+     Si el pago no trae identificación —puede pasar—, la entrada sale igual con
+     el documento vacío: el nombre y el WhatsApp alcanzan para encontrarla. */
+  const documentoDelPago = pago.payer?.document ?? "";
+  if (documentoDelPago && documentoDelPago !== order.buyer_document) {
+    await db.from("orders").update({ buyer_document: documentoDelPago }).eq("id", order.id);
+    order.buyer_document = documentoDelPago;
+  }
+
   const { data: section } = await db
     .from("sections").select("code, label").eq("id", order.section_id).maybeSingle();
 

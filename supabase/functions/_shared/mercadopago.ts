@@ -159,6 +159,17 @@ export type PaymentInfo = {
   id: string;
   status: string;
   externalReference: string | null;
+  /* Quién pagó, según Mercado Pago.
+
+     Es el dato bueno: sale de la cuenta que hizo la transferencia, no de lo que
+     alguien tipeó en un formulario. Por eso el sitio ya no pide el documento —
+     se toma de acá cuando el pago se aprueba. */
+  payer: {
+    document: string;
+    documentType: string;
+    name: string;
+    email: string;
+  } | null;
 };
 
 export async function getPayment(paymentId: string): Promise<PaymentInfo | null> {
@@ -170,10 +181,22 @@ export async function getPayment(paymentId: string): Promise<PaymentInfo | null>
   const payload = await response.json().catch(() => null);
   if (!payload) return null;
 
+  const p = payload.payer ?? {};
+  const nombre = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+  const documento = String(p.identification?.number ?? "").trim();
+
   return {
     id: String(payload.id),
     status: payload.status,
     externalReference: payload.external_reference ?? null,
+    payer: (documento || nombre || p.email)
+      ? {
+        document: documento,
+        documentType: String(p.identification?.type ?? "").trim(),
+        name: nombre,
+        email: String(p.email ?? "").trim(),
+      }
+      : null,
   };
 }
 

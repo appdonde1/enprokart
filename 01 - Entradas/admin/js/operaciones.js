@@ -100,7 +100,11 @@
                 ${P.esc(f.comprador)}
                 ${f.es_cortesia ? '<span class="etiqueta">cortesía</span>' : ""}
               </td>
-              <td class="num" data-label="Cédula">${P.esc(f.documento)}</td>
+              <!-- El documento lo aporta Mercado Pago al aprobarse el pago, así
+                   que una compra sin pagar todavía no lo tiene. -->
+              <td class="num" data-label="Cédula">${f.documento
+                ? P.esc(f.documento)
+                : '<span class="vacio-celda">sin pago aún</span>'}</td>
               <td class="num" data-label="Personas">${P.esc(f.personas)}</td>
               <td data-label="Sección">${P.esc(f.seccion)}${f.mesas ? `<br><small>${P.esc(f.mesas)}</small>` : ""}</td>
               <td class="num" data-label="Monto">${P.plata(f.monto_cents)}</td>

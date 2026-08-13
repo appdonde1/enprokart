@@ -235,6 +235,10 @@
 
     portada.hidden = false;
     document.querySelector(".feature__copy")?.classList.add("feature__copy--secundaria");
+    // Deja la pista en la diapositiva de arranque sin animar la entrada.
+    pista.style.transition = "none";
+    pista.style.transform = `translateX(-${carrusel.i * 100}%)`;
+    requestAnimationFrame(() => { pista.style.transition = ""; });
     pintarDatosDeSlide();
   }
 
@@ -242,6 +246,10 @@
     const total = carrusel.fechas.length;
     if (!total) return;
     carrusel.i = (n + total) % total;
+
+    // La pista se corre a la izquierda: la que entra viene desde la derecha.
+    const pista = $("portadaPista");
+    if (pista) pista.style.transform = `translateX(-${carrusel.i * 100}%)`;
 
     const slides = [...document.querySelectorAll(".portada__slide")];
     slides.forEach((s, i) => {
@@ -833,8 +841,8 @@
 
   function validar() {
     let ok = true;
-    [["nombre", "Ingresa el nombre."], ["apellido", "Ingresa el apellido."],
-     ["documento", "Ingresa la cédula/CPF."]].forEach(([campo, msg]) => {
+    // El documento no está en el formulario: lo trae el pago.
+    [["nombre", "Ingresa el nombre."], ["apellido", "Ingresa el apellido."]].forEach(([campo, msg]) => {
       if (!$(campo).value.trim()) { setError(campo, msg); ok = false; } else setError(campo, "");
     });
 
@@ -862,7 +870,6 @@
       buyer: {
         nombre: $("nombre").value.trim(),
         apellido: $("apellido").value.trim(),
-        documento: $("documento").value.trim(),
         whatsapp: $("whatsapp").value.trim(),
         email: $("email").value.trim(),
       },

@@ -411,19 +411,23 @@ textarea:focus-visible,
   overflow: hidden;
 }
 
-.portada__pista { position: absolute; inset: 0; }
-
-.portada__slide {
+/* Las diapositivas van una al lado de la otra y la pista se corre a la
+   izquierda. Antes se cruzaban por opacidad, apiladas en el mismo lugar: se veía
+   prolijo pero no se leía como un carrusel, no se entendía que hubiera más
+   fechas al costado. El desplazamiento lo dice solo. */
+.portada__pista {
   position: absolute;
   inset: 0;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .7s var(--ease), visibility 0s linear .7s;
+  display: flex;
+  will-change: transform;
+  transition: transform .62s var(--ease);
 }
-.portada__slide.es-activa {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity .7s var(--ease), visibility 0s;
+
+.portada__slide {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* La foto llena el marco. El encuadre tira un poco hacia arriba porque en una
@@ -582,7 +586,7 @@ textarea:focus-visible,
 /* Sin movimiento: el carrusel sigue funcionando con los controles, pero no se
    mueve ni se acerca solo. El reloj tampoco arranca (lo decide app.js). */
 @media (prefers-reduced-motion: reduce) {
-  .portada__slide { transition: none; }
+  .portada__pista { transition: none; }
   .portada__slide.es-activa .portada__img { animation: none; }
 }
 

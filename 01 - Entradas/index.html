@@ -279,11 +279,10 @@
                 <input type="text" id="apellido" name="apellido" required placeholder="Ej: Pérez" />
                 <span class="error" data-for="apellido"></span>
               </div>
-              <div class="field">
-                <label for="documento">Cédula de identidad / CPF</label>
-                <input type="text" id="documento" name="documento" required placeholder="Ej: 123.456.789-00" />
-                <span class="error" data-for="documento"></span>
-              </div>
+              <!-- El documento no se pide: lo aporta Mercado Pago con el pago,
+                   y ése es el que sirve en la puerta porque está respaldado por
+                   la transferencia. Pedirlo era hacer tipear un número que la
+                   pasarela ya conoce y que nadie podía confirmar. -->
               <div class="field">
                 <label for="whatsapp">Número de WhatsApp</label>
                 <input type="tel" id="whatsapp" name="whatsapp" required placeholder="Ej: (11) 99999-9999" />

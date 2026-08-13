@@ -55,13 +55,15 @@ Deno.serve(async (req) => {
 
   const nombre = cleanText(body.buyer?.nombre);
   const apellido = cleanText(body.buyer?.apellido);
+  // El documento ya no se pide en el formulario: lo trae el pago. Se sigue
+  // aceptando por si alguna versión vieja de la página lo manda.
   const documento = cleanText(body.buyer?.documento, 40);
   const whatsapp = cleanText(body.buyer?.whatsapp, 40);
   const emailBruto = cleanText(body.buyer?.email, 120);
   const email = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(emailBruto) ? emailBruto : "";
 
-  if (!nombre || !apellido || !documento || !whatsapp) {
-    return fail("Faltan datos del comprador (nombre, apellido, documento y WhatsApp son obligatorios)");
+  if (!nombre || !apellido || !whatsapp) {
+    return fail("Faltan datos del comprador: nombre, apellido y WhatsApp");
   }
   if (whatsapp.replace(/\D/g, "").length < 10) {
     return fail("El número de WhatsApp no parece válido");

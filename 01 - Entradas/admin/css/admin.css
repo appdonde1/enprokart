@@ -1903,3 +1903,12 @@ tr.fila-retirada:hover { opacity: 1; }
   .form-grid { grid-template-columns: 1fr; }
   .acciones-form .btn { flex: 1; }
 }
+
+/* Celda sin dato todavía. No es un error: el documento del comprador lo aporta
+   Mercado Pago cuando el pago se aprueba, así que una compra pendiente no lo
+   tiene y un guion suelto se leería como que falta algo. */
+.vacio-celda {
+  color: var(--dim);
+  font: 500 var(--fs-label)/1.4 var(--sans);
+  font-style: italic;
+}
