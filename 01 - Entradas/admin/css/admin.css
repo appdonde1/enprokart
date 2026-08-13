@@ -87,20 +87,36 @@
 }
 
 .select-inline {
+  appearance: none;
   font-family: inherit;
   background: var(--surface-2);
+  /* La flecha se dibuja acá: el desplegable nativo trae la caja clara y la
+     flecha del sistema, que en un panel oscuro se ven pegadas de otro lado. */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: right 15px center, right 10px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
   border: 1px solid var(--line);
   color: var(--text);
   border-radius: var(--radius-sm);
-  padding: 8px 11px;
+  padding: 9px 32px 9px 12px;
   font-size: 0.85rem;
   font-weight: 600;
-  max-width: 220px;
+  max-width: 240px;
   cursor: pointer;
+  transition: border-color var(--t-color) var(--ease);
 }
 .select-inline:hover { border-color: var(--accent); }
 
+/* La insignia del usuario venía con la clase badge--vip, que la pinta de
+   dorado. Acá el dorado ya significa otra cosa —la mesa Única del salón—, y el
+   rol de quien entró no tiene por qué competir con eso. Va neutra. */
 #userBadge {
+  border-color: var(--line);
+  color: var(--muted);
+  background: var(--surface-2);
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -193,28 +209,21 @@
   flex-direction: column;
   gap: 3px;
 }
-.kpi::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 40px;
-  height: 3px;
-  background: var(--line);
-}
+/* El filete superior queda solo para el KPI que importa (ver .kpi--hero).
+   En los demás era una rayita gris de 40px suelta arriba a la izquierda. */
 .kpi__label {
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.8px;
+  font: 700 var(--fs-label)/1.4 var(--mono);
+  letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--muted);
 }
 .kpi__value {
-  font-size: 1.6rem;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  /* Display y tabulares como el resto de las cifras del sitio. Y sin cortar:
+     "R$ 18.400,00" se partía en dos renglones después del signo. */
+  font: 700 clamp(1.5rem, 4.2vw, 1.9rem)/1.1 var(--display);
+  letter-spacing: -.035em;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .kpi__detail { font-size: 0.75rem; color: var(--muted); }
 
@@ -228,8 +237,7 @@
    al número que importa. */
 .kpi--hero::before { background: var(--accent); width: 100%; }
 .kpi--hero .kpi__value {
-  font: 700 2.5rem/1.05 var(--display);
-  letter-spacing: -.04em;
+  font-size: clamp(1.9rem, 6vw, 2.5rem);
   color: var(--accent);
 }
 
@@ -239,8 +247,13 @@
 .chart-grid {
   display: grid;
   /* min() evita el desborde horizontal en pantallas de 360px */
-  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
   gap: 14px;
+}
+@media (min-width: 1100px) {
+  /* Tope de dos: con tres columnas y dos tarjetas quedaba un hueco enorme a la
+     derecha, y una gráfica más angosta no se lee mejor. */
+  .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .chart-card {
   background: var(--surface);
@@ -1911,4 +1924,14 @@ tr.fila-retirada:hover { opacity: 1; }
   color: var(--dim);
   font: 500 var(--fs-label)/1.4 var(--sans);
   font-style: italic;
+}
+
+/* En el teléfono la fila de KPIs entra de a dos, y una cifra de dinero no cabe
+   en media pantalla: "R$ 18.400,00" se salía del recuadro y quedaba cortada.
+   El número que importa se lleva el renglón entero, que es lo que ya es en la
+   jerarquía; los otros tres siguen de a dos. */
+@media (max-width: 620px) {
+  .kpi--hero { grid-column: 1 / -1; }
+  .kpi__value { font-size: clamp(1.3rem, 6.5vw, 1.7rem); }
+  .kpi--hero .kpi__value { font-size: clamp(1.9rem, 9vw, 2.4rem); }
 }
