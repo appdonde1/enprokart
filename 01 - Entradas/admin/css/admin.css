@@ -1935,3 +1935,121 @@ tr.fila-retirada:hover { opacity: 1; }
   .kpi__value { font-size: clamp(1.3rem, 6.5vw, 1.7rem); }
   .kpi--hero .kpi__value { font-size: clamp(1.9rem, 9vw, 2.4rem); }
 }
+
+/* =========================================================
+   ESCÁNER DE ENTRADAS
+   Se usa en la puerta, de pie y con gente esperando: la cámara es el camino
+   normal y el campo de texto queda plegado como salida de emergencia.
+   ========================================================= */
+
+.escaner { display: grid; gap: 14px; margin-bottom: 18px; }
+
+.escaner__marco {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+}
+
+.escaner__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Hasta que la cámara arranca no hay nada que mostrar. */
+  opacity: 0;
+  transition: opacity var(--t-color) var(--ease);
+}
+.escaner--vivo .escaner__video { opacity: 1; }
+
+/* La mira: cuatro esquinas, el gesto que ya usa el QR de la página de pago. */
+.escaner__mira {
+  position: absolute;
+  inset: 16%;
+  pointer-events: none;
+}
+.escaner__mira i {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  transition: opacity var(--t-color) var(--ease);
+}
+.escaner--vivo .escaner__mira i { opacity: .85; }
+.escaner__mira i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+.escaner__mira i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+.escaner__mira i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+.escaner__mira i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+
+/* El aviso ocupa el recuadro mientras la cámara está apagada. */
+.escaner__aviso {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--dim);
+  font: 600 var(--fs-label)/1.6 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.escaner--vivo .escaner__aviso { display: none; }
+
+/* El destello dice el resultado sin que haya que leer: en la puerta se mira al
+   invitado, no a la pantalla. */
+@keyframes escaner-ok  { from { box-shadow: inset 0 0 0 4px var(--success); } to { box-shadow: inset 0 0 0 0 transparent; } }
+@keyframes escaner-mal { from { box-shadow: inset 0 0 0 4px var(--danger); }  to { box-shadow: inset 0 0 0 0 transparent; } }
+.escaner__marco.escaner--ok  { animation: escaner-ok .9s var(--ease); }
+.escaner__marco.escaner--mal { animation: escaner-mal .9s var(--ease); }
+
+.escaner__acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.escaner__acciones .btn { flex: none; }
+
+.escaner__estado {
+  min-width: 0;
+  color: var(--muted);
+  font: 600 var(--fs-label)/1.5 var(--mono);
+  letter-spacing: .06em;
+}
+.escaner__estado--bien { color: var(--success); }
+.escaner__estado--mal { color: var(--danger); }
+
+/* ---------------------------------------------- el camino manual */
+
+.escaner__manual {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+}
+.escaner__manual summary {
+  cursor: pointer;
+  color: var(--muted);
+  font: 600 var(--fs-label)/1.5 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  list-style: none;
+}
+.escaner__manual summary::-webkit-details-marker { display: none; }
+.escaner__manual summary::before { content: "+ "; color: var(--accent); }
+.escaner__manual[open] summary::before { content: "− "; }
+.escaner__manual summary:hover { color: var(--text); }
+.escaner__manual > form { margin-top: 14px; }
+
+/* Sin cámara disponible, el campo deja de ser la salida de emergencia y pasa a
+   ser el único camino: no tiene sentido que siga plegado. */
+.escaner__manual--unica { border-top: 0; padding-top: 0; }
+.escaner__manual--unica summary { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .escaner__marco.escaner--ok,
+  .escaner__marco.escaner--mal { animation: none; }
+}

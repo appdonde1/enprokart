@@ -201,15 +201,39 @@
         <div class="validar-layout">
           <div class="panel-card">
             <h3>Validar entrada</h3>
-            <form id="validarForm">
-              <div class="field">
-                <label for="codigoValidar">Escanea el QR o escribe el código</label>
-                <input type="text" id="codigoValidar" placeholder="EVT-ORO-..." autocomplete="off"
-                       autocapitalize="characters" spellcheck="false" />
+
+            <!-- La cámara es el camino normal: en la puerta se escanea, no se
+                 tipea. El campo de texto queda para cuando la pantalla del
+                 invitado no se deja leer. -->
+            <div class="escaner" id="escaner">
+              <div class="escaner__marco">
+                <video id="escanerVideo" class="escaner__video" playsinline muted></video>
+                <div class="escaner__mira" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                <p class="escaner__aviso" id="escanerAviso">
+                  La cámara lee el QR y valida sola.
+                </p>
               </div>
-              <span class="error" data-for="validar"></span>
-              <button type="submit" class="btn btn--primary" id="btnValidarEntrada">Validar</button>
-            </form>
+
+              <div class="escaner__acciones">
+                <button type="button" class="btn btn--primary" id="btnCamara">
+                  Encender cámara
+                </button>
+                <span class="escaner__estado" id="escanerEstado" aria-live="polite"></span>
+              </div>
+            </div>
+
+            <details class="escaner__manual">
+              <summary>Escribir el código a mano</summary>
+              <form id="validarForm">
+                <div class="field">
+                  <label for="codigoValidar">Código de la entrada</label>
+                  <input type="text" id="codigoValidar" placeholder="EVT-ORO-..." autocomplete="off"
+                         autocapitalize="characters" spellcheck="false" />
+                </div>
+                <span class="error" data-for="validar"></span>
+                <button type="submit" class="btn btn--primary" id="btnValidarEntrada">Validar</button>
+              </form>
+            </details>
           </div>
           <div id="validarResultado"></div>
         </div>
@@ -394,6 +418,7 @@
   <script src="../js/config.js"></script>
   <script src="../js/supabaseClient.js"></script>
   <script src="js/charts.js"></script>
+  <script src="js/escaner.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

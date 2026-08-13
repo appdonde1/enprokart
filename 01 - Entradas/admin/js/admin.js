@@ -356,7 +356,8 @@
     // En el teléfono la barra tapa el contenido: elegir algo tiene que cerrarla.
     cerrarMenu();
 
-    if (tab === "validar") ui.codigoValidar.focus();
+    // Al salir de Validar la cámara se apaga sola.
+    if (tab !== "validar") window.ProKartEscaner?.apagar();
   }
 
   // ---------- menú en teléfono ----------
@@ -1094,32 +1095,44 @@
     event.returnValue = "";
   });
 
-  // ---------- validación de entradas ----------
+  /* ---------- validación de entradas ----------
+     Un solo camino para los dos modos: la cámara y el campo manual llaman a lo
+     mismo. Escaneando además viaja la firma del QR, que es lo que permite
+     distinguir una entrada alterada de una inexistente. */
+  async function validarCodigo({ code, signature }) {
+    setError("validar", "");
+
+    const { data } = await window.callFunction(
+      "verify-ticket",
+      signature ? { code, signature } : { code },
+      state.session?.access_token,
+    );
+
+    renderResultadoValidacion(data);
+    await refrescarTickets();
+    return data.result === "valid";
+  }
+
   ui.validarForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const codigo = ui.codigoValidar.value.trim();
     if (!codigo) {
-      setError("validar", "Ingresa o escanea un código.");
+      setError("validar", "Escribe un código o usa la cámara.");
       return;
     }
-    setError("validar", "");
     ui.btnValidarEntrada.disabled = true;
     ui.btnValidarEntrada.textContent = "Validando...";
 
-    const { data } = await window.callFunction(
-      "verify-ticket",
-      { code: codigo },
-      state.session?.access_token,
-    );
+    // Si alguien pega la URL entera del QR, se le saca el código igual.
+    const leido = window.ProKartEscaner?.leerCodigo(codigo);
+    await validarCodigo(leido || { code: codigo.toUpperCase(), signature: "" });
 
     ui.btnValidarEntrada.disabled = false;
     ui.btnValidarEntrada.textContent = "Validar";
     ui.codigoValidar.value = "";
-    ui.codigoValidar.focus();
-
-    renderResultadoValidacion(data);
-    await refrescarTickets();
   });
+
+  window.ProKartEscaner?.montar(validarCodigo);
 
   function renderResultadoValidacion(data) {
     const t = data.ticket;
