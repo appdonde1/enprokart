@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/formulario.css" />
@@ -35,7 +35,7 @@
 
     <h1 class="form-page__titulo">Anunciá con nosotros</h1>
     <p class="form-page__bajada">
-      Contanos qué necesitás y te pasamos las opciones y los precios. Hay dos
+      Cuéntanos qué necesitas y te pasamos las opciones y los precios. Hay dos
       espacios: el banner en medio del sitio y la pantalla de bienvenida.
     </p>
 
@@ -69,10 +69,10 @@
         </div>
 
         <div class="campo">
-          <label for="descripcion">¿Qué tipo de publicidad necesitás?</label>
+          <label for="descripcion">¿Qué tipo de publicidad necesitas?</label>
           <textarea id="descripcion" required
             placeholder="Ej: quiero promocionar mi parrilla durante el mes de septiembre"></textarea>
-          <span class="campo__ayuda" id="ayudaPalabras">Contanos en al menos 6 palabras.</span>
+          <span class="campo__ayuda" id="ayudaPalabras">Cuéntanos en al menos 6 palabras.</span>
         </div>
 
         <span class="form-error" id="formError"></span>
@@ -139,7 +139,7 @@
         }
         if (!datos.comercio) return S.mostrarError("Completá el nombre del comercio");
         if (S.contarPalabras(datos.descripcion) < S.PALABRAS_MINIMAS) {
-          return S.mostrarError(`Contanos en al menos ${S.PALABRAS_MINIMAS} palabras qué necesitás`);
+          return S.mostrarError(`Cuéntanos en al menos ${S.PALABRAS_MINIMAS} palabras qué necesitas`);
         }
 
         await S.conBoton($("btnEnviar"), "Enviando...", async () => {

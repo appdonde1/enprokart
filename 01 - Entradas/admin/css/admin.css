@@ -45,7 +45,7 @@
   display: block;
   margin-bottom: 7px;
   color: var(--dim);
-  font: 600 .6rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
 }
@@ -59,7 +59,7 @@
   color: var(--text);
   font-family: var(--sans);
   font-size: max(1rem, 16px);
-  transition: border-color .15s ease, background .15s ease;
+  transition: border-color var(--t-color) ease, background var(--t-color) ease;
 }
 
 .login-card .field input:focus {
@@ -117,7 +117,7 @@
   scrollbar-width: none;
   gap: 6px;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--radius);
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid var(--line-soft);
   max-width: 100%;
@@ -139,12 +139,12 @@
 .tabs-nav .step-indicator.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #12141b;
-  box-shadow: 0 6px 14px -8px rgba(255, 183, 3, 0.9);
+  color: var(--black);
+  box-shadow: 0 6px 14px -8px rgba(255, 89, 54, .7);
 }
 
 .tab-panel { display: none; }
-.tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+.tab-panel.active { display: block; animation: fadeIn var(--t-move) ease; }
 
 /* =========================================================
    Tarjetas del panel
@@ -166,23 +166,28 @@
 }
 .panel-card .hint:first-of-type { margin-top: 0; }
 
-.btn--sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 8px; }
+.btn--sm { padding: 6px 12px; font-size: 0.78rem; border-radius: var(--radius); }
 
 /* =========================================================
    KPIs
    ========================================================= */
+/* Rejilla de 1px, como .experience-grid y .pay-layout en la portada: los
+   bloques se tocan y la línea que los separa es la del sitio. Eran tarjetas
+   sueltas con margen, que es el recurso genérico de cualquier panel. */
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: 12px;
+  gap: 1px;
   margin-bottom: 22px;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 .kpi {
   position: relative;
   overflow: hidden;
   background: linear-gradient(180deg, var(--surface-3), var(--surface));
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
   padding: 16px 18px 18px;
   display: flex;
   flex-direction: column;
@@ -216,15 +221,16 @@
 /* El primero es el número que importa: recaudación */
 .kpi--hero {
   background:
-    radial-gradient(110% 80% at 0% 0%, rgba(255, 183, 3, 0.14), transparent 62%),
+    radial-gradient(110% 80% at 0% 0%, var(--accent-tint), transparent 62%),
     linear-gradient(180deg, var(--surface-3), var(--surface));
-  border-color: rgba(255, 183, 3, 0.32);
 }
+/* Sin borde propio —lo da la rejilla—, el filete superior es lo que distingue
+   al número que importa. */
 .kpi--hero::before { background: var(--accent); width: 100%; }
 .kpi--hero .kpi__value {
-  font-size: 2.5rem;
+  font: 700 2.5rem/1.05 var(--display);
+  letter-spacing: -.04em;
   color: var(--accent);
-  line-height: 1.05;
 }
 
 /* =========================================================
@@ -284,38 +290,203 @@
 }
 .meter__track {
   height: 10px;
-  border-radius: 999px;
-  background: rgba(255, 183, 3, 0.14);
-  border: 1px solid rgba(255, 183, 3, 0.16);
+  border-radius: var(--radius);
+  background: var(--accent-tint);
+  border: 1px solid rgba(255, 89, 54, .18);
   overflow: hidden;
 }
 .meter__fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius);
   background: linear-gradient(90deg, var(--accent-dark), var(--accent));
-  transition: width 0.3s ease;
+  transition: width var(--t-move) ease;
 }
 
 /* =========================================================
-   Editor visual del salón
+   Editor del salón
+
+   La pantalla se lee de arriba hacia abajo en el mismo orden en que se camina
+   el local: la tarima primero, después las secciones con plano, y al final las
+   que no tienen mesas que dibujar. La barra de guardado queda pegada abajo.
    ========================================================= */
-.salon-section { margin-bottom: 26px; }
-.salon-section__head {
+
+.salon-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.salon-cabecera__titulo {
+  margin: 0 0 2px;
+  font: 800 1.25rem/1.1 var(--display);
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.salon-cabecera .hint { margin: 0; max-width: 44ch; }
+
+.salon-cifras {
+  display: flex;
+  gap: 1px;
+  margin: 0;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.salon-cifras > div {
+  padding: 10px 16px;
+  background: var(--surface);
+  text-align: right;
+}
+
+.salon-cifras dt {
+  font: 700 0.66rem/1.4 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.salon-cifras dd {
+  margin: 0;
+  font: 800 1.3rem/1.15 var(--sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* La tarima marca de qué lado está el escenario. Sin esto, "Sección A" no dice
+   si está adelante o al fondo, que es lo primero que alguien quiere saber. */
+.salon-tarima {
+  margin: 0 0 20px;
+  padding: 11px 0;
+  background: linear-gradient(180deg, var(--surface-3), var(--surface));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.salon-tarima span {
+  font: 700 0.68rem/1 var(--mono);
+  letter-spacing: .34em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.salon-mapa {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 26px;
+}
+
+/* Una sección de una sola mesa —las únicas— no necesita media pantalla. */
+.salon-seccion--unica { max-width: 260px; }
+
+.salon-seccion {
+  padding: 16px 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+
+.salon-seccion__head {
   display: flex;
   align-items: center;
-  gap: 10px 14px;
+  gap: 8px 14px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
-.salon-section__head h3 {
+
+.salon-seccion__head h3 {
   margin: 0;
   text-transform: none;
   letter-spacing: -0.01em;
   color: var(--text);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
 }
-.salon-section__head .hint { margin: 0; font-size: 0.8rem; }
+
+.salon-seccion__dato {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.salon-rotulo {
+  margin: 0 0 4px;
+  font: 700 0.68rem/1.4 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* Las secciones sin plano: una fila cada una, no cien mesas dibujadas. */
+.salon-bolsas { display: grid; gap: 10px; }
+
+.salon-bolsa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.salon-bolsa h4 {
+  margin: 0 0 2px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ---------------------------------------------- barra de guardado */
+
+.salon-barra {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding: 13px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.salon-barra[hidden] { display: none; }
+
+.salon-barra__cuenta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.salon-barra__cuenta::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round, 50%);
+  background: var(--accent);
+  flex: none;
+}
+
+.salon-barra__acciones { display: flex; gap: 8px; }
 
 /* Edición de precios (solo admin; RLS rechaza al resto de todos modos) */
 .precio-editor {
@@ -326,7 +497,7 @@
   flex-wrap: wrap;
   background: var(--surface);
   border: 1px solid var(--line-soft);
-  border-radius: 999px;
+  border-radius: var(--radius);
   padding: 5px 6px 5px 14px;
 }
 .precio-editor label {
@@ -342,7 +513,7 @@
   width: 98px;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 7px 9px;
   color: var(--text);
   /* 16px: por debajo de eso iOS hace zoom al enfocar */
@@ -353,11 +524,15 @@
 .precio-editor input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 89, 54, .18);
 }
-.precio-editor__estado { font-size: 0.76rem; font-weight: 700; min-width: 62px; }
-.precio-editor__estado--ok { color: var(--success); }
-.precio-editor__estado--error { color: var(--danger); }
+/* Editado y sin guardar. El borde naranja es la misma señal que la barra de
+   abajo: todo lo que esté marcado así es lo que ese botón va a escribir. */
+.precio-editor--tocado {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 89, 54, .12);
+}
+
 .precio-lectura {
   margin-left: auto;
   font-weight: 800;
@@ -366,41 +541,50 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Las columnas salen de `pos_x`, que es lo que guarda la base: si mañana se
+   agrega una fila, la grilla se reacomoda sola sin tocar el CSS. */
 .salon-grid {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(var(--columnas, 3), minmax(58px, 1fr));
+  gap: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%),
     var(--surface-2);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 14px;
   overflow-x: auto;
 }
 .salon-mesa {
   background: linear-gradient(180deg, var(--surface-3), var(--surface));
-  border: 2px solid rgba(212, 175, 55, 0.7);
-  border-radius: 12px;
+  border: 2px solid rgba(217, 184, 93, .7);
+  border-radius: var(--radius);
   padding: 9px 6px 7px;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 64px;
-  transition: border-color 0.15s ease;
+  transition: border-color var(--t-color) ease;
 }
 /* Llena: color + trama, no solo color */
 .salon-mesa--llena {
-  border-color: rgba(255, 92, 92, 0.7);
+  border-color: rgba(255, 102, 96, .7);
   background-image: repeating-linear-gradient(
     45deg,
-    rgba(255, 92, 92, 0.14) 0 4px,
+    var(--danger-tint) 0 4px,
     transparent 4px 8px
   );
 }
+/* Tocada y sin guardar: se marca con el mismo naranja que el precio editado. */
+.salon-mesa--tocada {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 89, 54, .14);
+}
+
 .salon-mesa__num { font-weight: 800; font-size: 0.92rem; line-height: 1.1; }
 .salon-mesa__ocup {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -418,7 +602,7 @@
   font-family: inherit;
   width: 22px;
   height: 22px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text);
@@ -427,7 +611,7 @@
   font-weight: 700;
   line-height: 1;
   padding: 0;
-  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  transition: border-color var(--t-color) ease, color var(--t-color) ease, background-color var(--t-color) ease;
 }
 .stepper button:hover {
   border-color: var(--accent);
@@ -442,15 +626,27 @@
 }
 
 .salon-aviso {
-  background: rgba(255, 92, 92, 0.1);
-  border: 1px solid rgba(255, 92, 92, 0.5);
+  border: 1px solid;
   border-left-width: 3px;
-  color: var(--danger);
   border-radius: var(--radius-sm);
   padding: 11px 14px;
   font-size: 0.86rem;
   font-weight: 600;
   margin-bottom: 16px;
+}
+
+/* Guardar puede salir bien para unas filas y mal para otras: el aviso dice cuál
+   de las dos cosas pasó en vez de suponer que todo entró. */
+.salon-aviso--mal {
+  background: var(--danger-tint);
+  border-color: rgba(255, 102, 96, .55);
+  color: var(--danger);
+}
+
+.salon-aviso--ok {
+  background: rgba(99, 215, 140, .1);
+  border-color: rgba(99, 215, 140, .5);
+  color: var(--success);
 }
 
 /* =========================================================
@@ -505,44 +701,43 @@
   place-items: center;
   font-size: 2.1rem;
   line-height: 1;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   border: 3px solid currentColor;
   background: rgba(255, 255, 255, 0.04);
 }
 .verify-card__status {
-  font-size: 1.35rem;
-  font-weight: 800;
-  line-height: 1.2;
+  font: 700 1.35rem/1.15 var(--display);
+  letter-spacing: -.03em;
   margin: 4px 0 12px;
   text-wrap: balance;
 }
 
 .verify-card--valida {
   color: var(--success);
-  border-color: rgba(53, 208, 127, 0.5);
-  background: radial-gradient(90% 60% at 50% 0%, rgba(53, 208, 127, 0.12), transparent 70%), var(--surface);
+  border-color: rgba(99, 215, 140, .5);
+  background: radial-gradient(90% 60% at 50% 0%, var(--success-tint), transparent 70%), var(--surface);
 }
 .verify-card--valida::before { background: var(--success); }
 .verify-card--valida .verify-card__status { color: var(--success); }
 
 .verify-card--usada {
   color: var(--accent);
-  border-color: rgba(255, 183, 3, 0.5);
-  background: radial-gradient(90% 60% at 50% 0%, rgba(255, 183, 3, 0.12), transparent 70%), var(--surface);
+  border-color: rgba(255, 89, 54, .06);
+  background: radial-gradient(90% 60% at 50% 0%, var(--accent-tint), transparent 70%), var(--surface);
 }
 .verify-card--usada::before {
   background: repeating-linear-gradient(
     -45deg,
     var(--accent) 0 10px,
-    rgba(255, 183, 3, 0.35) 10px 20px
+    rgba(255, 89, 54, .32) 10px 20px
   );
 }
 .verify-card--usada .verify-card__status { color: var(--accent); }
 
 .verify-card--invalida {
   color: var(--danger);
-  border-color: rgba(255, 92, 92, 0.55);
-  background: radial-gradient(90% 60% at 50% 0%, rgba(255, 92, 92, 0.13), transparent 70%), var(--surface);
+  border-color: rgba(255, 102, 96, .55);
+  background: radial-gradient(90% 60% at 50% 0%, var(--danger-tint), transparent 70%), var(--surface);
 }
 .verify-card--invalida::before {
   background: repeating-linear-gradient(
@@ -602,12 +797,12 @@
   /* 16px: por debajo de eso iOS hace zoom al enfocar */
   font-size: 1rem;
 }
-.table-toolbar input::placeholder { color: #6d7482; }
+.table-toolbar input::placeholder { color: var(--dim); }
 .table-toolbar input:focus,
 .table-toolbar select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 89, 54, .18);
 }
 .table-toolbar input { flex: 1; min-width: 180px; }
 
@@ -647,7 +842,7 @@
   vertical-align: middle;
 }
 .data-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.018); }
-.data-table tbody tr:hover { background: rgba(255, 183, 3, 0.05); }
+.data-table tbody tr:hover { background: rgba(255, 89, 54, .06); }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table .mono {
   font-family: var(--mono);
@@ -668,27 +863,27 @@
 .pill {
   display: inline-block;
   padding: 4px 11px;
-  border-radius: 999px;
-  font-size: 0.7rem;
+  border-radius: var(--radius);
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   white-space: nowrap;
 }
 .pill--ok {
-  background: rgba(53, 208, 127, 0.14);
+  background: var(--success-tint);
   color: var(--success);
-  border: 1px solid rgba(53, 208, 127, 0.42);
+  border: 1px solid rgba(99, 215, 140, .42);
 }
 .pill--used {
-  background: rgba(255, 183, 3, 0.14);
+  background: var(--accent-tint);
   color: var(--accent);
-  border: 1px solid rgba(255, 183, 3, 0.42);
+  border: 1px solid rgba(255, 89, 54, .42);
 }
 .pill--bad {
-  background: rgba(255, 92, 92, 0.14);
+  background: var(--danger-tint);
   color: var(--danger);
-  border: 1px solid rgba(255, 92, 92, 0.42);
+  border: 1px solid rgba(255, 102, 96, .42);
 }
 
 /* =========================================================
@@ -733,7 +928,7 @@
   height: 2px;
   margin: 14px auto 0;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* El input y el dominio comparten un solo marco, para que se lean como un
@@ -745,7 +940,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
-  transition: border-color .15s ease;
+  transition: border-color var(--t-color) ease;
 }
 
 .campo-dominio:focus-within { border-color: var(--accent); }
@@ -797,7 +992,7 @@
   border-radius: var(--radius-sm);
   color: var(--dim);
   cursor: pointer;
-  transition: color .15s ease, background .15s ease;
+  transition: color var(--t-color) ease, background var(--t-color) ease;
 }
 
 .campo-clave__ojo:hover { color: var(--text); background: var(--surface-2); }
@@ -813,7 +1008,7 @@
 
 /* La barra tachada aparece cuando la clave está oculta y desaparece cuando se
    está viendo: el ícono dice el estado actual, no la acción. */
-.campo-clave__ojo .tachado { opacity: 1; transition: opacity .15s ease; }
+.campo-clave__ojo .tachado { opacity: 1; transition: opacity var(--t-color) ease; }
 .campo-clave__ojo.viendo .tachado { opacity: 0; }
 
 .login-pie {
@@ -837,7 +1032,7 @@
   text-decoration: none;
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: color .15s ease, background .15s ease;
+  transition: color var(--t-color) ease, background var(--t-color) ease;
 }
 
 .login-enlace:hover { color: var(--accent); background: var(--surface-2); }
@@ -849,7 +1044,7 @@
   padding-top: 12px;
   border-top: 1px solid var(--line-soft);
   color: var(--dim);
-  font-size: .7rem;
+  font-size: 0.72rem;
 }
 
 /* El mismo hueco sirve para el error y para la confirmación del pedido de
@@ -889,7 +1084,7 @@
   margin: 0 0 4px;
   padding: 0 10px;
   color: var(--dim);
-  font: 600 .56rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .16em;
   text-transform: uppercase;
 }
@@ -907,7 +1102,7 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: color .14s ease, background .14s ease, border-color .14s ease;
+  transition: color var(--t-color) ease, background var(--t-color) ease, border-color var(--t-color) ease;
 }
 
 .sidebar__item:hover { color: var(--text); background: var(--surface-2); }
@@ -968,8 +1163,8 @@
   display: block;
   height: 2px;
   background: var(--text);
-  border-radius: 2px;
-  transition: transform .2s var(--ease), opacity .2s var(--ease);
+  border-radius: var(--radius-sm);
+  transition: transform var(--t-move) var(--ease), opacity var(--t-move) var(--ease);
 }
 
 .hamburguesa[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
@@ -1005,7 +1200,7 @@
   font: 600 .82rem/1 var(--sans);
   white-space: nowrap;
   cursor: pointer;
-  transition: color .14s ease, border-color .14s ease;
+  transition: color var(--t-color) ease, border-color var(--t-color) ease;
 }
 
 .modulo-tab:hover { color: var(--text); }
@@ -1028,7 +1223,7 @@
     left: 0;
     width: min(276px, 82vw);
     transform: translateX(-100%);
-    transition: transform .22s var(--ease);
+    transition: transform var(--t-move) var(--ease);
   }
 
   .sidebar.abierta { transform: translateX(0); }
@@ -1054,9 +1249,9 @@
   margin-left: 6px;
   padding: 2px 7px;
   border: 1px solid var(--line);
-  border-radius: 100px;
+  border-radius: var(--radius-sm);
   color: var(--muted);
-  font: 600 .56rem/1.5 var(--mono);
+  font: 600 0.72rem/1.5 var(--mono);
   letter-spacing: .08em;
   text-transform: uppercase;
   vertical-align: middle;
@@ -1065,8 +1260,8 @@
 .estado {
   display: inline-block;
   padding: 3px 9px;
-  border-radius: 100px;
-  font: 600 .62rem/1.5 var(--mono);
+  border-radius: var(--radius-sm);
+  font: 600 0.72rem/1.5 var(--mono);
   letter-spacing: .06em;
   text-transform: uppercase;
 }
@@ -1125,7 +1320,7 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
   color: var(--muted);
   font: 600 .84rem/1 var(--sans);
   cursor: pointer;
-  transition: color .14s ease, border-color .14s ease;
+  transition: color var(--t-color) ease, border-color var(--t-color) ease;
 }
 
 .bandeja:hover { color: var(--text); }
@@ -1136,15 +1331,15 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
 .bandeja__num {
   min-width: 22px;
   padding: 2px 6px;
-  border-radius: 100px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: var(--white);
-  font: 700 .68rem/1.5 var(--mono);
+  font: 700 0.72rem/1.5 var(--mono);
   text-align: center;
 }
 
 .bandeja__num:empty,
-.bandeja__num:not(:empty) { transition: background .2s ease; }
+.bandeja__num:not(:empty) { transition: background var(--t-move) ease; }
 
 .ficha {
   padding: 16px 18px;
@@ -1252,7 +1447,7 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
   display: block;
   margin-top: 3px;
   color: var(--dim);
-  font: 500 .66rem/1 var(--mono);
+  font: 500 0.72rem/1 var(--mono);
   letter-spacing: .06em;
 }
 
@@ -1289,7 +1484,7 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
   font-size: .84rem;
   text-align: center;
   cursor: pointer;
-  transition: border-color .14s ease, color .14s ease;
+  transition: border-color var(--t-color) ease, color var(--t-color) ease;
 }
 
 .archivo__boton:hover { border-color: var(--accent); color: var(--text); }
@@ -1304,13 +1499,21 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
 
    Nueve columnas no entran en 360 px, y obligar a arrastrar de lado para leer
    una fila es peor que no mostrarla. En pantalla chica cada fila pasa a ser una
-   ficha, con el rótulo de la columna delante de cada dato. */
+   ficha, con el rótulo de la columna delante de cada dato.
+
+   Era un bloque atado a `#tablaOperaciones`. Ahora es una clase: Empleados,
+   Nómina y Usuarios tienen el mismo problema, y copiar el selector tres veces
+   habría dejado cuatro copias que se desincronizan. La regla del ID que queda
+   abajo es solo para la columna de validaciones, que es propia de Operaciones. */
 
 @media (max-width: 760px) {
+  .data-table--apilable,
   #tablaOperaciones { min-width: 0; }
 
+  .data-table--apilable thead,
   #tablaOperaciones thead { display: none; }
 
+  .data-table--apilable tbody tr,
   #tablaOperaciones tbody tr {
     display: block;
     margin-bottom: 12px;
@@ -1320,6 +1523,7 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
     border-radius: var(--radius);
   }
 
+  .data-table--apilable tbody td,
   #tablaOperaciones tbody td {
     display: flex;
     justify-content: space-between;
@@ -1331,17 +1535,26 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
     white-space: normal;
   }
 
+  .data-table--apilable tbody td::before,
   #tablaOperaciones tbody td::before {
     content: attr(data-label);
     flex: 0 0 auto;
     color: var(--dim);
-    font: 600 .62rem/1.4 var(--mono);
+    font: 600 0.72rem/1.4 var(--mono);
     letter-spacing: .08em;
     text-transform: uppercase;
     text-align: left;
   }
 
-  #tablaOperaciones .col-validaciones { flex-direction: column; align-items: flex-end; }
+  /* Las celdas con varios botones o con una lista adentro no entran en una
+     línea a la derecha del rótulo: bajan y se apilan. */
+  .data-table--apilable .col-acciones,
+  #tablaOperaciones .col-validaciones {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .data-table--apilable .col-acciones::before,
   #tablaOperaciones .col-validaciones::before { align-self: flex-start; }
 
   .table-scroll { max-height: none; border: 0; background: none; }
@@ -1383,3 +1596,310 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
 .bloqueo__caja .field { margin-bottom: 14px; }
 .bloqueo__caja .btn--primary { width: 100%; margin-top: 6px; }
 .bloqueo__caja .btn--link { width: 100%; margin-top: 10px; color: var(--dim); }
+
+/* =========================================================
+   ELEGIR MESAS PARA UNA CORTESÍA
+
+   Es la mesa del editor sin el control de sillas: acá no se cambia el salón, se
+   marca qué mesas se regalan. Comparte la grilla `.salon-grid`, así que si el
+   salón cambia de forma las dos pantallas se reacomodan igual.
+   ========================================================= */
+
+.mesa-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 8px 4px;
+  background: linear-gradient(180deg, var(--surface-3), var(--surface));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--t-color) ease, background-color var(--t-color) ease;
+}
+
+.mesa-pick__nombre { font-weight: 800; font-size: 0.88rem; line-height: 1.1; }
+.mesa-pick__sillas { font-size: 0.68rem; color: var(--muted); }
+
+.mesa-pick:hover:not(:disabled) { border-color: var(--accent); }
+.mesa-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.mesa-pick--elegida {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--black);
+}
+.mesa-pick--elegida .mesa-pick__sillas { color: rgba(9, 10, 9, .72); }
+
+/* Tomada: trama además del color, para que se distinga sin depender del tono. */
+.mesa-pick--tomada,
+.mesa-pick--tomada:hover {
+  cursor: not-allowed;
+  color: var(--dim);
+  border-color: var(--line-soft);
+  background:
+    repeating-linear-gradient(45deg, var(--danger-tint) 0 4px, transparent 4px 8px),
+    var(--surface-2);
+}
+.mesa-pick--tomada .mesa-pick__sillas { color: var(--dim); }
+
+/* =========================================================
+   SUBIR LA IMAGEN DE PORTADA
+
+   La previa es la mitad del control: sin ella, la única forma de saber si la
+   imagen es la correcta era guardar e ir a mirar el sitio.
+   ========================================================= */
+
+.field--imagen { grid-column: 1 / -1; }
+
+.subir-imagen {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.subir-imagen__previa {
+  flex: none;
+  width: 168px;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--bg-2);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
+
+.subir-imagen__previa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.subir-imagen__vacia {
+  color: var(--dim);
+  font: 600 .7rem/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.subir-imagen__control { flex: 1; min-width: 200px; }
+.subir-imagen__control input[type="file"] { display: none; }
+.subir-imagen__control .hint { margin: 8px 0 0; }
+
+/* La ruta queda a la vista y sigue siendo editable: admite una imagen de
+   `placeholders/` sin pasar por el bucket. */
+.subir-imagen__ruta {
+  display: block;
+  margin-top: 12px;
+  color: var(--dim);
+  font: 600 .66rem/1.6 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.subir-imagen__ruta input {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 9px 11px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font: 500 .82rem/1.2 var(--mono);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.subir-imagen__ruta input:focus { outline: none; border-color: var(--accent); color: var(--text); }
+
+/* =========================================================
+   FORMULARIOS
+
+   `.hint`, `.error` y `.form-grid` se venían usando en el panel sin estar
+   definidos en ninguna de las dos hojas que cargan estas páginas: existen en
+   `css/reserva.css`, que el admin no incluye. Se definen acá, con lo que ya
+   daban por sentado los módulos que los usan.
+   ========================================================= */
+
+.hint {
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.6;
+}
+
+.hint strong { color: var(--text); }
+
+.error {
+  display: block;
+  min-height: 1em;
+  margin: 10px 0;
+  color: var(--danger);
+  font-size: .82rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.field { display: flex; flex-direction: column; }
+
+.field select,
+.field input[type="text"],
+.field input[type="date"],
+.field input[type="number"],
+.field input[type="email"],
+.field input[type="tel"],
+.field input[type="password"],
+.field input[type="search"] {
+  padding: 10px 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: 500 .9rem/1.2 var(--sans);
+}
+
+.field select:focus,
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field small { margin-top: 5px; }
+
+/* Casilla con su texto al lado, alineada por la línea de base del texto y no
+   por la caja: sin esto el tilde queda flotando arriba del renglón. */
+.casilla {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--text);
+  font-size: .86rem;
+  cursor: pointer;
+}
+
+.casilla input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+.bloque-form {
+  margin: 20px 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.bloque-form h4 {
+  margin: 0 0 4px;
+  font: 700 .95rem/1.2 var(--display);
+  color: var(--text);
+}
+
+.dias-libres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.acciones-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.catalogos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+/* =========================================================
+   PERSONAL: lista, nómina y usuarios
+   ========================================================= */
+
+/* Un retirado no desaparece de la lista: se atenúa. Sigue estando porque su
+   historial de pagos sigue existiendo. */
+tr.fila-retirada { opacity: .55; }
+tr.fila-retirada:hover { opacity: 1; }
+
+.col-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+}
+
+.col-acciones .btn--link { padding: 0; font-size: .78rem; }
+
+/* El historial de ajustes va debajo del nombre, dentro de la misma celda: el
+   motivo de un cambio de sueldo sirve al lado del número, no en otra pantalla. */
+.ajustes {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  border-left: 2px solid var(--line);
+}
+
+.ajustes li {
+  padding: 3px 0 3px 10px;
+  color: var(--muted);
+  font-size: .74rem;
+  line-height: 1.5;
+}
+
+.ajustes strong { color: var(--text); text-transform: capitalize; }
+.ajustes small { display: block; color: var(--dim); font-family: var(--mono); font-size: var(--fs-label); }
+
+.codigo-admin {
+  padding: 1px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: 600 .95rem/1.6 var(--mono);
+  letter-spacing: .12em;
+  color: var(--text);
+}
+
+.estado--pendiente { background: rgba(217, 184, 93, .14); color: var(--oro); }
+
+/* ---------------------------------------------- ventana de ajuste
+
+   Se pide el código de administrador en una ventana propia y no en la fila: es
+   la última confirmación antes de cambiarle el sueldo a alguien, y merece que la
+   pantalla se detenga en eso. */
+
+.modal-velo {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(9, 10, 9, .78);
+  overflow-y: auto;
+}
+
+.modal-card {
+  width: min(440px, 100%);
+  margin: 0;
+  border-top: 2px solid var(--accent);
+}
+
+.modal-card .field { margin-bottom: 12px; }
+.modal-card .form-grid { margin-bottom: 0; }
+
+@media (max-width: 700px) {
+  .catalogos-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .acciones-form .btn { flex: 1; }
+}

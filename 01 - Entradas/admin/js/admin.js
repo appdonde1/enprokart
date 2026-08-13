@@ -20,10 +20,21 @@
 
   // Módulos que viven en su propia página porque tienen filtros y estado propios.
   const PAGINAS = [
+    { href: "reservas.html", label: "Reservas", roles: ["admin"], grupo: "Gestión" },
     { href: "operaciones.html", label: "Operaciones", roles: ["admin"], grupo: "Gestión" },
     { href: "solicitudes.html", label: "Solicitudes", roles: ["admin"], grupo: "Gestión" },
     { href: "publicidad.html", label: "Publicidad", roles: ["admin"], grupo: "Gestión" },
+    { href: "empleados.html", label: "Empleados", roles: ["admin"], grupo: "Personal" },
+    { href: "nomina.html", label: "Nómina", roles: ["admin"], grupo: "Personal" },
+    { href: "usuarios.html", label: "Usuarios", roles: ["admin"], grupo: "Personal" },
   ];
+
+  /* `developer` ve lo mismo que un admin: es la misma llave que abre las
+     políticas de la base, donde `is_admin()` cuenta a los dos. La diferencia
+     entre ambos es a quién pueden gestionar, y eso se resuelve en la pantalla de
+     Usuarios y en la Edge Function, no acá. `state.role` queda intacto. */
+  const rolDeVista = (rol) => (rol === "developer" ? "admin" : rol);
+  const esAdmin = () => rolDeVista(state.role) === "admin";
 
   const ui = {
     loginWrap: document.getElementById("loginWrap"),
@@ -78,9 +89,13 @@
     );
   }
 
-  function setError(campo, mensaje) {
+  // `ok` usa el mismo hueco para confirmar algo, en verde: subir una imagen y
+  // que no aparezca nada es indistinguible de que haya fallado en silencio.
+  function setError(campo, mensaje, ok = false) {
     const el = document.querySelector(`.error[data-for="${campo}"]`);
-    if (el) el.textContent = mensaje || "";
+    if (!el) return;
+    el.textContent = mensaje || "";
+    el.classList.toggle("error--ok", Boolean(mensaje) && ok);
   }
 
   // ---------- sesión ----------
@@ -131,7 +146,7 @@
   document.getElementById("btnOlvide")?.addEventListener("click", async () => {
     const escrito = document.getElementById("usuario").value.trim();
     if (!escrito) {
-      setError("login", "Escribí tu usuario y volvé a tocar el enlace.");
+      setError("login", "Escribe tu usuario y vuelve a tocar el enlace.");
       document.getElementById("usuario").focus();
       return;
     }
@@ -277,8 +292,9 @@
 
   // ---------- barra lateral ----------
   function renderTabs() {
-    const modulos = Object.entries(TABS).filter(([, cfg]) => cfg.roles.includes(state.role));
-    const paginas = PAGINAS.filter((p) => p.roles.includes(state.role));
+    const rol = rolDeVista(state.role);
+    const modulos = Object.entries(TABS).filter(([, cfg]) => cfg.roles.includes(rol));
+    const paginas = PAGINAS.filter((p) => p.roles.includes(rol));
 
     // Se arma por grupos y en el orden en que aparecen, sin ordenar alfabético:
     // el orden dice cómo se usa el panel.
@@ -308,10 +324,24 @@
     });
 
     // Los meseros entran directo a lo que usan en la puerta.
-    abrirTab(state.role === "admin" ? "resumen" : "validar");
+    abrirTab(rol === "admin" ? "resumen" : "validar");
   }
 
   function abrirTab(tab) {
+    /* Salir del Salón con cambios sin guardar los perdería sin decir nada:
+       `beforeunload` no se entera de un cambio de pestaña, porque la página
+       nunca se descarga. */
+    if (state.tab === "salon" && tab !== "salon" && pendientes()) {
+      const seguir = confirm(
+        `Tienes ${pendientes()} cambio(s) sin guardar en el salón.\n\n` +
+        "Si sales ahora se pierden.",
+      );
+      if (!seguir) return;
+      borrador.precios.clear();
+      borrador.sillas.clear();
+      renderSalon();
+    }
+
     state.tab = tab;
     ui.tabs.querySelectorAll("[data-tab]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.tab === tab);
@@ -430,7 +460,7 @@
       : { data: [] };
     state.seats = seats || [];
 
-    if (state.role === "admin") {
+    if (esAdmin()) {
       const { data: orders } = await db
         .from("orders")
         .select("id, section_id, amount_cents, status, created_at")
@@ -452,7 +482,7 @@
   }
 
   function renderTodo() {
-    if (state.role === "admin") {
+    if (esAdmin()) {
       renderResumen();
       renderSalon();
       renderEventos();
@@ -485,7 +515,77 @@
           .toISOString().slice(0, 16)
         : "";
     }
+
+    pintarPreviaPortada(e.cover_image);
   }
+
+  /* ---------- imagen de portada ----------
+
+     Hasta ahora acá solo había un campo de texto donde había que escribir el
+     nombre del archivo: la imagen se subía por otro lado y si el nombre no
+     coincidía, la portada quedaba con la genérica y nadie sabía por qué.
+
+     Se sube al bucket `medios`, el mismo de publicidad. El campo de texto sigue
+     existiendo y sigue siendo la fuente de verdad —admite una ruta relativa como
+     `placeholders/evento-generico.jpg`— pero ahora se puede llenar solo. */
+
+  const IMAGENES_BUCKET = "medios";
+
+  function pintarPreviaPortada(src) {
+    const previa = document.getElementById("pImagenPrevia");
+    if (!previa) return;
+
+    if (!src) {
+      previa.innerHTML = `<span class="subir-imagen__vacia">Sin imagen</span>`;
+      return;
+    }
+    previa.innerHTML = `<img src="${esc(src)}" alt="" />`;
+  }
+
+  const inputPortada = document.getElementById("pImagenArchivo");
+  if (inputPortada) {
+    inputPortada.addEventListener("change", async () => {
+      const archivo = inputPortada.files?.[0];
+      if (!archivo) return;
+
+      const boton = document.getElementById("pImagenBoton");
+      const campo = document.getElementById("pImagen");
+      setError("portada", "");
+      boton.textContent = "Subiendo…";
+
+      // La marca de tiempo evita que reemplazar la portada quede tapada por la
+      // caché del navegador de quien ya vio la anterior.
+      const extension = archivo.name.split(".").pop()?.toLowerCase() || "jpg";
+      const ruta = `portada-${Date.now()}.${extension}`;
+
+      const { error } = await db.storage
+        .from(IMAGENES_BUCKET)
+        .upload(ruta, archivo, { cacheControl: "3600", upsert: false });
+
+      if (error) {
+        boton.textContent = "Elegir imagen";
+        setError("portada", `No se pudo subir la imagen: ${error.message}`);
+        return;
+      }
+
+      const url =
+        `${window.PROKART_CONFIG.SUPABASE_URL}/storage/v1/object/public/${IMAGENES_BUCKET}/${ruta}`;
+
+      campo.value = url;
+      pintarPreviaPortada(url);
+      boton.textContent = archivo.name;
+      boton.classList.add("cargado");
+
+      // Subida y guardado son dos pasos: la imagen ya está en el bucket, pero
+      // la portada no cambia hasta que se guarde. Decirlo evita que alguien se
+      // vaya creyendo que ya está.
+      setError("portada", "Imagen subida. Falta guardar la portada.", true);
+    });
+  }
+
+  document.getElementById("pImagen")?.addEventListener("input", (e) => {
+    pintarPreviaPortada(e.target.value.trim());
+  });
 
   const btnPortada = document.getElementById("btnGuardarPortada");
   if (btnPortada) {
@@ -581,7 +681,7 @@
       setError("menu", "");
       const nombre = document.getElementById("mNombre").value.trim();
       if (!nombre) {
-        setError("menu", "Poné el nombre del producto.");
+        setError("menu", "Pon el nombre del producto.");
         return;
       }
 
@@ -616,10 +716,20 @@
         const seat = state.seats.find((s) => s.id === payload.new.id);
         if (!seat || seat.status === payload.new.status) return;
         seat.status = payload.new.status;
-        if (state.role === "admin") {
-          renderResumen();
-          actualizarMesaEnEditor(payload.new.table_id);
-        }
+        if (!esAdmin()) return;
+        renderResumen();
+
+        // Solo se redibuja el número de ocupadas de esa mesa. Volver a armar el
+        // editor entero borraría lo que la persona esté escribiendo en un precio.
+        const celda = ui.salonEditor.querySelector(`[data-table="${payload.new.table_id}"]`);
+        const mesa = state.tables.find((t) => t.id === payload.new.table_id);
+        if (!celda || !mesa) return;
+
+        const tomadas = state.seats
+          .filter((s) => s.table_id === mesa.id && s.status !== "available").length;
+        const cuenta = sillasDe(mesa);
+        celda.querySelector(".salon-mesa__ocup").textContent = `${tomadas}/${cuenta}`;
+        celda.classList.toggle("salon-mesa--llena", tomadas >= cuenta && cuenta > 0);
       })
       .subscribe();
   }
@@ -694,110 +804,130 @@
     window.charts.lineaTemporal(document.getElementById("chartVentas"), dias);
   }
 
-  // ---------- editor visual del salón ----------
+  /* ---------- editor del salón ----------
+
+     Dos reglas ordenan esta pantalla.
+
+     La primera: solo se dibujan las secciones que tienen plano. Plata asigna
+     por orden de llegada y su mapa nunca se muestra al comprador, así que
+     pintar sus 120 mesas acá era pedirle a la persona que revisara una por una
+     algo que nadie elige a mano. Se resume en una fila con su capacidad.
+
+     La segunda: nada se guarda solo. Antes, cada precio tenía su botón y cada
+     silla escribía en la base al tocarla, así que un clic de más ya era un
+     cambio hecho. Ahora todo se acumula en un borrador y sale en una sola
+     tanda, con la cuenta de lo pendiente siempre a la vista y un aviso si se
+     intenta salir con cambios sin guardar. */
+
+  const MAX_SILLAS = 40;
+
+  // Lo editado y todavía no guardado. Vacío = no hay nada pendiente.
+  const borrador = { precios: new Map(), sillas: new Map() };
+
+  const tieneMapa = (section) => section.assignment_mode === "manual";
+  const precioDe = (s) => (borrador.precios.has(s.id) ? borrador.precios.get(s.id) : s.price_cents);
+  const sillasDe = (t) => (borrador.sillas.has(t.id) ? borrador.sillas.get(t.id) : t.seat_count);
+  const pendientes = () => borrador.precios.size + borrador.sillas.size;
+
   function renderSalon() {
-    ui.salonEditor.innerHTML = state.sections.map((section) => {
-      const tablas = state.tables.filter((t) => t.section_id === section.id);
+    const conMapa = state.sections.filter(tieneMapa)
+      .filter((s) => state.tables.some((t) => t.section_id === s.id));
+    const sinMapa = state.sections.filter((s) => !conMapa.includes(s));
 
-      if (!tablas.length) {
-        return `
-          <section class="salon-section">
-            <header class="salon-section__head">
-              <h3>${esc(section.label)}</h3>
-              <span class="hint">Sin mesas · acceso de pie</span>
-              ${campoPrecio(section)}
-            </header>
-          </section>
-        `;
-      }
+    const mesas = state.tables.length;
+    const lugares = state.tables.reduce((a, t) => a + sillasDe(t), 0);
 
-      const columnas = Math.max(...tablas.map((t) => t.pos_x || 1));
-      const sillas = tablas.reduce((acc, t) => acc + t.seat_count, 0);
+    ui.salonEditor.innerHTML = `
+      <div class="salon-cabecera">
+        <div>
+          <h2 class="salon-cabecera__titulo">El salón</h2>
+          <p class="hint">
+            Toca − o + para cambiar las sillas de una mesa. Nada se guarda hasta
+            que uses el botón de abajo.
+          </p>
+        </div>
+        <dl class="salon-cifras">
+          <div><dt>Mesas</dt><dd>${mesas}</dd></div>
+          <div><dt>Lugares</dt><dd>${lugares}</dd></div>
+          <div><dt>Secciones</dt><dd>${state.sections.length}</dd></div>
+        </dl>
+      </div>
 
-      return `
-        <section class="salon-section">
-          <header class="salon-section__head">
-            <h3>${esc(section.label)}</h3>
-            <span class="hint">${tablas.length} mesa(s) · ${sillas} lugares · ${esc(descripcionModo(section))}</span>
-            ${campoPrecio(section)}
-          </header>
-          <div class="salon-grid" style="grid-template-columns: repeat(${columnas}, minmax(64px, 1fr));">
-            ${tablas.map((t) => celdaMesa(t)).join("")}
-          </div>
-        </section>
-      `;
-    }).join("");
+      <p class="salon-tarima" aria-hidden="true"><span>Tarima</span></p>
 
-    ui.salonEditor.querySelectorAll("[data-step]").forEach((btn) => {
-      btn.addEventListener("click", (event) => {
-        event.stopPropagation();
-        cambiarSillas(btn.dataset.tableId, Number(btn.dataset.step));
-      });
-    });
+      <div class="salon-mapa">
+        ${conMapa.map(bloqueSeccion).join("")}
+      </div>
 
-    ui.salonEditor.querySelectorAll("[data-precio-guardar]").forEach((btn) => {
-      btn.addEventListener("click", () => guardarPrecio(btn.dataset.precioGuardar));
-    });
-    ui.salonEditor.querySelectorAll("[data-precio-input]").forEach((input) => {
-      input.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          guardarPrecio(input.dataset.precioInput);
-        }
-      });
-    });
+      ${sinMapa.length ? `
+        <h3 class="salon-rotulo">Sin plano</h3>
+        <p class="hint">
+          El comprador no elige lugar acá: se le asigna por orden de llegada o
+          entra de pie. Por eso no hay mesas que dibujar.
+        </p>
+        <div class="salon-bolsas">${sinMapa.map(bloqueSinMapa).join("")}</div>
+      ` : ""}
+    `;
+
+    cablearSalon();
+    pintarBarraSalon();
+  }
+
+  function bloqueSeccion(section) {
+    const tablas = state.tables
+      .filter((t) => t.section_id === section.id)
+      .sort((a, b) => (a.pos_y || 1) - (b.pos_y || 1) || (a.pos_x || 1) - (b.pos_x || 1));
+
+    const columnas = Math.max(...tablas.map((t) => t.pos_x || 1));
+    const lugares = tablas.reduce((a, t) => a + sillasDe(t), 0);
+    const unica = tablas.length === 1;
+
+    return `
+      <section class="salon-seccion ${unica ? "salon-seccion--unica" : ""}"
+               style="--columnas:${columnas}">
+        <header class="salon-seccion__head">
+          <h3>${esc(section.label)}</h3>
+          <span class="salon-seccion__dato">${tablas.length} ${tablas.length === 1 ? "mesa" : "mesas"} · ${lugares} lugares</span>
+          ${campoPrecio(section)}
+        </header>
+        <div class="salon-grid">${tablas.map(celdaMesa).join("")}</div>
+      </section>`;
+  }
+
+  function bloqueSinMapa(section) {
+    const tablas = state.tables.filter((t) => t.section_id === section.id);
+    const lugares = tablas.reduce((a, t) => a + sillasDe(t), 0);
+
+    const capacidad = tablas.length
+      ? `${tablas.length} mesas · ${lugares} lugares`
+      : (section.capacity ? `${section.capacity} lugares` : "sin tope");
+
+    return `
+      <section class="salon-bolsa">
+        <div>
+          <h4>${esc(section.label)}</h4>
+          <span class="salon-seccion__dato">${capacidad} · ${esc(descripcionModo(section))}</span>
+        </div>
+        ${campoPrecio(section)}
+      </section>`;
   }
 
   // El precio vive solo en la base: `create-order` lo lee de ahí en cada venta,
   // así que lo que se guarde acá es lo que se cobra. RLS ya rechaza a quien no
   // sea admin; esconder el campo es solo para no ofrecer algo que fallaría.
   function campoPrecio(section) {
-    if (state.role !== "admin") {
+    if (!esAdmin()) {
       return `<span class="precio-lectura">${money(section.price_cents)}</span>`;
     }
+
+    const cambiado = borrador.precios.has(section.id);
     return `
-      <div class="precio-editor">
+      <div class="precio-editor ${cambiado ? "precio-editor--tocado" : ""}">
         <label for="precio-${section.id}">Precio</label>
         <span class="precio-editor__moneda">R$</span>
-        <input type="number" id="precio-${section.id}" data-precio-input="${section.id}"
-               min="0" step="0.01" value="${(section.price_cents / 100).toFixed(2)}" />
-        <button type="button" class="btn btn--ghost btn--sm" data-precio-guardar="${section.id}">
-          Guardar
-        </button>
-        <span class="precio-editor__estado" id="precio-estado-${section.id}"></span>
-      </div>
-    `;
-  }
-
-  async function guardarPrecio(sectionId) {
-    const input = ui.salonEditor.querySelector(`[data-precio-input="${sectionId}"]`);
-    const estado = document.getElementById(`precio-estado-${sectionId}`);
-    if (!input) return;
-
-    const reales = Number(input.value);
-    if (!Number.isFinite(reales) || reales < 0) {
-      estado.textContent = "Precio inválido";
-      estado.className = "precio-editor__estado precio-editor__estado--error";
-      return;
-    }
-
-    const centavos = Math.round(reales * 100);
-    const { error } = await db
-      .from("sections").update({ price_cents: centavos }).eq("id", sectionId);
-
-    if (error) {
-      estado.textContent = "No se pudo guardar";
-      estado.className = "precio-editor__estado precio-editor__estado--error";
-      return;
-    }
-
-    const section = state.sections.find((s) => s.id === sectionId);
-    if (section) section.price_cents = centavos;
-
-    estado.textContent = "Guardado";
-    estado.className = "precio-editor__estado precio-editor__estado--ok";
-    setTimeout(() => { estado.textContent = ""; }, 2500);
-    renderResumen();
+        <input type="number" id="precio-${section.id}" data-precio="${section.id}"
+               min="0" step="0.01" value="${(precioDe(section) / 100).toFixed(2)}" />
+      </div>`;
   }
 
   function descripcionModo(section) {
@@ -809,73 +939,160 @@
   function celdaMesa(table) {
     const sillas = state.seats.filter((s) => s.table_id === table.id);
     const tomadas = sillas.filter((s) => s.status !== "available").length;
-    const lleno = tomadas >= table.seat_count && table.seat_count > 0;
+    const cuenta = sillasDe(table);
+    const lleno = tomadas >= cuenta && cuenta > 0;
+    const tocada = borrador.sillas.has(table.id);
 
     return `
-      <div class="salon-mesa ${lleno ? "salon-mesa--llena" : ""}"
+      <div class="salon-mesa ${lleno ? "salon-mesa--llena" : ""} ${tocada ? "salon-mesa--tocada" : ""}"
            data-table="${table.id}"
            style="grid-column:${table.pos_x || "auto"};grid-row:${table.pos_y || "auto"}">
-        <span class="salon-mesa__num">${esc(table.label || table.number)}</span>
-        <span class="salon-mesa__ocup">${tomadas}/${table.seat_count}</span>
+        <span class="salon-mesa__num">${esc(table.code || table.label || table.number)}</span>
+        <span class="salon-mesa__ocup">${tomadas}/${cuenta}</span>
         <div class="stepper">
           <button type="button" data-step="-1" data-table-id="${table.id}" aria-label="Quitar una silla">−</button>
-          <span>${table.seat_count}</span>
+          <span>${cuenta}</span>
           <button type="button" data-step="1" data-table-id="${table.id}" aria-label="Agregar una silla">+</button>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  function actualizarMesaEnEditor(tableId) {
-    const celda = ui.salonEditor.querySelector(`[data-table="${tableId}"]`);
-    const table = state.tables.find((t) => t.id === tableId);
-    if (!celda || !table) return;
+  function cablearSalon() {
+    ui.salonEditor.querySelectorAll("[data-step]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        anotarSillas(btn.dataset.tableId, Number(btn.dataset.step));
+      });
+    });
 
-    const sillas = state.seats.filter((s) => s.table_id === tableId);
-    const tomadas = sillas.filter((s) => s.status !== "available").length;
-    celda.querySelector(".salon-mesa__ocup").textContent = `${tomadas}/${table.seat_count}`;
-    celda.classList.toggle("salon-mesa--llena", tomadas >= table.seat_count && table.seat_count > 0);
+    ui.salonEditor.querySelectorAll("[data-precio]").forEach((input) => {
+      input.addEventListener("input", () => anotarPrecio(input.dataset.precio, input.value));
+    });
   }
 
-  async function cambiarSillas(tableId, delta) {
+  /* Anotar, no guardar. Si el valor vuelve a ser el que ya estaba en la base, el
+     cambio se borra del borrador en vez de quedar como pendiente: cambiar algo y
+     deshacerlo no debería dejar nada que guardar. */
+  function anotarPrecio(sectionId, valor) {
+    const section = state.sections.find((s) => s.id === sectionId);
+    const reales = Number(valor);
+    if (!section || !Number.isFinite(reales) || reales < 0) return;
+
+    const centavos = Math.round(reales * 100);
+    if (centavos === section.price_cents) borrador.precios.delete(sectionId);
+    else borrador.precios.set(sectionId, centavos);
+
+    pintarBarraSalon();
+  }
+
+  function anotarSillas(tableId, delta) {
     const table = state.tables.find((t) => t.id === tableId);
     if (!table) return;
 
-    const nuevo = table.seat_count + delta;
-    if (nuevo < 0 || nuevo > 40) return;
+    const nuevo = sillasDe(table) + delta;
+    if (nuevo < 0 || nuevo > MAX_SILLAS) return;
 
-    // El trigger de la base rechaza reducir por debajo de sillas ya tomadas.
-    const { error } = await db.from("tables").update({ seat_count: nuevo }).eq("id", tableId);
-
-    if (error) {
-      mostrarAvisoSalon(error.message);
-      return;
-    }
-
-    table.seat_count = nuevo;
-    const { data: seats } = await db
-      .from("seats").select("id, table_id, number, status").eq("table_id", tableId);
-    state.seats = state.seats.filter((s) => s.table_id !== tableId).concat(seats || []);
+    if (nuevo === table.seat_count) borrador.sillas.delete(tableId);
+    else borrador.sillas.set(tableId, nuevo);
 
     renderSalon();
-    renderResumen();
   }
 
-  function mostrarAvisoSalon(mensaje) {
-    const limpio = mensaje.includes("No se puede reducir")
-      ? mensaje.split("\n")[0]
-      : "No se pudo aplicar el cambio.";
+  function pintarBarraSalon() {
+    const barra = document.getElementById("salonBarra");
+    const cuenta = document.getElementById("salonPendientes");
+    if (!barra) return;
+
+    const n = pendientes();
+    barra.hidden = n === 0;
+    if (cuenta) {
+      cuenta.textContent = n === 1
+        ? "1 cambio sin guardar"
+        : `${n} cambios sin guardar`;
+    }
+  }
+
+  async function guardarSalon() {
+    const boton = document.getElementById("btnGuardarSalon");
+    if (boton) boton.disabled = true;
+
+    const fallos = [];
+
+    for (const [sectionId, centavos] of borrador.precios) {
+      const { error } = await db.from("sections").update({ price_cents: centavos }).eq("id", sectionId);
+      if (error) fallos.push(`Precio de ${nombreSeccion(sectionId)}: ${error.message}`);
+      else {
+        const s = state.sections.find((x) => x.id === sectionId);
+        if (s) s.price_cents = centavos;
+        borrador.precios.delete(sectionId);
+      }
+    }
+
+    for (const [tableId, cuenta] of borrador.sillas) {
+      // El trigger de la base rechaza reducir por debajo de sillas ya tomadas.
+      const { error } = await db.from("tables").update({ seat_count: cuenta }).eq("id", tableId);
+      if (error) {
+        fallos.push(`Mesa ${nombreMesa(tableId)}: ${primeraLinea(error.message)}`);
+      } else {
+        const t = state.tables.find((x) => x.id === tableId);
+        if (t) t.seat_count = cuenta;
+        borrador.sillas.delete(tableId);
+
+        const { data: seats } = await db
+          .from("seats").select("id, table_id, number, status").eq("table_id", tableId);
+        state.seats = state.seats.filter((s) => s.table_id !== tableId).concat(seats || []);
+      }
+    }
+
+    if (boton) boton.disabled = false;
+
+    // Lo que falló se queda en el borrador: la barra sigue mostrando lo que
+    // todavía no entró, en vez de decir que se guardó todo.
+    renderSalon();
+    renderResumen();
+    mostrarAvisoSalon(fallos.length
+      ? fallos.join(" · ")
+      : "Cambios guardados.", fallos.length ? "mal" : "ok");
+  }
+
+  function descartarSalon() {
+    if (!confirm("¿Descartar los cambios sin guardar del salón?")) return;
+    borrador.precios.clear();
+    borrador.sillas.clear();
+    renderSalon();
+  }
+
+  const nombreSeccion = (id) => state.sections.find((s) => s.id === id)?.label ?? "sección";
+  const nombreMesa = (id) => {
+    const t = state.tables.find((x) => x.id === id);
+    return t?.code || t?.label || t?.number || "";
+  };
+  const primeraLinea = (mensaje) => String(mensaje || "").split("\n")[0];
+
+  function mostrarAvisoSalon(mensaje, tono = "mal") {
     let banner = document.getElementById("salonAviso");
     if (!banner) {
       banner = document.createElement("p");
       banner.id = "salonAviso";
-      banner.className = "salon-aviso";
       ui.salonEditor.prepend(banner);
     }
-    banner.textContent = limpio;
+    banner.className = `salon-aviso salon-aviso--${tono}`;
+    banner.textContent = mensaje;
     clearTimeout(banner._timer);
     banner._timer = setTimeout(() => banner.remove(), 6000);
   }
+
+  document.getElementById("btnGuardarSalon")?.addEventListener("click", guardarSalon);
+  document.getElementById("btnDescartarSalon")?.addEventListener("click", descartarSalon);
+
+  /* El aviso al salir. El navegador solo lo muestra si la persona interactuó con
+     la página, que acá siempre pasó: para tener cambios pendientes hubo que
+     tocar algo. El texto lo elige el navegador, no nosotros. */
+  window.addEventListener("beforeunload", (event) => {
+    if (!pendientes()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
 
   // ---------- validación de entradas ----------
   ui.validarForm.addEventListener("submit", async (event) => {
@@ -954,7 +1171,7 @@
       .order("created_at", { ascending: false });
     state.tickets = data || [];
     renderEntradas();
-    if (state.role === "admin") renderResumen();
+    if (esAdmin()) renderResumen();
   }
 
   // ---------- listado de entradas ----------
@@ -1211,6 +1428,6 @@
   });
 
   iniciar().then(() => {
-    if (state.role === "admin") cargarRedes();
+    if (esAdmin()) cargarRedes();
   });
 })();

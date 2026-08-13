@@ -44,15 +44,14 @@
   margin-bottom: 18px;
 }
 .verify-brand__tag {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 1.4px;
+  font: 700 var(--fs-label)/1 var(--mono);
+  letter-spacing: .16em;
   text-transform: uppercase;
   color: var(--accent);
-  background: rgba(255, 183, 3, 0.1);
-  border: 1px solid rgba(255, 183, 3, 0.32);
-  border-radius: 999px;
-  padding: 4px 11px;
+  background: var(--accent-tint);
+  border: 1px solid rgba(255, 89, 54, .32);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
 }
 
 .verify-card__icon {
@@ -63,16 +62,17 @@
   place-items: center;
   font-size: 2.6rem;
   line-height: 1;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   border: 3px solid currentColor;
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* Es la palabra más grande de la pantalla y declaraba el peso sin la familia,
+   así que salía en la sans mientras todos los demás titulares del sitio son
+   display con el tracking cerrado. */
 .verify-card__status {
-  font-size: clamp(1.5rem, 7vw, 2.1rem);
-  font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -0.015em;
+  font: 700 clamp(1.5rem, 7vw, 2.1rem)/1.08 var(--display);
+  letter-spacing: -.04em;
   margin: 6px 0 14px;
   text-wrap: balance;
 }
@@ -97,40 +97,40 @@
 
 .verify-card--valida {
   color: var(--success);
-  border-color: rgba(53, 208, 127, 0.55);
+  border-color: rgba(99, 215, 140, .5);
   background:
-    radial-gradient(90% 60% at 50% 0%, rgba(53, 208, 127, 0.14), transparent 70%),
+    radial-gradient(90% 60% at 50% 0%, var(--success-tint), transparent 70%),
     var(--surface);
-  box-shadow: 0 0 0 1px rgba(53, 208, 127, 0.25), 0 26px 60px -28px rgba(53, 208, 127, 0.8);
+  box-shadow: 0 0 0 1px rgba(99, 215, 140, .25), 0 26px 60px -28px rgba(99, 215, 140, .7);
 }
 .verify-card--valida::before { background: var(--success); }
 .verify-card--valida .verify-card__status { color: var(--success); }
 
 .verify-card--usada {
   color: var(--accent);
-  border-color: rgba(255, 183, 3, 0.55);
+  border-color: rgba(255, 89, 54, .5);
   background:
-    radial-gradient(90% 60% at 50% 0%, rgba(255, 183, 3, 0.13), transparent 70%),
+    radial-gradient(90% 60% at 50% 0%, var(--accent-tint), transparent 70%),
     var(--surface);
-  box-shadow: 0 0 0 1px rgba(255, 183, 3, 0.25), 0 26px 60px -28px rgba(255, 183, 3, 0.7);
+  box-shadow: 0 0 0 1px rgba(255, 89, 54, .25), 0 26px 60px -28px rgba(255, 89, 54, .7);
 }
 /* Banda a rayas suaves: distinta del verde incluso en blanco y negro */
 .verify-card--usada::before {
   background: repeating-linear-gradient(
     -45deg,
     var(--accent) 0 12px,
-    rgba(255, 183, 3, 0.35) 12px 24px
+    rgba(255, 89, 54, .32) 12px 24px
   );
 }
 .verify-card--usada .verify-card__status { color: var(--accent); }
 
 .verify-card--invalida {
   color: var(--danger);
-  border-color: rgba(255, 92, 92, 0.6);
+  border-color: rgba(255, 102, 96, .7);
   background:
-    radial-gradient(90% 60% at 50% 0%, rgba(255, 92, 92, 0.15), transparent 70%),
+    radial-gradient(90% 60% at 50% 0%, var(--danger-tint), transparent 70%),
     var(--surface);
-  box-shadow: 0 0 0 1px rgba(255, 92, 92, 0.3), 0 26px 60px -28px rgba(255, 92, 92, 0.8);
+  box-shadow: 0 0 0 1px rgba(255, 102, 96, .3), 0 26px 60px -28px rgba(255, 102, 96, .7);
 }
 /* Banda de peligro */
 .verify-card--invalida::before {

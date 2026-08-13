@@ -411,6 +411,16 @@ verify_jwt = true
 [functions.courtesy-ticket]
 verify_jwt = true
 
+# Legajos y nómina. Además de la sesión, la función exige rol admin: las tablas
+# que tocan guardan cédulas, direcciones y sueldos, y no tienen ningún grant para
+# `authenticated`. Nómina, encima, pide el código de administrador antes de
+# cambiar un peso.
+[functions.empleados]
+verify_jwt = true
+
+[functions.nomina]
+verify_jwt = true
+
 [analytics]
 enabled = true
 port = 54327

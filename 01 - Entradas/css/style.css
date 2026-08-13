@@ -12,7 +12,16 @@
   --line-soft: #20231f;
   --text: #f1f0eb;
   --muted: #8d918b;
-  --dim: #5d625c;
+  /* #5d625c daba 3,18:1 sobre el fondo y 2,92:1 sobre --surface: por debajo del
+     mínimo legible. Y no era un gris decorativo —lo usaban el pie, los kicker,
+     las ayudas de formulario y los rótulos del panel—, así que el sitio entero
+     tenía su letra chica por debajo de la norma.
+
+     El valor de ahora pasa 4,5:1 sobre las cuatro superficies: 5,69 sobre --bg,
+     5,22 sobre --surface, 4,92 sobre --surface-2 y 4,59 sobre --surface-3. Si
+     alguna vez hace falta un gris más apagado, que sea para filetes, no para
+     palabras. */
+  --dim: #858b84;
   --accent: #ff5936;
   --accent-soft: #2a1711;
   --white: #f6f5ef;
@@ -32,13 +41,46 @@
   --info: #6aa9ff;
   --surface-3: #202220;
 
+  /* Fondos tintados. Estaban escritos a mano en cada hoja, con el agravante de
+     que varios seguían usando el ámbar de una paleta anterior. Definidos acá,
+     el tinte no puede volver a separarse de su color. */
+  --accent-tint: rgba(255, 89, 54, .12);
+  --success-tint: rgba(99, 215, 140, .13);
+  --danger-tint: rgba(255, 102, 96, .13);
+  --oro-tint: rgba(217, 184, 93, .13);
+  --plata-tint: rgba(185, 188, 182, .10);
+  --info-tint: rgba(106, 169, 255, .13);
+
   --max: 1180px;
-  --radius: 4px;
-  --radius-sm: 3px;
-  --radius-lg: 8px;
+
+  /* Forma: tres radios y nada más. El sitio es de esquinas rectas; cuando
+     conviven nueve radios distintos, ninguno significa nada. --radius-lg queda
+     como alias de --radius para no romper las hojas que ya lo nombran. */
+  --radius-sm: 2px;   /* chips, insignias, rótulos */
+  --radius: 4px;      /* cajas, campos, botones */
+  --radius-lg: 4px;
+  --radius-round: 50%; /* solo lo que es literalmente un círculo */
+
   --shadow: 0 10px 25px rgba(0,0,0,.45);
   --shadow-lg: 0 24px 60px -22px rgba(0,0,0,.9);
+
+  /* Movimiento: dos duraciones, una curva y un solo levantamiento. Antes había
+     once duraciones y cuatro gestos distintos de hover; el resultado es que
+     ninguno se leía como intencional. */
+  --t-color: .16s;    /* color, borde, fondo */
+  --t-move: .22s;     /* desplazamiento, escala */
   --ease: cubic-bezier(.2,.7,.2,1);
+  --lift: translateY(-2px);
+
+  /* Escala tipográfica. El piso es duro: por debajo de --fs-label no va texto
+     que alguien tenga que leer. Los dos escalones del medio son nuevos y son
+     los que le faltaban a la página: entre el rótulo de 11px y el titular de
+     70px antes no había nada. */
+  --fs-label: .72rem;  /* 11.5px — piso */
+  --fs-meta: .8rem;
+  --fs-body: .95rem;
+  --fs-lead: 1.35rem;  /* precio, bajadas con peso */
+  --fs-sub: 2rem;      /* subtítulos de sección */
 }
 
 * { box-sizing: border-box; }
@@ -68,7 +110,147 @@ a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }
 img { max-width: 100%; }
 ::selection { background: var(--accent); color: var(--black); }
+
+/* =========================================================
+   PRIMITIVAS COMPARTIDAS
+   Todo lo de este bloque vivía en css/reserva.css, que solo cargan index y
+   pagar. Las otras siete páginas usaban estas clases igual —24 botones, cuatro
+   `.hidden`— y no recibían nada: botones nativos de Windows, elementos que no
+   se ocultaban y ningún anillo de foco. Acá abajo alcanza a todo el sitio.
+   ========================================================= */
+
+/* app.js y admin.js ocultan con .hidden; el resto usa el atributo. */
+.hidden,
 [hidden] { display: none !important; }
+
+/* Foco visible y coherente en todo lo que se puede tocar. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Entrada única para todo lo que se superpone. `fadeIn` lo invocaban el modal
+   del plano y las pestañas del panel, y no estaba declarado en ninguna hoja:
+   las dos cosas aparecían de golpe. */
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+
+/* ---------------- Botones ---------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 14px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: 700 .72rem/1 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--t-color) var(--ease),
+    border-color var(--t-color) var(--ease),
+    color var(--t-color) var(--ease),
+    transform var(--t-move) var(--ease),
+    box-shadow var(--t-move) var(--ease);
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--black);
+}
+.btn--primary:not(:disabled):hover {
+  background: #ff6848;
+  border-color: #ff6848;
+  transform: var(--lift);
+  box-shadow: 0 12px 28px -12px rgba(255, 89, 54, .85);
+}
+.btn--primary:not(:disabled):active { transform: none; }
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--muted);
+}
+.btn--ghost:not(:disabled):hover {
+  background: var(--surface-2);
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.btn--link {
+  min-height: 0;
+  padding: 8px 2px;
+  border: 0;
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 5px;
+}
+.btn--link:not(:disabled):hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+.btn--block { display: flex; width: 100%; }
+.btn--lg {
+  min-height: 54px;
+  padding: 17px 22px;
+  font-size: .78rem;
+  letter-spacing: .1em;
+}
+.btn--sm {
+  min-height: 36px;
+  padding: 8px 13px;
+  font-size: 0.72rem;
+}
+
+/* Deshabilitado: tiene que verse apagado sin ninguna duda, y el cursor lo
+   confirma. #btnIrDatos arranca así. */
+.btn:disabled,
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  background: var(--surface-2);
+  border-color: var(--line-soft);
+  color: var(--dim);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+/* Insignia de nivel o de rol. La usan las tarjetas de área y el badge de
+   usuario de las siete páginas del panel, que no cargan reserva.css: mientras
+   vivió allá, en el panel salía sin ningún estilo.
+
+   Rectángulo, no píldora: el sitio es de esquinas rectas. */
+/* Etiqueta de nivel. Rectángulo, no píldora: el sitio es de esquinas rectas. */
+.badge {
+  display: inline-block;
+  padding: 6px 11px;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  border-color: var(--tier, var(--line));
+  color: var(--tier, var(--muted));
+  background: var(--tier-tint, transparent);
+  font: 800 .68rem/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge--vip     { border-color: var(--tier, var(--oro));  color: var(--tier, var(--oro)); }
+.badge--general { border-color: var(--tier, var(--info)); color: var(--tier, var(--info)); }
 
 /* ---------------- Header ---------------- */
 .site-header {
@@ -79,16 +261,20 @@ img { max-width: 100%; }
   border-bottom: 1px solid var(--line-soft);
   backdrop-filter: blur(12px);
 }
+/* Flex y no una grilla de 1fr auto 1fr: las páginas de formulario no llevan
+   <nav>, y con la grilla el botón de comprar caía en la columna del medio y
+   quedaba centrado en la pantalla en vez de a la derecha. */
 .site-header__inner {
   width: min(var(--max), calc(100% - 36px));
   min-height: 68px;
   margin: auto;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 28px;
 }
-.site-brand { justify-self: start; }
+.site-brand { flex: none; }
+.site-nav { flex: 1; justify-content: center; }
 /* El logo va en su versión blanca sobre el fondo, sin placa: la marca respira
    mejor y no aparece un rectángulo claro cortando la composición oscura. */
 .brand-plate {
@@ -97,21 +283,26 @@ img { max-width: 100%; }
   justify-content: center;
 }
 .brand-logo { display: block; height: 26px; width: auto; }
+
+/* El logo de las pantallas de acceso —puerta y panel— llevaba una clase
+   `.hero__logo` que no existía en ninguna hoja, así que salía a tamaño natural:
+   unos 400px de ancho, tapando media tarjeta de login. */
+.brand-logo--auth { height: 46px; margin: 0 auto; }
 .site-nav {
   display: flex;
   align-items: center;
   gap: 28px;
-  font: 600 .66rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .12em;
   text-transform: uppercase;
 }
 .site-nav a {
   color: #999d97;
-  transition: color .18s ease;
+  transition: color var(--t-color) ease;
 }
 .site-nav a:hover { color: var(--text); }
 .header-actions {
-  justify-self: end;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -120,11 +311,11 @@ img { max-width: 100%; }
   color: var(--muted);
   border: 1px solid var(--line);
   padding: 10px 13px;
-  border-radius: 3px;
-  font: 600 .62rem/1 var(--mono);
+  border-radius: var(--radius);
+  font: 600 0.72rem/1 var(--mono);
   text-transform: uppercase;
   letter-spacing: .09em;
-  transition: color .18s var(--ease), border-color .18s var(--ease), background-color .18s var(--ease);
+  transition: color var(--t-color) var(--ease), border-color var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
 }
 .header-staff:hover {
   color: var(--text);
@@ -136,17 +327,17 @@ img { max-width: 100%; }
   color: var(--black);
   background: var(--accent);
   padding: 11px 14px;
-  border-radius: 3px;
-  font: 700 .66rem/1 var(--mono);
+  border-radius: var(--radius);
+  font: 700 0.72rem/1 var(--mono);
   text-transform: uppercase;
   letter-spacing: .07em;
   box-shadow: 0 0 0 0 rgba(255,89,54,.5);
-  transition: transform .18s var(--ease), box-shadow .18s var(--ease), background-color .18s var(--ease);
+  transition: transform var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
 }
-.header-book span { margin-left: 8px; display: inline-block; transition: transform .18s var(--ease); }
+.header-book span { margin-left: 8px; display: inline-block; transition: transform var(--t-color) var(--ease); }
 .header-book:hover {
   background: #ff6848;
-  transform: translateY(-1px);
+  transform: var(--lift);
   box-shadow: 0 8px 22px -8px rgba(255,89,54,.75);
 }
 .header-book:hover span { transform: translate(2px, -2px); }
@@ -162,16 +353,16 @@ img { max-width: 100%; }
   margin: 0 auto;
 }
 .feature {
-  min-height: min(690px, calc(100vh - 68px));
+  min-height: min(620px, calc(100vh - 68px));
   display: grid;
-  grid-template-columns: 1.55fr .75fr;
+  grid-template-columns: 1.55fr .8fr;
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 .feature__media {
   position: relative;
-  min-height: 600px;
+  min-height: 520px;
   overflow: hidden;
   background: #0d0e0d;
 }
@@ -193,7 +384,7 @@ img { max-width: 100%; }
   left: 30px;
   top: 25px;
   color: var(--accent);
-  font: 600 .66rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .12em;
 }
 .feature__marker {
@@ -203,7 +394,7 @@ img { max-width: 100%; }
   padding: 7px 9px;
   border: 1px solid #3b3e39;
   color: #898e87;
-  font: 600 .56rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .12em;
 }
 .feature__media .evento {
@@ -216,13 +407,35 @@ img { max-width: 100%; }
   border: 0 !important;
   border-radius: 0 !important;
 }
-.feature__media .evento__velo { background: rgba(0,0,0,.24); }
+
+/* La foto llena el marco. Con `height: auto` —que es lo que hereda de
+   plano.css, donde la portada es una tarjeta suelta— entraba por ancho y
+   dejaba 352px de negro debajo, con el nombre del evento y la fecha anclados
+   al fondo, flotando lejos de la imagen que estaban titulando. */
+.feature__media .evento img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 32%;
+}
+
+/* Con la foto a sangre, el velo tiene que trabajar: el texto va sobre la
+   imagen y no sobre negro plano. */
+.feature__media .evento__velo {
+  background: linear-gradient(
+    180deg,
+    rgba(9, 10, 9, .45) 0%,
+    rgba(9, 10, 9, .12) 30%,
+    rgba(9, 10, 9, .72) 78%,
+    rgba(9, 10, 9, .94) 100%
+  );
+}
 .feature__media .evento__texto { left: 34px; bottom: 30px; }
 .feature__media .evento__tipo {
   background: var(--accent);
   color: var(--black);
-  border-radius: 2px;
-  font: 700 .58rem/1 var(--mono);
+  border-radius: var(--radius-sm);
+  font: 700 0.72rem/1 var(--mono);
   letter-spacing: .08em;
 }
 .feature__media .evento__nombre {
@@ -230,17 +443,24 @@ img { max-width: 100%; }
   letter-spacing: -.055em;
 }
 .feature__media .evento__cuando {
-  font: 500 .7rem/1.3 var(--mono);
+  font: 500 0.72rem/1.3 var(--mono);
 }
 
+/* La columna de datos del evento. Antes usaba `justify-content: space-between`
+   con tres hijos, así que todo el sobrante se repartía en dos huecos de 180px
+   y la columna quedaba mitad vacía. Ahora el aire va en un solo lugar —el que
+   empuja el pie hacia abajo— y arriba manda la ficha. */
 .feature__info {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: stretch;
+  gap: 26px;
   min-width: 0;
   padding: 30px 28px 25px;
   background: var(--surface);
 }
+.feature__copy { display: flex; flex-direction: column; }
+.feature__footer { margin-top: auto; }
 /* Los rótulos estaban en .56–.60rem contra titulares de 4.4rem: se saltaba de
    diminuto a gigante sin nada en medio. Suben de tamaño y de peso para que se
    lean como una capa de información, no como letra chica. */
@@ -251,12 +471,16 @@ img { max-width: 100%; }
 }
 .eyebrow {
   display: inline-flex;
+  /* Un hijo de un contenedor flex se "bloquifica": el navegador convierte el
+     inline-flex en flex y el chip se estiraba de punta a punta —328px de una
+     columna de 384—. Con esto vuelve a medir lo que dice. */
+  align-self: start;
   align-items: center;
   color: var(--accent);
   padding: 7px 12px 7px 10px;
   border: 1px solid rgba(255,89,54,.35);
   background: var(--accent-soft);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 .eyebrow span {
   display: inline-block;
@@ -266,37 +490,84 @@ img { max-width: 100%; }
   background: var(--accent);
 }
 .feature__kicker {
-  margin: 0 0 13px;
+  margin: 0 0 10px;
   color: var(--dim);
-  font: 600 .63rem/1 var(--mono);
-  letter-spacing: .12em;
-}
-.feature__copy h1 {
-  margin: 0;
-  max-width: 11ch;
-  font: 700 clamp(2.2rem, 5vw, 4.4rem)/.92 var(--display);
-  letter-spacing: -.06em;
-  text-wrap: balance;
-  overflow-wrap: break-word;
+  font: 600 var(--fs-label)/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
 }
 
-/* Cuando el evento tiene foto, la portada ya dice su nombre y su fecha.
-   Esta columna pasa a segundo plano y no repite lo mismo en grande. */
-.feature__copy--secundaria h1 {
-  max-width: 18ch;
-  font: 700 clamp(1.4rem, 2.6vw, 2rem)/1.12 var(--display);
-  letter-spacing: -.03em;
-  color: var(--text);
+/* =========================================================
+   LA FICHA DEL EVENTO
+   La portada ya dice el nombre y la fecha en grande. Esta columna es la otra
+   mitad del programa: cuánto sale y qué hay que saber. Se compone como la hoja
+   de datos de una carrera —cifra grande arriba, filas rotuladas debajo— porque
+   es exactamente lo que es.
+
+   Antes acá no había nada: `.feature__price` y `.feature__datos` no existían en
+   ninguna hoja, así que el precio salía en Manrope 400 a 16px y la ficha de
+   datos conservaba la sangría de 40px que el navegador le pone a un <dd>.
+   ========================================================= */
+
+/* Rótulo arriba, cifra abajo: la cifra es lo que se vino a buscar y no tiene
+   que compartir renglón con su propia aclaración. */
+.feature__price {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
 }
-.feature__copy--secundaria .feature__sub {
-  margin-top: 14px;
-  font-size: .84rem;
-}
-.feature__sub {
-  max-width: 30ch;
-  margin: 22px 0 0;
+.feature__price-rotulo {
   color: var(--muted);
-  font-size: .88rem;
+  font: 700 var(--fs-label)/1 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.feature__price b {
+  font: 700 clamp(2.2rem, 4vw, 3.1rem)/1 var(--display);
+  letter-spacing: -.045em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.feature__sub {
+  max-width: 34ch;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+
+/* Las filas de datos: rótulo mono a la izquierda, valor a la derecha,
+   separadas por el mismo filete de 1px que ordena todo el sitio. */
+.feature__datos {
+  margin: 22px 0 0;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line-soft);
+}
+.feature__datos:empty { display: none; }
+.feature__datos > div {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.feature__datos dt {
+  margin: 0;
+  color: var(--dim);
+  font: 700 0.72rem/1.5 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.feature__datos dd {
+  /* El <dd> trae 40px de sangría del navegador. */
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-meta);
+  line-height: 1.45;
 }
 .feature__footer {
   border-top: 1px solid var(--line);
@@ -311,7 +582,7 @@ img { max-width: 100%; }
   align-items: center;
   gap: 10px;
   color: var(--muted);
-  font: 700 .68rem/1.2 var(--mono);
+  font: 700 0.72rem/1.2 var(--mono);
   letter-spacing: .12em;
   text-transform: uppercase;
 }
@@ -325,30 +596,30 @@ img { max-width: 100%; }
   padding: 0 6px;
   color: var(--black);
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   font: 800 .82rem/1 var(--mono);
   letter-spacing: 0;
 }
 
 .editorial-cta {
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius);
   background: var(--accent);
   color: var(--black);
   padding: 13px 14px;
   cursor: pointer;
-  font: 800 .66rem/1 var(--mono);
+  font: 800 0.72rem/1 var(--mono);
   text-transform: uppercase;
   letter-spacing: .06em;
 }
-.editorial-cta span { margin-left: 9px; display: inline-block; transition: transform .18s var(--ease); }
+.editorial-cta span { margin-left: 9px; display: inline-block; transition: transform var(--t-color) var(--ease); }
 .editorial-cta {
   box-shadow: 0 0 0 0 rgba(255,89,54,.5);
-  transition: transform .18s var(--ease), box-shadow .18s var(--ease), background-color .18s var(--ease);
+  transition: transform var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
 }
 .editorial-cta:hover {
   background: #ff6848;
-  transform: translateY(-2px);
+  transform: var(--lift);
   box-shadow: 0 12px 28px -10px rgba(255,89,54,.8);
 }
 .editorial-cta:hover span { transform: translate(3px, -3px); }
@@ -394,7 +665,7 @@ img { max-width: 100%; }
   padding: 17px 22px;
   border-bottom: 1px solid var(--line);
   background: var(--bg);
-  transition: background .18s var(--ease), padding .18s var(--ease), box-shadow .18s var(--ease);
+  transition: background var(--t-color) var(--ease), padding var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease);
 }
 /* Filete de acento que entra desde la izquierda al pasar el cursor */
 .event-row::before {
@@ -407,7 +678,7 @@ img { max-width: 100%; }
   background: var(--accent);
   transform: scaleY(0);
   transform-origin: center;
-  transition: transform .22s var(--ease);
+  transition: transform var(--t-move) var(--ease);
 }
 .event-row:hover {
   background: var(--surface);
@@ -415,10 +686,10 @@ img { max-width: 100%; }
   box-shadow: inset 0 0 60px -30px rgba(255,89,54,.35);
 }
 .event-row:hover::before { transform: scaleY(1); }
-.event-row__arrow { transition: transform .2s var(--ease), color .2s var(--ease); }
+.event-row__arrow { transition: transform var(--t-move) var(--ease), color var(--t-move) var(--ease); }
 .event-row:hover .event-row__arrow { transform: translate(3px, -3px); color: var(--accent); }
 .event-row:hover time strong { color: var(--accent); }
-.event-row time strong { transition: color .18s var(--ease); }
+.event-row time strong { transition: color var(--t-color) var(--ease); }
 .event-row time {
   display: flex;
   flex-direction: column;
@@ -431,7 +702,7 @@ img { max-width: 100%; }
 }
 .event-row time span, .event-row__type {
   color: var(--accent);
-  font: 600 .55rem/1.2 var(--mono);
+  font: 600 0.72rem/1.2 var(--mono);
   letter-spacing: .12em;
 }
 .event-row__main h3 {
@@ -442,7 +713,7 @@ img { max-width: 100%; }
 .event-row__main p {
   margin: 0;
   color: var(--muted);
-  font-size: .7rem;
+  font-size: 0.72rem;
 }
 .event-row__place {
   display: flex;
@@ -452,7 +723,7 @@ img { max-width: 100%; }
 .event-row__place span {
   font: 700 .8rem/1 var(--mono);
 }
-.event-row__place small { color: var(--muted); font-size: .66rem; margin-top: 4px; }
+.event-row__place small { color: var(--muted); font-size: 0.72rem; margin-top: 4px; }
 .event-row__arrow { color: var(--accent); font-size: 1.1rem; }
 
 /* ---------------- Menu ---------------- */
@@ -488,7 +759,7 @@ img { max-width: 100%; }
   background-color: var(--surface);
   background-size: cover;
   background-position: center;
-  transition: background-color .2s var(--ease), transform .2s var(--ease);
+  transition: background-color var(--t-move) var(--ease), transform var(--t-move) var(--ease);
 }
 /* Textura diagonal mientras no haya foto: se lee como marcador, no como error */
 .menu-tile:not(.menu-tile--foto)::before {
@@ -507,11 +778,11 @@ img { max-width: 100%; }
   inset: 0;
   background: linear-gradient(180deg, transparent 35%, rgba(9,10,9,.88) 100%);
 }
-.menu-tile:hover { background-color: #1b1e1a; transform: translateY(-2px); }
+.menu-tile:hover { background-color: #1b1e1a; transform: var(--lift); }
 .menu-tile figcaption { position: relative; display: grid; gap: 4px; }
 .menu-tile b {
   color: var(--accent);
-  font: 600 .58rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .12em;
 }
 .menu-tile strong {
@@ -545,17 +816,17 @@ img { max-width: 100%; }
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform .2s var(--ease), box-shadow .2s var(--ease), filter .18s ease;
+  transition: transform var(--t-move) var(--ease), box-shadow var(--t-move) var(--ease), filter var(--t-color) ease;
 }
 .experience-card:hover {
-  transform: translateY(-4px);
+  transform: var(--lift);
   box-shadow: 0 18px 40px -20px rgba(0,0,0,.9);
   z-index: 2;
 }
-.experience-card b { transition: transform .2s var(--ease); display: inline-block; }
+.experience-card b { transition: transform var(--t-move) var(--ease); display: inline-block; }
 .experience-card:hover b { transform: translate(4px, -4px); }
 .experience-card span {
-  font: 600 .6rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   opacity: .65;
 }
 .experience-card strong {
@@ -598,9 +869,9 @@ img { max-width: 100%; }
   background: transparent;
   color: var(--muted);
   padding: 10px 13px;
-  border-radius: 3px;
+  border-radius: var(--radius);
   cursor: pointer;
-  font: 600 .62rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   text-transform: uppercase;
 }
 .close-booking:hover { color: var(--text); border-color: var(--text); }
@@ -616,7 +887,7 @@ img { max-width: 100%; }
   align-items: center;
   gap: 8px;
   color: var(--dim);
-  font: 600 .62rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .08em;
   text-transform: uppercase;
 }
@@ -626,7 +897,7 @@ img { max-width: 100%; }
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
 }
 .step-indicator.active { color: var(--text); }
 .step-indicator.active .step-indicator__dot {
@@ -656,12 +927,12 @@ img { max-width: 100%; }
 .area-card {
   border: 1px solid var(--line);
   background: var(--bg);
-  border-radius: 3px;
+  border-radius: var(--radius);
   box-shadow: none;
 }
 .area-card:hover { border-color: #5a5e57; }
 .field label {
-  font: 600 .6rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .09em;
   text-transform: uppercase;
   color: var(--muted);
@@ -671,47 +942,18 @@ img { max-width: 100%; }
   background: var(--bg);
   border: 1px solid var(--line);
   color: var(--text);
-  border-radius: 3px;
+  border-radius: var(--radius);
 }
 .field input:focus {
   outline: 0;
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
-.btn {
-  border-radius: 3px;
-  font: 700 .65rem/1 var(--mono);
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-.btn--primary { background: var(--accent); color: var(--black); }
-.btn--ghost { background: transparent; border-color: var(--line); color: var(--muted); }
-
-/* Existing map / summary compatibility */
-.floor {
-  background: #101210;
-  border: 1px solid var(--line);
-  box-shadow: none;
-}
-.mesa {
-  border-radius: 3px;
-  box-shadow: none;
-}
-.mesa:hover:not(:disabled) { box-shadow: none; border-color: var(--accent); }
-.resumen {
-  border-radius: 0;
-  border-top: 1px solid var(--line);
-  background: #111311;
-  box-shadow: none;
-}
-.modal { background: rgba(0,0,0,.72); backdrop-filter: blur(8px); }
-.modal__caja {
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--surface);
-  box-shadow: 0 30px 80px rgba(0,0,0,.55);
-}
-.modal__ok { background: var(--accent); color: var(--black); border-radius: 3px; }
+/* El bloque de compatibilidad que había acá —reescribía .floor, .mesa,
+   .resumen, .modal y .modal__caja al lenguaje nuevo— no se aplicaba nunca:
+   plano.css se carga después y tiene la misma especificidad, así que ganaba
+   entero. Estaba corregido en la fuente equivocada. Ahora esos elementos se
+   arreglan en plano.css, que es donde se declaran. */
 
 /* ---------------- Footer ---------------- */
 .site-footer {
@@ -723,11 +965,11 @@ img { max-width: 100%; }
   justify-content: space-between;
   gap: 30px;
   color: var(--dim);
-  font-size: .67rem;
+  font-size: 0.72rem;
 }
 .site-footer span {
   color: var(--text);
-  font: 700 .7rem/1 var(--mono);
+  font: 700 0.72rem/1 var(--mono);
   letter-spacing: .1em;
 }
 .site-footer p { margin: 7px 0 0; }
@@ -737,13 +979,13 @@ img { max-width: 100%; }
   align-self: flex-start;
   color: var(--dim);
   text-decoration: none;
-  font: 600 .64rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .08em;
   text-transform: uppercase;
   padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 3px;
-  transition: color .15s ease, border-color .15s ease;
+  border-radius: var(--radius);
+  transition: color var(--t-color) ease, border-color var(--t-color) ease;
 }
 .footer-staff:hover { color: var(--accent); border-color: var(--accent); }
 
@@ -807,12 +1049,12 @@ img { max-width: 100%; }
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
-  transition: border-color .18s var(--ease), transform .18s var(--ease);
+  transition: border-color var(--t-color) var(--ease), transform var(--t-color) var(--ease);
 }
 
 .pieza__link:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
+  transform: var(--lift);
 }
 
 /* 3:1 reservado desde el principio: el hueco existe antes de que cargue la
@@ -827,7 +1069,7 @@ img { max-width: 100%; }
 .pieza__nota {
   margin: 0;
   color: var(--dim);
-  font: 600 .58rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
   text-align: right;
@@ -849,13 +1091,13 @@ img { max-width: 100%; }
 .site-footer__enlaces a {
   color: var(--muted);
   text-decoration: none;
-  font: 600 .64rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .08em;
   text-transform: uppercase;
   /* 44px de alto real: es el mínimo para tocar sin errar en un teléfono. */
   padding: 15px 0;
   border-bottom: 1px solid transparent;
-  transition: color .15s ease, border-color .15s ease;
+  transition: color var(--t-color) ease, border-color var(--t-color) ease;
 }
 
 .site-footer__enlaces a:hover {
@@ -883,7 +1125,7 @@ img { max-width: 100%; }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--muted);
-  transition: color .15s ease, border-color .15s ease, background .15s ease;
+  transition: color var(--t-color) ease, border-color var(--t-color) ease, background var(--t-color) ease;
 }
 
 .redes a:hover {
@@ -916,7 +1158,7 @@ img { max-width: 100%; }
   padding: 20px;
   background: rgba(9, 10, 9, .88);
   backdrop-filter: blur(3px);
-  animation: overlay-entra .22s var(--ease);
+  animation: overlay-entra var(--t-move) var(--ease);
 }
 
 @keyframes overlay-entra { from { opacity: 0 } to { opacity: 1 } }
@@ -979,12 +1221,12 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
   padding: 0;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   color: var(--muted);
   cursor: pointer;
   font: inherit;
   box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
-  transition: border-color .15s ease, color .15s ease, background .15s ease, transform .15s var(--ease);
+  transition: border-color var(--t-color) ease, color var(--t-color) ease, background var(--t-color) ease, transform var(--t-color) var(--ease);
 }
 
 .bienvenida__cerrar:hover {

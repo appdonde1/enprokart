@@ -113,7 +113,7 @@
 
       let ruta = actual?.image_path;
       if (archivo) ruta = await subir(archivo, `vitalicia-${slot}`);
-      if (!ruta) { setError("vitalicia", "Elegí una imagen para esta pieza."); return; }
+      if (!ruta) { setError("vitalicia", "Elige una imagen para esta pieza."); return; }
 
       if (actual) {
         await P.db.from("ad_creatives")
@@ -194,7 +194,7 @@
     if (!nombre) return setError("campana", "Ponele un nombre a la campaña.");
     if (!desde || !hasta) return setError("campana", "Faltan las fechas.");
     if (hasta < desde) return setError("campana", "La fecha de fin es anterior a la de inicio.");
-    if (!banner && !overlay) return setError("campana", "Cargá al menos una pieza.");
+    if (!banner && !overlay) return setError("campana", "Carga al menos una pieza.");
 
     const boton = $("btnCrearCampana");
     boton.disabled = true;

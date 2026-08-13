@@ -7,25 +7,27 @@
 .evento {
   position: relative;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: var(--radius);
   border: 1px solid var(--line-soft);
   box-shadow: 0 26px 60px -30px #000;
   margin-bottom: 26px;
 }
 .evento img { display: block; width: 100%; height: auto; }
+/* El velo era azulado —rgba(10,12,17)— sobre un sitio verde-negro. */
 .evento__velo {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(10,12,17,0.55) 0%, transparent 32%, rgba(10,12,17,0.92) 100%);
+  background: linear-gradient(180deg, rgba(9,10,9,0.55) 0%, transparent 32%, rgba(9,10,9,0.92) 100%);
 }
 .evento__texto {
   position: absolute; left: 0; right: 0; bottom: 0;
   padding: 22px clamp(16px, 4vw, 32px) clamp(16px, 3vw, 24px);
 }
+/* Rectángulo, no píldora: el sitio es de esquinas rectas. */
 .evento__tipo {
   display: inline-block; margin: 0 0 8px;
-  font-size: 0.64rem; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
-  color: #090a09; background: var(--accent);
-  padding: 4px 11px; border-radius: 999px;
+  font: 700 var(--fs-label)/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--black); background: var(--accent);
+  padding: 5px 10px; border-radius: var(--radius-sm);
 }
 .evento__tipo:empty { display: none; }
 .evento__nombre {
@@ -39,7 +41,7 @@
   text-shadow: 0 2px 14px rgba(0,0,0,0.9);
 }
 .evento__cuando > span { display: inline-flex; align-items: center; gap: 7px; }
-.evento__cuando i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex: none; }
+.evento__cuando i { width: 5px; height: 5px; border-radius: var(--radius-round); background: var(--accent); flex: none; }
 
 /* ---------------- Barra de grupo ---------------- */
 .grupo {
@@ -53,7 +55,8 @@
 .grupo__editar {
   margin-left: auto; border: 1px solid var(--line); background: var(--surface);
   color: var(--muted); font-family: inherit; font-size: 0.78rem; font-weight: 700;
-  padding: 7px 13px; border-radius: 8px; cursor: pointer;
+  padding: 7px 13px; border-radius: var(--radius); cursor: pointer;
+  transition: border-color var(--t-color) var(--ease), color var(--t-color) var(--ease);
 }
 .grupo__editar:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -61,188 +64,438 @@
 .modal {
   position: fixed; inset: 0; z-index: 60;
   display: flex; align-items: center; justify-content: center; padding: 20px;
-  background: rgba(8,10,14,0.76); backdrop-filter: blur(6px);
-  animation: fadeIn 0.16s ease;
+  /* Era rgba(8,10,14): azulado. */
+  background: rgba(9,10,9,0.78); backdrop-filter: blur(8px);
+  animation: fadeIn var(--t-color) var(--ease);
 }
 .modal[hidden] { display: none; }
 .modal__caja {
   width: 100%; max-width: 360px; text-align: center;
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: 18px; padding: 26px 22px 22px;
+  border-radius: var(--radius); padding: 26px 22px 22px;
   box-shadow: 0 30px 70px -26px #000;
 }
-.modal__caja h3 { margin: 0 0 4px; font-size: 1.18rem; }
-.modal__caja p { margin: 0 0 20px; font-size: 0.85rem; color: var(--muted); }
+.modal__caja h3 {
+  margin: 0 0 4px;
+  font: 700 var(--fs-lead)/1.15 var(--display); letter-spacing: -.03em;
+}
+.modal__caja p { margin: 0 0 20px; font-size: var(--fs-body); color: var(--muted); }
 .stepper { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .stepper button {
-  width: 54px; height: 54px; border-radius: 14px; cursor: pointer;
+  width: 54px; height: 54px; border-radius: var(--radius); cursor: pointer;
   background: var(--surface-2); border: 1px solid var(--line);
   color: var(--text); font-size: 1.6rem; font-family: inherit; line-height: 1;
+  transition: border-color var(--t-color) var(--ease), color var(--t-color) var(--ease);
 }
 .stepper button:hover { border-color: var(--accent); color: var(--accent); }
 .stepper button:active { transform: scale(0.94); }
 .stepper output {
-  min-width: 76px; font-size: 2.4rem; font-weight: 800;
-  font-variant-numeric: tabular-nums; line-height: 1;
+  min-width: 76px; font: 800 2.4rem/1 var(--display); letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
 }
 .modal__calculo { margin: 16px 0 20px !important; font-size: 0.88rem; color: var(--muted); }
 .modal__calculo em { color: var(--accent); font-style: normal; font-weight: 800; }
 .modal__ok {
-  width: 100%; border: none; border-radius: 12px; cursor: pointer;
-  background: var(--accent); color: #090a09;
-  font-family: inherit; font-weight: 800; font-size: 1rem; padding: 14px;
+  width: 100%; border: none; border-radius: var(--radius); cursor: pointer;
+  background: var(--accent); color: var(--black);
+  font: 700 .78rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  padding: 17px 14px;
+  transition: background-color var(--t-color) var(--ease);
 }
 .modal__ok:hover { background: var(--accent-dark); }
+/* =========================================================
+   EL PLANO DEL SALÓN
 
-/* ---------------- Plano ----------------
-   Va sobre papel claro, no sobre el fondo oscuro del sitio: es un plano, y
-   en claro el verde de libre y el rojo de ocupado se leen de un vistazo.
-   También va más chico, para que entre completo sin tanto desplazamiento. */
-.floor-scroll { overflow-x: auto; padding-bottom: 8px; }
-.floor {
-  --papel: #e9e4d8;
-  --tinta: #2b2a26;
-  --linea-papel: #c9c2b2;
+   Un solo SVG con viewBox. No hay una medida en píxeles fijos en todo el
+   dibujo: entra completo en cualquier ancho y las mesas escalan con la
+   pantalla, así que desaparece el recuadro con scroll horizontal que en el
+   teléfono escondía la Sección C entera.
 
-  min-width: 480px;
-  background: var(--papel);
-  border: 1px solid var(--linea-papel);
-  border-radius: 10px;
-  padding: 0 16px 18px;
-  position: relative;
-  overflow: hidden;
-  color: var(--tinta);
-}
-.floor::before {
-  content: ""; position: absolute; inset: 0;
-  background-image:
-    linear-gradient(rgba(43,42,38,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(43,42,38,0.05) 1px, transparent 1px);
-  background-size: 26px 26px;
-  pointer-events: none;
-}
-.floor > * { position: relative; }
+   Va oscuro, no sobre papel. La versión en crema resolvía bien el
+   "libre/tomada de un vistazo", pero era otra aplicación metida en medio del
+   sitio, y sobre todo: la luz no se ve sobre papel. El estado sigue sin
+   depender del color —la mesa tomada lleva trama y baja de opacidad— y el
+   naranja queda para lo único que significa en este sitio, "esto es tuyo".
+   ========================================================= */
 
-/* La tarima es la referencia para ubicarse: va oscura sobre el papel. */
-.tarima {
-  margin: 0 -16px 4px;
-  height: 66px;
-  background: linear-gradient(180deg, var(--tinta), #1c1b18);
-  border-bottom: 3px solid var(--accent);
-  display: grid; place-items: center;
-  position: relative;
-}
-.tarima__focos {
-  position: absolute; top: 8px; left: 0; right: 0;
-  display: flex; justify-content: center; gap: clamp(20px, 7vw, 54px);
-}
-.tarima__focos i {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 9px 3px rgba(255,89,54,0.5);
-}
-.tarima__rotulo { text-align: center; margin-top: 10px; }
-.tarima__rotulo b {
-  display: block; font-size: 0.8rem;
-  font-weight: 800; letter-spacing: 0.22em; text-indent: 0.22em; color: #fff;
-}
-.tarima__rotulo small {
-  display: block; margin-top: 1px;
-  font-size: 0.5rem; font-weight: 700; letter-spacing: 1.6px;
-  text-transform: uppercase; color: rgba(255,89,54,0.9);
-}
+/* La barra de total es sticky al pie de la ventana, así que se apoya sobre lo
+   último que haya debajo. Sin este colchón tapaba la última fila de mesas, que
+   es justo la que hay que poder tocar. */
+#panel-2 { padding-bottom: 92px; }
 
-/* La pasarela baja y termina justo enfrente de la mesa Única */
-.pasarela {
-  position: relative; align-self: stretch;
-  height: calc(100% + 30px);
-  background: linear-gradient(180deg, var(--tinta) 0%, #3a3833 78%, rgba(58,56,51,0) 100%);
-  border-radius: 0 0 6px 6px;
-  display: grid; place-items: start center; padding-top: 10px;
-}
-.pasarela span {
-  writing-mode: vertical-rl; font-size: 0.5rem; font-weight: 800;
-  letter-spacing: 2px; color: #b9b3a4; text-transform: uppercase;
-}
-
-.mid { display: grid; grid-template-columns: 1fr 62px 1fr; gap: 12px; align-items: start; }
-.mid > .zone { padding-top: 20px; }
-.zone--c { margin-top: 22px; }
-
-.zone__name {
-  font-size: 0.56rem; font-weight: 800; letter-spacing: 1.2px;
-  text-transform: uppercase; color: #6f6a5d; margin: 0 0 8px;
-  display: flex; align-items: center; gap: 7px;
-}
-.zone__name::after { content: ""; flex: 1; height: 1px; background: var(--linea-papel); }
-
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.fila-c { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; }
-
-/* ---------------- Mesa ----------------
-   Libre en verde, tomada en rojo con trama: el estado no depende del color. */
-.mesa {
-  position: relative;
-  aspect-ratio: 1 / 0.66;
-  border-radius: 5px;
-  border: 1.5px solid #3f9c62;
-  background: #d6ecdd;
-  color: #24503a;
-  font-family: inherit; font-weight: 800; font-size: 0.78rem;
-  cursor: pointer;
-  display: grid; place-items: center;
-  transition: transform 0.14s ease, box-shadow 0.14s ease;
-}
-.mesa small { font-size: 0.46rem; font-weight: 600; color: #4d7c60; }
-.mesa:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px -6px rgba(0,0,0,0.45);
-  z-index: 4;
-}
-.mesa[data-estado="reservado"] {
-  border-color: #c0392b;
+.plano {
+  margin: 0 0 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   background:
-    repeating-linear-gradient(45deg, rgba(192,57,43,0.22) 0 4px, transparent 4px 8px),
-    #f2d7d3;
-  color: #8c3a30; cursor: not-allowed;
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 89, 54, .05), transparent 60%),
+    var(--bg-2);
+  overflow: hidden;
 }
-.mesa[data-estado="reservado"] small { color: #a8564a; }
-.mesa[aria-pressed="true"] {
-  border-color: var(--accent);
+
+/* ---------------------------------------------- cabecera y marcador vivo */
+
+.plano__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  flex-wrap: wrap;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0, 0, 0, .22);
+}
+
+.plano__rotulo {
+  color: var(--dim);
+  font: 700 var(--fs-label)/1 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  padding-right: .16em;
+}
+
+/* El globito flotante sobre la mesa no se podía leer en un teléfono: aparecía
+   debajo del dedo y se salía del borde en la primera y la última columna. El
+   dato se muestra acá, siempre en el mismo lugar y a tamaño completo. */
+.plano__lectura {
+  min-width: 0;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--dim);
+  font: 600 var(--fs-label)/1.4 var(--mono);
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--t-color) var(--ease),
+              border-color var(--t-color) var(--ease),
+              background-color var(--t-color) var(--ease);
+}
+
+.plano__lectura--viva {
+  color: var(--text);
+  border-color: rgba(255, 89, 54, .45);
+  background: var(--accent-soft);
+}
+
+/* ---------------------------------------------- la hoja de plano
+
+   El sitio entero es casi negro. El plano no: es una hoja clara, cuadriculada,
+   apoyada sobre la página. En toda la compra hay un solo momento en que la
+   persona mira el salón y decide dónde se sienta, y ese momento se ve distinto
+   de todo lo demás a propósito.
+
+   Los colores de la hoja viven solo acá dentro. No salen de los tokens del
+   sitio porque no son el sitio: son papel, tinta y la cuadrícula roja de un
+   plano de arquitecto. Lo único que se toma prestado es el naranja de la marca
+   para la mesa elegida y el dorado para las únicas, que son las dos cosas que
+   tienen que significar lo mismo acá que en el resto de la compra. */
+
+.plano__lienzo {
+  --papel: #f4f1ea;
+  --cuadricula: rgba(210, 40, 40, .11);
+  --tinta: #2c2c2c;
+  --tinta-suave: #8a857c;
+  --mesa: #ffffff;
+  --mesa-borde: #ddd8cf;
+  --tomada: #eae6de;
+  --tomada-linea: #d3cec2;
+
+  padding: 14px;
+  background: #22241f;
+}
+
+.hoja {
+  padding: 18px 16px 20px;
+  border-radius: var(--radius-sm);
+  background-color: var(--papel);
+  /* La cuadrícula del papel. Va en el fondo y no en un elemento aparte para que
+     no haya nada que se pueda tocar por accidente encima de las mesas. */
+  background-image:
+    linear-gradient(var(--cuadricula) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px);
+  background-size: 20px 20px;
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, .9);
+}
+
+/* ---------------------------------------------- la tarima, en T */
+
+.hoja__tarima {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.hoja__tarima-barra {
+  position: relative;
+  width: 100%;
+  padding: 13px 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: linear-gradient(135deg, #1f211d, #0c0d0b);
+  color: #f6f5ef;
+  text-align: center;
+  font: 800 .82rem/1 var(--display);
+  letter-spacing: .38em;
+  text-transform: uppercase;
+  text-indent: .38em;
+}
+
+/* El pie de la T: la pasarela que baja de la tarima al salón. */
+.hoja__tarima-pie {
+  width: 34%;
+  min-width: 110px;
+  height: 26px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: linear-gradient(135deg, #1f211d, #0c0d0b);
+}
+
+.hoja__tarima-luces {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: clamp(28px, 9vw, 82px);
+}
+
+.hoja__tarima-luces i {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
   background: var(--accent);
-  color: #fff;
-  box-shadow: 0 0 0 3px rgba(255,89,54,0.3);
+  box-shadow: 0 0 10px var(--accent);
 }
-.mesa[aria-pressed="true"] small { color: rgba(255,255,255,0.85); }
 
-.mesa--unica { border-width: 2px; border-color: #b8901f; background: #f6e6b8; color: #6b5410; }
-.mesa--unica small { color: #8a6d18; }
-.mesa--unica b { font-size: 0.56rem; letter-spacing: 0.2px; }
+/* ---------------------------------------------- secciones */
 
-.mesa::after {
-  content: attr(data-badge);
-  position: absolute; bottom: calc(100% + 5px); left: 50%;
-  transform: translateX(-50%) translateY(3px);
-  padding: 3px 7px; border-radius: 999px;
-  font-size: 0.55rem; font-weight: 800; white-space: nowrap;
-  pointer-events: none; z-index: 6; opacity: 0;
-  transition: opacity 0.14s ease, transform 0.14s ease;
-  background: var(--tinta); color: #fff;
+.hoja__frente {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 16px;
 }
-.mesa:hover::after, .mesa:focus-visible::after { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-.legend {
-  display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
-  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--linea-papel);
-  font-size: 0.68rem; color: #6f6a5d; font-weight: 600;
+.hoja__frente .hoja__seccion { flex: 1; min-width: 0; }
+
+.hoja__rotulo {
+  margin: 0 0 9px;
+  padding-left: 9px;
+  border-left: 3px solid var(--accent);
+  color: var(--tinta);
+  font: 800 .68rem/1.25 var(--sans);
+  letter-spacing: .22em;
+  text-transform: uppercase;
 }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.swatch { width: 15px; height: 10px; border-radius: 2px; display: inline-block; }
-.swatch--libre { border: 1.5px solid #3f9c62; background: #d6ecdd; }
-.swatch--sel { border: 1.5px solid var(--accent); background: var(--accent); }
-.swatch--tomado {
-  border: 1.5px solid #c0392b;
-  background: repeating-linear-gradient(45deg, rgba(192,57,43,0.4) 0 3px, #f2d7d3 3px 6px);
+
+/* La pasarela que separa A de B. Va donde está en el salón, no donde queda
+   cómodo: es la referencia con la que alguien ubica su mesa al llegar. */
+.hoja__pasarela {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0 2px;
+  align-self: stretch;
+}
+
+.hoja__pasarela span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: var(--tinta-suave);
+  font: 700 .6rem/1 var(--sans);
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hoja__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--columnas, 3), minmax(0, 1fr));
+  gap: 5px;
+}
+
+/* ---------------------------------------------- las mesas
+
+   Sin sillas dibujadas. Se vende la mesa entera, así que cuántas sillas tiene
+   es un dato —dice cuánta gente entra— y no una forma que haya que contar. */
+
+.mesa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 44px;
+  padding: 6px 3px;
+  border: 1px solid var(--mesa-borde);
+  border-radius: 5px;
+  background: var(--mesa);
+  color: var(--tinta);
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: transform var(--t-move) var(--ease),
+              border-color var(--t-color) var(--ease),
+              background-color var(--t-color) var(--ease);
+}
+
+.mesa__nombre {
+  font-weight: 800;
+  font-size: .78rem;
+  line-height: 1;
+}
+
+.mesa__sillas {
+  color: var(--tinta-suave);
+  font-size: .58rem;
+  line-height: 1.1;
+}
+
+.mesa:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.mesa:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Elegida: el naranja de la marca, el mismo que en el resto de la compra. */
+.mesa--elegida,
+.mesa--elegida:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--white);
+  box-shadow: 0 3px 10px -2px rgba(255, 89, 54, .5);
+}
+
+.mesa--elegida .mesa__sillas { color: rgba(255, 255, 255, .82); }
+
+.mesa--pulso { animation: mesa-elegida .42s var(--ease); }
+
+@keyframes mesa-elegida {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Reservada: trama, no solo color. Quien no distingue el gris del blanco tiene
+   que poder ver igual que esa mesa ya no está. */
+.mesa--tomada,
+.mesa--tomada:hover {
+  cursor: not-allowed;
+  transform: none;
+  border-color: var(--tomada-linea);
+  color: rgba(44, 44, 44, .45);
+  background:
+    repeating-linear-gradient(45deg,
+      var(--tomada) 0 4px, var(--tomada-linea) 4px 8px);
+}
+
+.mesa--tomada .mesa__sillas { color: rgba(44, 44, 44, .45); }
+
+/* Única: ocho lugares y precio propio. El dorado la separa sin gritar. */
+.mesa--unica {
+  border: 2px solid var(--oro);
+}
+
+.mesa--unica .mesa__nombre { color: #8a6d1f; }
+.mesa--unica.mesa--elegida .mesa__nombre { color: var(--white); }
+
+/* ---------------------------------------------- entrada */
+
+.hoja--entra .mesa {
+  animation: mesa-aparece .38s var(--ease) both;
+}
+
+@keyframes mesa-aparece {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------------------------------------------- leyenda */
+
+.hoja__leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 18px 0 0;
+  padding: 13px 0 0;
+  border-top: 1px solid var(--mesa-borde);
+  list-style: none;
+  color: var(--tinta-suave);
+  font: 700 .6rem/1.4 var(--sans);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.hoja__leyenda li { display: inline-flex; align-items: center; gap: 7px; }
+
+.hoja__marca {
+  width: 18px;
+  height: 12px;
+  flex: none;
+  border-radius: 3px;
+  border: 1px solid var(--mesa-borde);
+  background: var(--mesa);
+}
+
+/* `--libre` no agrega nada sobre `.hoja__marca`: existe para que las cuatro
+   entradas de la leyenda se lean iguales en el marcado. */
+.hoja__marca--libre { background: var(--mesa); }
+.hoja__marca--elegida { background: var(--accent); border-color: var(--accent); }
+.hoja__marca--tomada {
+  border-color: var(--tomada-linea);
+  background: repeating-linear-gradient(45deg,
+    var(--tomada) 0 3px, var(--tomada-linea) 3px 6px);
+}
+.hoja__marca--unica { border: 2px solid var(--oro); background: transparent; }
+
+/* ---------------------------------------------- teléfonos
+
+   La Sección C son nueve mesas por fila y así se queda: plegarla a tres
+   columnas haría que el plano mintiera sobre dónde se sienta alguien. Lo que
+   se achica es el contenido de la mesa, no la cantidad de columnas. */
+
+@media (max-width: 620px) {
+  .step-panel .plano {
+    margin-inline: -16px;
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .plano__lienzo { padding: 8px; }
+  .plano__cabecera { padding: 11px 14px; }
+  .plano__lectura { width: 100%; text-align: center; }
+
+  .hoja { padding: 14px 10px 16px; }
+  .hoja__frente { gap: 6px; }
+  .hoja__grid { gap: 3px; }
+
+  .mesa { min-height: 40px; padding: 4px 2px; }
+  .mesa__nombre { font-size: .68rem; }
+  /* En 360px la fila de nueve no deja lugar para dos renglones dentro de una
+     mesa. El número de sillas sigue estando en el marcador de la cabecera. */
+  .hoja__seccion--fondo .mesa__sillas { display: none; }
+
+  .hoja__tarima-barra { font-size: .7rem; letter-spacing: .24em; text-indent: .24em; }
+  .hoja__pasarela span { font-size: .52rem; letter-spacing: .2em; }
+  .hoja__leyenda { gap: 7px 12px; }
+}
+
+/* ---------------------------------------------- movimiento reducido */
+
+@media (prefers-reduced-motion: reduce) {
+  .hoja--entra .mesa,
+  .mesa--pulso {
+    animation: none !important;
+  }
+  .mesa { transition: none; }
+  .mesa:hover { transform: none; }
 }
 
 /* ---------------- Secciones sin plano ---------------- */
@@ -253,13 +506,17 @@
   font-size: 0.92rem; color: var(--text); line-height: 1.6;
 }
 
-/* ---------------- Resumen fijo ---------------- */
+/* ---------------- Resumen fijo ----------------
+   El fondo era rgba(23,26,36): gris azulado sobre un sitio verde-negro. Era el
+   error de paleta más visible del flujo, porque la barra está fija abajo y se
+   ve durante todo el paso 2. */
 .resumen {
   position: sticky; bottom: 0; z-index: 30;
   max-width: 900px; margin: 0 auto;
-  background: rgba(23,26,36,0.95);
+  background: rgba(16,18,16,0.95);
   backdrop-filter: blur(12px);
   border: 1px solid var(--line);
+  border-bottom: 0;
   border-radius: var(--radius) var(--radius) 0 0;
   padding: 14px 20px;
   display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
@@ -267,15 +524,18 @@
 }
 .resumen[hidden] { display: none; }
 .resumen__detalle { flex: 1; min-width: 190px; }
-.resumen__mesas { font-size: 0.85rem; color: var(--muted); margin: 0; }
+.resumen__mesas { font-size: var(--fs-meta); color: var(--muted); margin: 0; }
 .resumen__mesas b { color: var(--text); }
-.resumen__aviso { font-size: 0.78rem; color: var(--accent); margin: 3px 0 0; }
+.resumen__aviso { font-size: var(--fs-meta); color: var(--accent); margin: 3px 0 0; }
 .resumen__total { text-align: right; }
 .resumen__total small {
-  display: block; font-size: 0.65rem; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--muted); font-weight: 800;
+  display: block; font: 700 var(--fs-label)/1.4 var(--mono); letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted);
 }
-.resumen__total strong { font-size: 1.45rem; font-variant-numeric: tabular-nums; }
+.resumen__total strong {
+  font: 700 var(--fs-lead)/1.1 var(--display); letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
 
 .resumen-compra {
   background: var(--surface-2); border: 1px solid var(--line-soft);
@@ -289,13 +549,12 @@
 .resumen-compra .row:last-child { border-bottom: none; font-weight: 800; color: var(--accent); }
 .resumen-compra .row span:first-child { color: var(--muted); }
 
+/* En pantalla táctil no hay "pasar por encima": el dato de la mesa se lee en el
+   marcador de la cabecera, que se llena al tocarla. */
 @media (hover: none) {
-  .mesa::after {
-    opacity: 1; transform: translateX(-50%); bottom: auto; top: calc(100% + 3px);
-    font-size: 0.5rem; padding: 2px 5px;
-  }
-  .grid-3, .fila-c { row-gap: 24px; }
+  .plano__lectura { color: var(--muted); }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .mesa, .stepper button { transition: none; }
+  .stepper button { transition: none; }
 }

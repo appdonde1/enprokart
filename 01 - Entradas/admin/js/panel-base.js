@@ -24,12 +24,26 @@ window.PanelBase = (() => {
     {
       grupo: "Gestión",
       items: [
+        { href: "reservas.html", label: "Reservas" },
         { href: "operaciones.html", label: "Operaciones" },
         { href: "solicitudes.html", label: "Solicitudes" },
         { href: "publicidad.html", label: "Publicidad" },
       ],
     },
+    {
+      grupo: "Personal",
+      items: [
+        { href: "empleados.html", label: "Empleados" },
+        { href: "nomina.html", label: "Nómina" },
+        { href: "usuarios.html", label: "Usuarios" },
+      ],
+    },
   ];
+
+  /* `developer` entra a todo lo que entra un admin: es la misma llave que abre
+     las políticas de la base, donde `is_admin()` cuenta a los dos. Lo que los
+     separa es a quién pueden gestionar, y eso lo decide la Edge Function. */
+  const puedeEntrar = (rol) => rol === "admin" || rol === "developer";
 
   function pintarNav(actual) {
     const nav = document.getElementById("panelNav");
@@ -108,7 +122,7 @@ window.PanelBase = (() => {
 
     perfil = fila;
 
-    if (fila?.role !== "admin") {
+    if (!puedeEntrar(fila?.role)) {
       location.replace("index.html");
       return null;
     }

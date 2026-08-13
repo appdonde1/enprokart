@@ -41,7 +41,7 @@
   }
 
   if (!orderId) {
-    mostrarError("No encontramos tu compra", "Volvé al inicio y elegí tu lugar de nuevo.");
+    mostrarError("No encontramos tu compra", "Vuelve al inicio y elige tu lugar de nuevo.");
     return;
   }
 
@@ -157,7 +157,7 @@
     if (["expired", "canceled", "failed"].includes(data.status)) {
       mostrarError(
         data.status === "expired" ? "La reserva expiró" : "La compra no se completó",
-        "Tu lugar volvió a quedar disponible. Podés elegirlo de nuevo.",
+        "Tu lugar volvió a quedar disponible. Puedes elegirlo de nuevo.",
       );
       return;
     }

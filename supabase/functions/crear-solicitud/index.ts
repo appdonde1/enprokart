@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     .gte("created_at", haceUnaHora);
 
   if ((count ?? 0) >= MAX_POR_HORA) {
-    return fail("Ya enviaste varias solicitudes. Probá de nuevo en un rato.", 429);
+    return fail("Ya enviaste varias solicitudes. Prueba de nuevo en un rato.", 429);
   }
 
   const fila: Record<string, unknown> = { kind, origin_hash: origen };
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
   // ------------------------------------------------------------ cambio de clave
   if (kind === "clave") {
     const usuario = texto(body.usuario, 60).toLowerCase().replace(/@.*$/, "");
-    if (!usuario) return fail("Escribí tu usuario");
+    if (!usuario) return fail("Escribe tu usuario");
 
     const email = `${usuario}@${DOMINIO_STAFF}`;
     const { data: perfil } = await db
@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
 
     if (!fila.comercio) return fail("Falta el nombre del comercio");
     if (contarPalabras(fila.descripcion as string) < PALABRAS_MINIMAS) {
-      return fail(`Contanos en al menos ${PALABRAS_MINIMAS} palabras qué publicidad necesitás`);
+      return fail(`Cuéntanos en al menos ${PALABRAS_MINIMAS} palabras qué publicidad necesitas`);
     }
   }
 
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
     }
 
     const bytes = bytesDesdeBase64(String(body.cv_base64 ?? ""));
-    if (!bytes || bytes.length === 0) return fail("No pudimos leer el archivo. Probá de nuevo.");
+    if (!bytes || bytes.length === 0) return fail("No pudimos leer el archivo. Prueba de nuevo.");
     if (bytes.length > MAX_CV_BYTES) return fail("El currículum no puede pesar más de 5 MB");
 
     const ruta = `${crypto.randomUUID()}.${extension}`;
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
 
     if (subida) {
       console.error("crear-solicitud/cv", subida);
-      return fail("No pudimos guardar el currículum. Probá de nuevo.", 500);
+      return fail("No pudimos guardar el currículum. Prueba de nuevo.", 500);
     }
 
     fila.cv_path = ruta;
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
   const { error } = await db.from("requests").insert(fila);
   if (error) {
     console.error("crear-solicitud/insert", error);
-    return fail("No pudimos registrar la solicitud. Probá de nuevo.", 500);
+    return fail("No pudimos registrar la solicitud. Prueba de nuevo.", 500);
   }
 
   return json({ recibida: true });

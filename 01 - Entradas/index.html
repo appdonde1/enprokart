@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0a0a09" />
+  <meta name="theme-color" content="#090a09" />
   <meta name="color-scheme" content="dark" />
   <title>Pro Kart · Eventos y entradas</title>
   <link rel="icon" href="Logo Prokart.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/plano.css" />
@@ -108,7 +108,7 @@
         <div>
           <h2>Próximos eventos</h2>
         </div>
-        <p>Elegí una fecha y comprá tus entradas.</p>
+        <p>Elige una fecha y compra tus entradas.</p>
       </div>
 
       <!-- Se llena desde la base: los edita el admin en el panel -->
@@ -209,7 +209,7 @@
       <div class="booking-panels">
         <!-- PASO 1 -->
         <section class="step-panel active" id="panel-1">
-          <h2>1. Elegí tu área</h2>
+          <h2>1. Elige tu área</h2>
           <div class="areas-grid" id="areasGrid">
             <p class="hint">Cargando áreas disponibles...</p>
           </div>
@@ -218,50 +218,37 @@
 
         <!-- PASO 2 -->
         <section class="step-panel" id="panel-2">
-          <h2 id="tituloLugar">2. Elegí tu lugar</h2>
+          <h2 id="tituloLugar">2. Elige tu lugar</h2>
 
           <div class="grupo" id="grupo" hidden>
             <span class="grupo__dato" id="grupoDato"></span>
             <button type="button" class="grupo__editar" id="grupoEditar">Cambiar</button>
           </div>
 
+          <!-- El plano lo dibuja app.js como un único SVG con viewBox: así entra
+               en cualquier ancho sin scroll interno y las mesas escalan con la
+               pantalla en vez de quedar fijas en píxeles. -->
           <div id="planoWrap" hidden>
-            <div class="floor-scroll">
-              <div class="floor">
-                <div class="tarima">
-                  <div class="tarima__focos"><i></i><i></i><i></i><i></i><i></i></div>
-                  <div class="tarima__rotulo">
-                    <b>TARIMA</b>
-                    <small>Escenario principal</small>
-                  </div>
-                </div>
+            <figure class="plano">
+              <figcaption class="plano__cabecera">
+                <span class="plano__rotulo">Plano del salón</span>
+                <!-- Marcador vivo: al pasar por una mesa dice cuál es, cuántas
+                     sillas tiene y cuánto sale. Reemplaza al globito flotante,
+                     que en un teléfono nunca se ve entero. -->
+                <output class="plano__lectura" id="planoLectura" aria-live="polite">
+                  Elige una mesa
+                </output>
+              </figcaption>
 
-                <div class="mid">
-                  <section class="zone">
-                    <p class="zone__name">Sección A</p>
-                    <div class="grid-3" id="zonaA"></div>
-                  </section>
+              <div class="plano__lienzo" id="planoLienzo"></div>
 
-                  <div class="pasarela"><span>Pasarela</span></div>
-
-                  <section class="zone">
-                    <p class="zone__name">Sección B</p>
-                    <div class="grid-3" id="zonaB"></div>
-                  </section>
-                </div>
-
-                <section class="zone zone--c">
-                  <p class="zone__name">Sección C</p>
-                  <div class="fila-c" id="zonaC"></div>
-                </section>
-
-                <div class="legend">
-                  <span><i class="swatch swatch--libre"></i> Disponible</span>
-                  <span><i class="swatch swatch--sel"></i> Tu selección</span>
-                  <span><i class="swatch swatch--tomado"></i> Reservada</span>
-                </div>
-              </div>
-            </div>
+              <ul class="plano__leyenda">
+                <li><i class="ficha ficha--libre"></i> Disponible</li>
+                <li><i class="ficha ficha--sel"></i> Tu selección</li>
+                <li><i class="ficha ficha--tomada"></i> Reservada</li>
+                <li><i class="ficha ficha--unica"></i> Mesa única</li>
+              </ul>
+            </figure>
           </div>
 
           <div class="panel-simple" id="sinPlano" hidden>
@@ -334,7 +321,7 @@
     <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo" hidden>
       <div class="modal__caja">
         <h3 id="modalTitulo">¿Cuántas personas son?</h3>
-        <p id="modalSub">Con eso calculamos cuántas mesas necesitás.</p>
+        <p id="modalSub">Con eso calculamos cuántas mesas necesitas.</p>
         <div class="stepper">
           <button type="button" id="menos" aria-label="Quitar una persona">−</button>
           <output id="personas">2</output>

@@ -64,6 +64,83 @@ puede marcar una orden como pagada desde el panel.
 **Los meseros leen `tickets_staff`, no `tickets`.** RLS filtra filas, no
 columnas, así que la vista es lo que les oculta documento y WhatsApp.
 
+**El legajo de un empleado no es una cuenta de acceso.** `empleados` y
+`staff_profiles` son tablas distintas, unidas por `empleados.staff_id`, que casi
+siempre es nulo. Alguien de cocina o limpieza tiene ficha y sueldo y nunca entra
+al panel; un mesonero tiene las dos cosas. Mezclarlas crearía decenas de cuentas
+que nadie usa, y cada cuenta viva es una puerta más en un sistema que mueve
+dinero. El botón «Dar acceso al panel» es lo único que enlaza una con otra.
+
+**Las tablas de personal no tienen ningún `GRANT`.** `empleados`, `marcaciones`,
+`nomina_semanas`, `nomina_lineas` y `nomina_ajustes` guardan cédula, dirección,
+teléfono y sueldo. Ni `anon` ni `authenticated` las alcanzan: el único camino son
+las Edge Functions `empleados` y `nomina`, que verifican el rol antes de devolver
+una fila. Es lo mismo que se hizo con `orders` y `tickets` en
+`20260812000009_quitar_security_definer.sql`. `areas` y `credenciales` sí se leen
+directo, porque son catálogos sin dato personal.
+
+**Cada semana de nómina guarda su propia copia de los números.** Si la línea
+leyera el sueldo actual del legajo, subirle el sueldo a alguien en octubre
+cambiaría lo que dice que se le pagó en marzo. Al cerrar la semana se copian
+nombre, cédula y código a la línea, y ahí quedan. Es el mismo criterio que la
+entrada emitida, que guarda su sección y su mesa aunque después cambie el salón.
+
+**Los ajustes de nómina no se editan ni se borran.** Además de no tener permisos,
+`nomina_ajustes` lleva un trigger `before update or delete` que lanza excepción,
+porque `service_role` ignora los permisos y la Edge Function corre con esa clave.
+Si algo salió mal se agrega otro ajuste que lo corrige, y quedan los dos. Un
+registro de pagos que se puede reescribir no sirve como registro.
+
+Consecuencia que costó descubrir: **una fila inmutable no puede tener llaves
+foráneas que la actualicen.** `nomina_ajustes.hecho_por` apuntaba a `auth.users`
+con `on delete set null`, y ese SET NULL es un UPDATE que el trigger rechaza, así
+que una cuenta que hubiera tocado un sueldo no se podía eliminar. El ajuste ahora
+copia el nombre de su autor al hacerse y `hecho_por` es un uuid suelto, sin
+llave. Cualquier columna que se agregue a esa tabla apuntando a otra tiene que
+seguir el mismo criterio.
+
+**El idioma del sitio es español latino, con tuteo.** «Elige tu mesa», no «Elegí
+tu mesa»; «puedes», no «podés». Vale para los textos de pantalla y para los
+mensajes de error de las Edge Functions, que llegan al comprador tal cual.
+
+**Las secciones sin plano no dibujan mesas en el panel.** Plata asigna por orden
+de llegada y su mapa no se muestra a nadie: pintar sus 120 mesas en el editor era
+pedir que alguien revisara una por una algo que nadie elige a mano. La regla es
+por `assignment_mode`, no por el nombre de la sección.
+
+**El editor del salón no guarda solo.** Los precios y las sillas se acumulan en
+un borrador y salen en una sola tanda, con la cuenta de lo pendiente a la vista y
+aviso al salir. Antes cada clic escribía en la base, y un clic de más ya era un
+cambio hecho sobre lo que se cobra.
+
+**El plano del comprador es una hoja clara sobre una página oscura.** Es el único
+momento de la compra en que se mira el salón, y se ve distinto a propósito. Las
+sillas no se dibujan: se vende la mesa entera, así que su cantidad es un dato y
+no una forma que haya que contar. La posición sale de `pos_x`/`pos_y`, lo mismo
+que edita el panel, así que agregar una fila no obliga a tocar el dibujo.
+
+**Lo cobrado por mesas no alimenta la nómina.** Son dos circuitos sin ninguna
+relación: ninguna consulta de `nomina/index.ts` toca `orders`, `tickets` ni
+`seats`. Queda escrito acá para que nadie los enlace más adelante «para completar
+el cuadro»: cruzarlos volvería la nómina dependiente de una noche floja de
+ventas, que no es lo que se le prometió a nadie que trabaja.
+
+**Las marcaciones guardan la línea original del archivo.** El captahuellas
+todavía no se eligió. Cuando llegue, la primera interpretación de sus columnas
+casi seguro va a estar mal en algo —el orden de día y mes, la zona horaria, qué
+marca es entrada—. `marcaciones.bruto` conserva el texto tal cual vino, así que
+corregirlo es volver a procesar y no volver a exportar del aparato. La
+deduplicación va por `referencia_externa`, que cae en el SHA-256 del bruto cuando
+el archivo no trae identificador propio. El cálculo de horas queda pendiente a
+propósito: sin el formato real, cualquier fórmula sería una suposición sobre el
+dinero de otras personas.
+
+**El dinero de la nómina es entero de centavos de punta a punta.** `bigint` en la
+base, `_shared/dinero.ts` en las funciones, y en el navegador el texto del
+formulario se convierte separando enteros y centavos, sin multiplicar por 100 un
+número con coma. Un redondeo suelto casi siempre coincide; lo que no coincide es
+acumular mil líneas. Está probado en `verificacion/aritmetica.mjs`.
+
 **Reservar es un solo `UPDATE` con `WHERE status = 'available'`.** Ante dos
 compradores simultáneos, el segundo recibe cero filas y ve el error. En VIP
 Plata se suma `FOR UPDATE SKIP LOCKED` para que cada uno tome la siguiente silla
@@ -120,3 +197,43 @@ La URL a registrar en Mercado Pago como notificación es
 
 La `anon key` sí es pública y vive en `01 - Entradas/js/config.js`: lo que
 protege los datos es RLS, no esconderla.
+
+## Cuentas y roles
+
+`staff_profiles.role` tiene tres valores: `developer`, `admin`, `mesero`.
+
+| Puede | developer | admin | mesero |
+|---|---|---|---|
+| Gestionar administradores | sí | no | no |
+| Gestionar meseros y empleados | sí | sí | no |
+| Actuar sobre su propia cuenta | sí | no | no |
+| Operar la puerta | sí | sí | sí |
+
+`is_admin()` cuenta al developer como admin —es la llave de todas las políticas
+de escritura, y sin eso esa cuenta no entraría a nada—. Lo que los separa es
+`is_developer()` y, sobre todo, `puedeActuarSobre()` en
+`supabase/functions/_shared/supabase.ts`, que es donde vive la regla: **entre
+administradores no hay ninguna acción disponible**. Ni crear, ni editar, ni
+degradar, ni reiniciar la clave, ni eliminar. El panel esconde esos botones, pero
+quien decide es la Edge Function: llamarla a mano devuelve 403.
+
+### La cuenta de desarrollo — pendiente de entrega
+
+`developer@enprokart.com` existe para construir y mantener el sistema. **Queda
+visible en la lista de usuarios**, marcada como tal, aunque un admin no pueda
+tocarla: una cuenta con poder total, oculta y permanente dentro del sistema de
+otra persona es una puerta trasera, aunque la intención sea buena. Betsimar tiene
+que poder ver que existe.
+
+Su clave la eligió el dueño de la cuenta al crearla desde Authentication y no
+está en ningún archivo del repo, igual que las demás. Su código de administrador
+de 3 dígitos lo genera la migración al azar y se ve en el panel, en **Usuarios →
+Tu cuenta**, con esa sesión abierta; también sale de correr
+`verificacion/enlazar-cuentas.sql`, que lista rol y código de todas las cuentas
+con poder.
+
+> **Al entregar el proyecto hay que eliminar o transferir esta cuenta.** El
+> camino: desde la sesión del developer, degradarla a `mesero` en Usuarios (una
+> cuenta no puede eliminarse a sí misma, a propósito), y después Betsimar la
+> elimina como a cualquier otro mesero. Mientras siga existiendo con rol
+> `developer`, hay alguien fuera del local que puede nombrar administradores.

@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
 
   const personas = Math.floor(Number(body.people ?? 0));
   if (!Number.isFinite(personas) || personas < 1 || personas > MAX_PERSONAS) {
-    return fail("Indicá cuántas personas son");
+    return fail("Indica cuántas personas son");
   }
 
   const db = serviceClient();
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
   // ------------------------------------------------ sin plano: Plata y General
   if (!codigos.length) {
     const seccion = cleanText(body.section_code, 20).toUpperCase();
-    if (!seccion) return fail("Elegí una mesa en el plano o una sección");
+    if (!seccion) return fail("Elige una mesa en el plano o una sección");
 
     const { data: section } = await db
       .from("sections")

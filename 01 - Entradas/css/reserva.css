@@ -14,10 +14,6 @@
    0. Utilidades y primitivas compartidas
    ========================================================= */
 
-/* app.js oculta el hero con .hidden; el resto usa el atributo. */
-.hidden,
-[hidden] { display: none !important; }
-
 /* Texto de apoyo: cargando, aclaraciones, subtítulos de panel. */
 .hint {
   margin: 0;
@@ -34,7 +30,7 @@
   padding: 26px 18px;
   border: 1px dashed var(--line);
   color: var(--dim);
-  font: 600 .62rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .12em;
   text-transform: uppercase;
   text-align: center;
@@ -48,25 +44,17 @@
   padding-bottom: 5px;
   border-bottom: 1px solid var(--line);
   color: var(--accent);
-  font: 700 .64rem/1 var(--mono);
+  font: 700 0.72rem/1 var(--mono);
   letter-spacing: .1em;
   text-transform: uppercase;
-  transition: border-color .18s var(--ease), color .18s var(--ease);
+  transition: border-color var(--t-color) var(--ease), color var(--t-color) var(--ease);
 }
-.text-cta span { display: inline-block; transition: transform .18s var(--ease); }
+.text-cta span { display: inline-block; transition: transform var(--t-color) var(--ease); }
 .text-cta:hover { border-color: var(--accent); }
 .text-cta:hover span { transform: translate(3px, -3px); }
 .text-cta:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
-}
-
-/* Foco visible y coherente en todo lo que se puede tocar. */
-a:focus-visible,
-button:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
 }
 
 /* =========================================================
@@ -83,20 +71,40 @@ button:focus-visible,
 .step-indicator__label { white-space: nowrap; }
 .step-indicator__dot {
   flex: none;
-  font: 700 .66rem/1 var(--mono);
+  font: 700 0.72rem/1 var(--mono);
 }
 
 /* =========================================================
-   2. Paso 1 — Tarjetas de área
-   La decisión de compra principal. Son <button>: tienen que leerse como
-   opciones, no como texto. El nivel se distingue por un filete de color, no
-   pintando la tarjeta entera.
+   2. Paso 1 — Elegir área
+   La decisión de compra principal. Tres opciones y hay que poder compararlas
+   de un vistazo: dónde te sentás, qué te dan y cuánto sale.
+
+   Las tres van listadas por cercanía a la tarima, así que la lista misma es el
+   plano del salón. Con una barra de tarima arriba de las tres alcanza para
+   decirlo; antes cada tarjeta llevaba su propia copia del mini-plano.
    ========================================================= */
 
-.areas-grid { gap: 12px; }
+.areas-grid { display: grid; gap: 10px; }
+
+/* La tarima, una sola vez y para las tres. Marca el frente del salón y desde
+   ahí la lista se lee como se camina: Oro, Plata, General. */
+.areas-tarima {
+  margin: 0 0 2px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-bottom-color: var(--accent);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  color: var(--muted);
+  font: 700 var(--fs-label)/1 var(--mono);
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.areas-tarima span { padding-left: .3em; }
 
 .area-card {
-  /* Color del nivel. Se define acá para que baje al badge y al filete. */
+  /* Color del nivel. Se define acá para que baje a la insignia y al filete. */
   --tier: #6b706a;
   --tier-tint: rgba(255, 255, 255, .05);
 
@@ -109,16 +117,22 @@ button:focus-visible,
   color: var(--text);
   font-family: var(--sans);
   cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   transition:
-    border-color .18s var(--ease),
-    background-color .18s var(--ease),
-    transform .18s var(--ease),
-    box-shadow .18s var(--ease);
+    border-color var(--t-color) var(--ease),
+    background-color var(--t-color) var(--ease),
+    transform var(--t-move) var(--ease),
+    box-shadow var(--t-move) var(--ease);
 }
 
-.area-card--oro     { --tier: var(--oro);   --tier-tint: rgba(217, 184, 93, .12); }
-.area-card--plata   { --tier: var(--plata); --tier-tint: rgba(185, 188, 182, .10); }
-.area-card--general { --tier: var(--info);  --tier-tint: rgba(106, 169, 255, .12); }
+.area-card--oro     { --tier: var(--oro);   --tier-tint: var(--oro-tint); }
+.area-card--plata   { --tier: var(--plata); --tier-tint: var(--plata-tint); }
+.area-card--general { --tier: var(--info);  --tier-tint: var(--info-tint); }
 
 /* Filete de nivel: siempre presente, es lo que identifica la categoría. */
 .area-card::before {
@@ -129,12 +143,12 @@ button:focus-visible,
   bottom: 0;
   width: 4px;
   background: var(--tier);
-  opacity: .8;
-  transition: opacity .18s var(--ease), width .18s var(--ease);
+  opacity: .85;
+  transition: opacity var(--t-color) var(--ease), width var(--t-color) var(--ease);
 }
 
-/* Marca de elegida: además del color, un tilde. El estado no se comunica
-   solo por color. */
+/* Marca de elegida: además del color, un tilde. El estado no se comunica solo
+   por color. */
 .area-card::after {
   content: "✓";
   position: absolute;
@@ -149,86 +163,122 @@ button:focus-visible,
   font: 700 .82rem/1 var(--sans);
   opacity: 0;
   transform: scale(.5);
-  transition: opacity .18s var(--ease), transform .18s var(--ease);
+  transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease);
 }
 
-.area-card__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas:
-    "badge"
-    "title"
-    "desc";
-  gap: 9px;
-  padding: 18px 18px 18px 22px;
-}
-.area-card .badge  { grid-area: badge; justify-self: start; }
-.area-card h4      { grid-area: title; }
-.area-card p       { grid-area: desc; }
-.area-card .price  { grid-area: price; }
-
-.area-card h4 {
-  margin: 0;
-  font: 700 clamp(1.25rem, 5vw, 1.6rem)/1 var(--display);
-  letter-spacing: -.045em;
-  color: var(--text);
-}
-.area-card p {
-  margin: 0;
-  max-width: 34ch;
-  color: var(--muted);
-  font-size: .8rem;
-  line-height: 1.45;
-}
-
-/* El precio es lo que la gente compara: tipografía display, números
-   tabulares y su propia línea separada por un filete. */
-.price {
-  display: block;
-  margin-top: 3px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
-  color: var(--text);
-  font: 700 clamp(1.05rem, 4.4vw, 1.3rem)/1.05 var(--display);
-  letter-spacing: -.035em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Etiqueta de nivel. Rectángulo, no píldora: el sitio es de esquinas rectas. */
-.badge {
-  display: inline-block;
-  padding: 5px 8px;
-  border: 1px solid;
-  border-radius: 2px;
-  border-color: var(--tier, var(--line));
-  color: var(--tier, var(--muted));
-  background: var(--tier-tint, transparent);
-  font: 700 .56rem/1 var(--mono);
-  letter-spacing: .16em;
+/* Nivel y ubicación en un solo rótulo, con el color del nivel. Antes eran dos
+   chips apilados —la pestaña de ubicación y la insignia del nivel— que en el
+   teléfono se montaban una sobre otra, y la insignia además repetía la palabra
+   que el título dice dos renglones más abajo. */
+.area-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid var(--tier);
+  border-radius: var(--radius-sm);
+  background: var(--tier-tint);
+  color: var(--tier);
+  font: 800 .68rem/1 var(--mono);
+  letter-spacing: .14em;
   text-transform: uppercase;
   white-space: nowrap;
 }
-/* Dentro de una tarjeta heredan el color del nivel; sueltas, cada una tiene
-   el suyo, así el badge nunca queda sin identidad. */
-.badge--vip {
-  border-color: var(--tier, var(--oro));
-  color: var(--tier, var(--oro));
-}
-.badge--general {
-  border-color: var(--tier, var(--info));
-  color: var(--tier, var(--info));
-  background: var(--tier-tint, rgba(106, 169, 255, .12));
+.area-card__tag i { font-style: normal; opacity: .5; }
+
+.area-card__body {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 20px 18px 18px 22px;
+  min-width: 0;
 }
 
-/* -------- Estados -------- */
+.area-card__titulo {
+  font: 700 clamp(1.3rem, 5vw, 1.55rem)/1.05 var(--display);
+  letter-spacing: -.04em;
+  color: var(--text);
+}
+
+.area-card__detalle {
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  max-width: 40ch;
+}
+
+/* La línea de qué incluye: es el dato que decide la compra y antes no estaba
+   en ningún lado. */
+.area-card__incluye {
+  margin-top: 2px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line-soft);
+  width: 100%;
+  color: var(--dim);
+  font: 600 var(--fs-label)/1.5 var(--mono);
+  letter-spacing: .06em;
+}
+
+/* -------- la columna del precio -------- */
+
+.area-card__precio {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  align-content: center;
+  padding: 0 18px 18px 22px;
+}
+
+.price {
+  display: block;
+  color: var(--text);
+  font: 700 clamp(1.5rem, 6vw, 1.9rem)/1 var(--display);
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.area-card__unidad {
+  color: var(--muted);
+  font: 600 var(--fs-label)/1.4 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+/* La acción se lee como acción: caja propia, no un rótulo suelto. */
+.area-card__ir {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font: 700 var(--fs-label)/1 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  transition: color var(--t-color) var(--ease),
+              border-color var(--t-color) var(--ease),
+              background-color var(--t-color) var(--ease);
+}
+.area-card__ir b { display: inline-block; transition: transform var(--t-move) var(--ease); }
+
+/* -------- estados -------- */
+
 .area-card:hover {
   border-color: #5a5e57;
   background: var(--surface);
-  transform: translateY(-2px);
+  transform: var(--lift);
   box-shadow: 0 16px 34px -22px #000;
 }
 .area-card:hover::before { opacity: 1; width: 6px; }
-.area-card:active { transform: translateY(0); }
+.area-card:hover .area-card__ir {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.area-card:hover .area-card__ir b { transform: translateX(3px); }
+.area-card:active { transform: none; }
 
 .area-card:focus-visible {
   outline: 2px solid var(--accent);
@@ -236,16 +286,14 @@ button:focus-visible,
   border-color: var(--accent);
 }
 
-/* Elegida. app.js todavía no marca la tarjeta, pero el estado queda listo
-   para cualquiera de los ganchos habituales. */
+/* Elegida. */
 .area-card[aria-pressed="true"],
 .area-card[data-selected="true"],
 .area-card.is-selected,
 .area-card.selected,
 .area-card--activa {
   border-color: var(--accent);
-  background:
-    linear-gradient(90deg, var(--accent-soft) 0%, var(--surface-2) 55%);
+  background: linear-gradient(90deg, var(--accent-soft) 0%, var(--surface-2) 55%);
   box-shadow:
     inset 0 0 0 1px rgba(255, 89, 54, .35),
     0 14px 34px -20px rgba(255, 89, 54, .75);
@@ -256,41 +304,37 @@ button:focus-visible,
 .area-card.selected::after,
 .area-card--activa::after { opacity: 1; transform: scale(1); }
 
-.area-card[aria-pressed="true"] .price,
-.area-card[data-selected="true"] .price,
-.area-card.is-selected .price,
-.area-card.selected .price,
-.area-card--activa .price { border-top-color: rgba(255, 89, 54, .4); }
+.area-card[aria-pressed="true"] .area-card__ir,
+.area-card--activa .area-card__ir {
+  color: var(--accent);
+  border-color: rgba(255, 89, 54, .5);
+}
 
-/* A partir de acá el precio se va a la derecha, como columna de datos. */
+/* -------- a partir de acá el precio se va a su propia columna -------- */
+
 @media (min-width: 620px) {
-  .area-card__body {
+  .area-card {
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "badge price"
-      "title price"
-      "desc  price";
     align-items: center;
-    column-gap: 26px;
-    row-gap: 8px;
-    padding: 22px 24px 22px 26px;
   }
-  .price {
-    margin-top: 0;
-    padding: 4px 0 4px 26px;
-    border-top: 0;
-    border-left: 1px solid var(--line-soft);
+  .area-card__body { padding: 22px 10px 22px 22px; }
+
+  .area-card__precio {
+    justify-items: end;
     text-align: right;
-    white-space: nowrap;
+    padding: 24px 22px 24px 26px;
+    border-left: 1px solid var(--line-soft);
+    /* El bloque del precio no se estira: se queda del ancho de su número. */
+    min-width: 208px;
   }
-  .area-card[aria-pressed="true"] .price,
-  .area-card[data-selected="true"] .price,
-  .area-card.is-selected .price,
-  .area-card.selected .price,
-  .area-card--activa .price {
-    border-top-color: transparent;
-    border-left-color: rgba(255, 89, 54, .4);
-  }
+  .area-card[aria-pressed="true"] .area-card__precio,
+  .area-card--activa .area-card__precio { border-left-color: rgba(255, 89, 54, .4); }
+}
+
+@media (max-width: 420px) {
+  .area-card__body { padding: 18px 15px 16px 19px; }
+  .area-card__precio { padding: 0 15px 16px 19px; }
+  .areas-tarima { letter-spacing: .22em; }
 }
 
 /* =========================================================
@@ -334,7 +378,7 @@ button:focus-visible,
   font-size: max(1rem, 16px);
   font-family: var(--sans);
   line-height: 1.3;
-  transition: border-color .16s var(--ease), box-shadow .16s var(--ease), background-color .16s var(--ease);
+  transition: border-color var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
 }
 .field input::placeholder { color: var(--dim); }
 
@@ -370,7 +414,7 @@ button:focus-visible,
 .error::before {
   content: "▲";
   margin-right: 6px;
-  font-size: .62rem;
+  font-size: 0.72rem;
   vertical-align: 1px;
 }
 /* app.js vacía el span cuando el error se resuelve. */
@@ -388,92 +432,10 @@ button:focus-visible,
 
 /* =========================================================
    4. Botones
+   El sistema de botones se mudó a css/style.css: estaba solo acá y las siete
+   páginas que no cargan esta hoja renderizaban botones nativos. Lo único que
+   queda es la barra de acciones, que sí es propia del flujo de compra.
    ========================================================= */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  min-height: 46px;
-  padding: 14px 18px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--mono);
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background-color .18s var(--ease),
-    border-color .18s var(--ease),
-    color .18s var(--ease),
-    transform .18s var(--ease),
-    box-shadow .18s var(--ease);
-}
-
-/* Las variantes repiten fondo y color aunque style.css ya los declare: esta
-   hoja carga después, así que la base .btn de arriba los pisaría. */
-.btn--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--black);
-  box-shadow: 0 0 0 0 rgba(255, 89, 54, .5);
-}
-.btn--primary:not(:disabled):hover {
-  background: #ff6848;
-  border-color: #ff6848;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px -12px rgba(255, 89, 54, .85);
-}
-.btn--primary:not(:disabled):active { transform: translateY(0); }
-
-.btn--ghost {
-  background: transparent;
-  border-color: var(--line);
-  color: var(--muted);
-}
-.btn--ghost:not(:disabled):hover {
-  background: var(--surface-2);
-  border-color: var(--muted);
-  color: var(--text);
-}
-
-.btn--link {
-  min-height: 0;
-  padding: 8px 2px;
-  border: 0;
-  color: var(--muted);
-  text-decoration: underline;
-  text-decoration-color: var(--line);
-  text-underline-offset: 5px;
-}
-.btn--link:not(:disabled):hover {
-  color: var(--accent);
-  text-decoration-color: var(--accent);
-}
-
-.btn--block { display: flex; width: 100%; }
-.btn--lg {
-  min-height: 54px;
-  padding: 17px 22px;
-  font-size: .72rem;
-  letter-spacing: .09em;
-}
-
-/* Deshabilitado. #btnIrDatos arranca así: tiene que verse apagado sin
-   ninguna duda, y el cursor lo confirma. */
-.btn:disabled,
-.btn[disabled],
-.btn[aria-disabled="true"] {
-  background: var(--surface-2);
-  border-color: var(--line-soft);
-  color: var(--dim);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-  text-decoration: none;
-}
 
 /* Barra de acciones al pie de cada paso. */
 .actions {
@@ -495,7 +457,7 @@ button:focus-visible,
    ========================================================= */
 
 .resumen-compra .row span:first-child {
-  font: 600 .58rem/1.5 var(--mono);
+  font: 600 0.72rem/1.5 var(--mono);
   letter-spacing: .12em;
   text-transform: uppercase;
 }
@@ -562,7 +524,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   padding: 24px 0 36px;
   border-top: 1px solid var(--line-soft);
   color: var(--dim);
-  font: 600 .6rem/1.6 var(--mono);
+  font: 600 0.72rem/1.6 var(--mono);
   letter-spacing: .1em;
   text-transform: uppercase;
   text-align: center;
@@ -596,7 +558,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
-  font: 600 .6rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
 }
@@ -613,7 +575,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
 .order-summary .row span:first-child {
   flex: none;
   color: var(--muted);
-  font: 600 .58rem/1.5 var(--mono);
+  font: 600 0.72rem/1.5 var(--mono);
   letter-spacing: .12em;
   text-transform: uppercase;
 }
@@ -657,7 +619,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
 .pix-box__sub {
   margin: -8px 0 0;
   color: var(--muted);
-  font: 600 .58rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .12em;
   text-transform: uppercase;
 }
@@ -707,7 +669,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
 .pix-box__timer {
   margin: 0;
   color: var(--muted);
-  font: 600 .6rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .1em;
   text-transform: uppercase;
 }
@@ -715,7 +677,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   margin-left: 7px;
   padding: 4px 8px;
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--accent);
   font-size: .78rem;
@@ -727,7 +689,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   display: block;
   margin-top: 6px;
   color: var(--dim);
-  font: 600 .56rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
 }
@@ -745,7 +707,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   background: var(--bg);
   color: var(--text);
   cursor: pointer;
-  transition: border-color .18s var(--ease), background-color .18s var(--ease);
+  transition: border-color var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
 }
 .pix-copy:hover { border-color: var(--accent); background: #0d0f0d; }
 .pix-copy__code {
@@ -764,7 +726,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
 .pix-copy__label {
   flex: none;
   color: var(--accent);
-  font: 700 .6rem/1 var(--mono);
+  font: 700 0.72rem/1 var(--mono);
   letter-spacing: .12em;
   text-transform: uppercase;
 }
@@ -848,7 +810,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   flex: none;
   min-width: 76px;
   color: var(--dim);
-  font: 600 .56rem/1.6 var(--mono);
+  font: 600 0.72rem/1.6 var(--mono);
   letter-spacing: .13em;
   text-transform: uppercase;
 }
@@ -859,9 +821,9 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   display: inline-block;
   padding: 5px 9px;
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   color: var(--muted);
-  font: 700 .56rem/1 var(--mono);
+  font: 700 0.72rem/1 var(--mono);
   letter-spacing: .16em;
   text-transform: uppercase;
 }
@@ -904,7 +866,7 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   width: 18px;
   height: 18px;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--bg);
 }
 .ticket__qr::before { left: -9px; }
@@ -914,13 +876,13 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
 .ticket__qr img {
   display: block;
   padding: 9px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: #fff;
 }
 .ticket__qr-hint {
   margin: 0;
   color: var(--dim);
-  font: 600 .54rem/1.4 var(--mono);
+  font: 600 0.72rem/1.4 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
   text-align: center;
@@ -959,7 +921,7 @@ main.container:not(.editorial-page) .verify-card__icon {
   display: grid;
   place-items: center;
   border: 2px solid currentColor;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   font-size: 2.2rem;
   line-height: 1;
 }
@@ -1030,129 +992,4 @@ main.container:not(.editorial-page) .verify-card .hint {
   .area-card:hover,
   .btn--primary:not(:disabled):hover { transform: none; }
   .text-cta:hover span { transform: none; }
-}
-
-/* =========================================================
-   11 · Mini-plano en la tarjeta de área
-   El salón se ordena por cercanía a la tarima: Oro adelante,
-   Plata detrás y General al fondo. Mostrarlo acá evita que
-   alguien elija sin saber dónde termina sentado.
-   ========================================================= */
-
-/* La tarjeta pasa a tres columnas: qué es, dónde queda, cuánto sale. */
-@media (min-width: 720px) {
-  .area-card {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    align-items: center;
-    gap: 26px;
-  }
-  .area-card > .area-card__body { padding-right: 0; }
-}
-
-.area-mapa {
-  display: grid;
-  gap: 3px;
-  width: 108px;
-  padding: 10px;
-  border: 1px solid var(--line-soft);
-  border-radius: 3px;
-  background: rgba(0, 0, 0, .28);
-  text-align: center;
-}
-
-/* La tarima da el punto de referencia: sin ella las bandas no dicen nada. */
-.area-mapa__tarima {
-  padding: 5px 0;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--accent), var(--accent-dark));
-  color: var(--black);
-  font: 800 .52rem/1 var(--mono);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-.area-mapa__banda {
-  padding: 7px 0;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  color: var(--dim);
-  background: rgba(255, 255, 255, .015);
-  font: 700 .56rem/1 var(--mono);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  transition: color .18s var(--ease), border-color .18s var(--ease);
-}
-
-/* La banda de esta tarjeta se pinta con el color de su nivel. */
-.area-mapa__banda--aqui {
-  border-color: var(--tier);
-  background: var(--tier-tint);
-  color: var(--tier);
-  box-shadow: inset 0 0 0 1px var(--tier);
-}
-
-/* Columna del precio */
-.area-card__precio {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-  padding-left: 26px;
-  border-left: 1px solid var(--line-soft);
-}
-.area-card__precio .price {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  white-space: nowrap;
-}
-.area-card__ir {
-  color: var(--muted);
-  font: 700 .62rem/1 var(--mono);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  transition: color .18s var(--ease);
-}
-.area-card__ir b { display: inline-block; transition: transform .18s var(--ease); }
-.area-card:hover .area-card__ir { color: var(--accent); }
-.area-card:hover .area-card__ir b { transform: translate(3px, -3px); }
-
-/* El pill llevaba .56rem y decía "VIP" en dos niveles distintos: no
-   distinguía nada. Ahora nombra el nivel y toma el color de su filete. */
-.badge {
-  padding: 6px 11px;
-  font-size: .68rem;
-  letter-spacing: .14em;
-  font-weight: 800;
-}
-
-@media (max-width: 719px) {
-  /* En el teléfono la tarjeta se apila. El mapa y el precio son hermanos del
-     cuerpo, así que necesitan su mismo margen o quedarían pegados al borde. */
-  .area-mapa {
-    width: auto;
-    margin: 0 18px 0 22px;
-    grid-template-columns: auto 1fr 1fr 1fr;
-    align-items: stretch;
-    gap: 4px;
-  }
-  .area-mapa__tarima {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    padding: 8px 5px;
-    letter-spacing: .1em;
-  }
-  .area-mapa__banda { display: grid; place-items: center; padding: 10px 2px; }
-
-  .area-card__precio {
-    margin: 14px 18px 18px 22px;
-    padding: 14px 0 0;
-    border-left: 0;
-    border-top: 1px solid var(--line-soft);
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    justify-items: stretch;
-  }
-  .area-card__precio .price { white-space: normal; }
-  .area-card__ir { justify-self: end; }
 }

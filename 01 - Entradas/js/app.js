@@ -160,13 +160,17 @@
   }
 
   // El precio más bajo del evento. Se pinta al cargar las secciones, no antes.
+  //
+  // Sale partido en dos: "Mesas desde" es el rótulo y el importe es la cifra.
+  // Como una sola frase, el número —que es el dato que la gente vino a buscar—
+  // competía con su propia aclaración y encima partía el renglón.
   function pintarPrecioDesde() {
     if (!state.sections.length) return;
     const desde = Math.min(...state.sections.map((s) => s.price_cents));
     const conPlano = state.sections.some((s) => s.assignment_mode === "manual");
-    $("heroTitulo").textContent = conPlano
-      ? `Mesas desde ${money(desde)}`
-      : `Entradas desde ${money(desde)}`;
+    $("heroTitulo").innerHTML =
+      `<span class="feature__price-rotulo">${conPlano ? "Mesas desde" : "Entradas desde"}</span>` +
+      `<b>${esc(money(desde))}</b>`;
   }
 
   // ---------- portada: próximos eventos ----------
@@ -267,10 +271,14 @@
       tarjetas.push({
         code: AREA_ORO,
         label: "VIP Oro",
-        detalle: "Elegís tu mesa en el plano del salón",
-        precio: `Mesa desde ${money(desde)}`,
+        detalle: "Eliges tu mesa en el plano del salón",
+        // El precio y su unidad van separados: como una sola frase, cada área
+        // la escribía distinto —"Mesa desde X", "Mesa X", "X por persona"— y
+        // las tres cifras quedaban imposibles de comparar de un vistazo.
+        precio: money(desde),
+        unidad: "la mesa, desde",
+        incluye: "Mesa de 6 u 8 sillas · la eliges tú",
         tier: "oro",
-        zona: "ORO",
         insignia: "Oro",
       });
     }
@@ -283,44 +291,44 @@
         detalle: esPlata
           ? "Mesa asignada por orden de llegada"
           : "Acceso de pie, sin mesa ni silla",
-        precio: esPlata ? `Mesa ${money(s.price_cents)}` : `${money(s.price_cents)} por persona`,
+        precio: money(s.price_cents),
+        unidad: esPlata ? "la mesa" : "por persona",
+        incluye: esPlata
+          ? "Mesa de 4 sillas · se asigna al entrar"
+          : "Sin mesa · circulas por el salón",
         tier: esPlata ? "plata" : "general",
-        zona: esPlata ? "PLATA" : "GENERAL",
         insignia: esPlata ? "Plata" : "General",
       });
     });
 
-    // El salón se ordena por cercanía a la tarima: Oro adelante, después Plata
-    // y General al fondo. Mostrarlo en cada tarjeta evita que alguien elija sin
-    // saber dónde termina sentado.
-    const ZONAS = [
-      { code: "ORO", nombre: "Oro" },
-      { code: "PLATA", nombre: "Plata" },
-      { code: "GENERAL", nombre: "General" },
-    ];
+    /* Las áreas se listan por cercanía a la tarima —Oro adelante, Plata detrás,
+       General al fondo—, así que el orden de la lista ya es el plano del salón.
+       Con una sola barra de tarima arriba de las tres alcanza para decirlo.
 
-    const miniMapa = (zonaActiva) => `
-      <div class="area-mapa" aria-hidden="true">
-        <span class="area-mapa__tarima">Tarima</span>
-        ${ZONAS.map((z) => `
-          <span class="area-mapa__banda${z.code === zonaActiva ? " area-mapa__banda--aqui" : ""}"
-                data-zona="${z.code}">${z.nombre}</span>
-        `).join("")}
-      </div>
-    `;
-
-    $("areasGrid").innerHTML = tarjetas.map((t) => `
+       Antes cada tarjeta llevaba su propio mini-plano de cuatro bandas: tres
+       copias del mismo dibujo, con la tarima pintada en naranja —lo más
+       llamativo de la tarjeta era justo lo que no se compra— y repitiendo por
+       tercera vez las palabras Oro, Plata y General que ya estaban en la
+       insignia y en el título. */
+    $("areasGrid").innerHTML = `
+      <p class="areas-tarima" aria-hidden="true"><span>Tarima</span></p>
+    ` + tarjetas.map((t, i) => `
       <button type="button" class="area-card area-card--${t.tier}" data-area="${esc(t.code)}">
-        <div class="area-card__body">
-          <span class="badge badge--${t.tier}">${esc(t.insignia)}</span>
-          <h4>${esc(t.label)}</h4>
-          <p>${esc(t.detalle)}</p>
-        </div>
-        ${miniMapa(t.zona)}
-        <div class="area-card__precio">
+        <span class="area-card__body">
+          <!-- Nivel y ubicación en un solo rótulo. La insignia suelta repetía
+               la palabra que ya dice el título dos renglones más abajo. -->
+          <span class="area-card__tag">
+            ${esc(t.insignia)} <i>·</i> ${i === 0 ? "Adelante" : i === tarjetas.length - 1 ? "Al fondo" : "Detrás"}
+          </span>
+          <span class="area-card__titulo">${esc(t.label)}</span>
+          <span class="area-card__detalle">${esc(t.detalle)}</span>
+          <span class="area-card__incluye">${esc(t.incluye)}</span>
+        </span>
+        <span class="area-card__precio">
           <span class="price">${esc(t.precio)}</span>
-          <span class="area-card__ir">Elegir <b>↗</b></span>
-        </div>
+          <span class="area-card__unidad">${esc(t.unidad)}</span>
+          <span class="area-card__ir">Elegir <b>→</b></span>
+        </span>
       </button>
     `).join("");
 
@@ -346,9 +354,10 @@
 
     if (code === AREA_ORO) {
       state.seccion = { code: AREA_ORO, conPlano: true };
-      $("tituloLugar").textContent = "2. Elegí tu mesa";
+      $("tituloLugar").textContent = "2. Elige tu mesa";
       $("planoWrap").hidden = false;
       $("sinPlano").hidden = true;
+      reiniciarEntradaPlano();
       pintarPlano();
     } else {
       const s = state.sections.find((x) => x.code === code);
@@ -379,70 +388,177 @@
     return state.sections.find((s) => s.id === mesa.section_id) || null;
   }
 
-  function pintarPlano() {
-    const zonas = { A: $("zonaA"), B: $("zonaB"), C: $("zonaC") };
-    Object.values(zonas).forEach((z) => (z.innerHTML = ""));
+  /* =========================================================
+     EL PLANO
 
-    // La Única vive en su propia sección pero se dibuja en el centro de C.
-    const enC = state.tables
-      .filter((m) => m.code.startsWith("C") || m.label)
-      .sort((a, b) => Number(a.pos_x || 0) - Number(b.pos_x || 0));
+     Una hoja de plano apoyada sobre la página. El sitio es casi negro; el plano
+     es claro, cuadriculado y con la tarima en negro macizo, como el papel que
+     un productor apoya sobre la mesa para decidir dónde va cada quien. El
+     contraste es a propósito: en toda la compra hay un solo momento en que la
+     persona mira el salón, y ese momento tiene que verse distinto del resto.
 
-    state.tables.forEach((mesa) => {
-      const letra = mesa.code[0];
-      const destino = zonas[letra] || zonas.C;
-      if (!destino) return;
-      destino.appendChild(crearMesa(mesa));
-    });
+     Es una grilla de CSS y no un SVG dibujado a mano. La posición de cada mesa
+     sale de `pos_x`/`pos_y`, que es lo que edita el panel: si mañana se agrega
+     una fila o se corre una mesa, el plano se reacomoda solo. Y la respuesta al
+     ancho de pantalla la da el CSS, sin volver a dibujar nada en JavaScript.
 
-    // Orden visual de la fila C por posición
-    if (zonas.C) {
-      const hijos = [...zonas.C.children].sort(
-        (a, b) => Number(a.dataset.posX || 0) - Number(b.dataset.posX || 0),
-      );
-      hijos.forEach((h) => zonas.C.appendChild(h));
+     Las sillas no se dibujan. Se vende la mesa entera, así que el número de
+     sillas es un dato —dice cuánta gente entra—, no una forma que haya que
+     contar con la vista.
+     ========================================================= */
+
+  let planoYaEntro = false;
+  function reiniciarEntradaPlano() { planoYaEntro = false; }
+
+  /* A, B y el fondo.
+
+     Las mesas únicas tienen código U1..U3 y viven en secciones propias —una por
+     mesa, para que cada una pueda tener su precio— pero físicamente están en la
+     columna del medio de la Sección C. Por eso caen en el mismo grupo: el plano
+     dibuja el salón, no el organigrama de secciones. */
+  function agrupar() {
+    const por = { A: [], B: [], C: [] };
+    for (const m of state.tables) {
+      const letra = (m.code || "")[0];
+      (por[letra] || por.C).push(m);
     }
+    for (const k of Object.keys(por)) {
+      por[k].sort((a, b) =>
+        (Number(a.pos_y || 1) - Number(b.pos_y || 1)) ||
+        (Number(a.pos_x || 0) - Number(b.pos_x || 0)));
+    }
+    return por;
   }
 
-  function crearMesa(mesa) {
+  const columnasDe = (mesas) =>
+    Math.max(1, ...mesas.map((m, i) => Number(m.pos_x) || ((i % 3) + 1)));
+
+  function pintarPlano() {
+    const lienzo = $("planoLienzo");
+    if (!lienzo) return;
+    if (!state.tables.length) { lienzo.innerHTML = ""; return; }
+
+    const g = agrupar();
+    const entra = !planoYaEntro;
+    planoYaEntro = true;
+
+    const bloque = (mesas, nombre, clase = "") => {
+      if (!mesas.length) return "";
+      return `
+        <section class="hoja__seccion ${clase}">
+          <h4 class="hoja__rotulo">${esc(nombre)}</h4>
+          <div class="hoja__grid" style="--columnas:${columnasDe(mesas)}">
+            ${mesas.map(mesaHTML).join("")}
+          </div>
+        </section>`;
+    };
+
+    lienzo.innerHTML = `
+      <div class="hoja${entra ? " hoja--entra" : ""}">
+
+        <!-- La tarima en T: la barra es el escenario y el pie, la pasarela que
+             baja al salón. Marca de qué lado se mira todo lo demás. -->
+        <div class="hoja__tarima" aria-hidden="true">
+          <div class="hoja__tarima-barra">
+            <span class="hoja__tarima-luces"><i></i><i></i><i></i><i></i></span>
+            Tarima
+          </div>
+          <div class="hoja__tarima-pie"></div>
+        </div>
+
+        <div class="hoja__frente">
+          ${bloque(g.A, "Sección A")}
+          <div class="hoja__pasarela" aria-hidden="true"><span>Pasarela</span></div>
+          ${bloque(g.B, "Sección B")}
+        </div>
+
+        ${bloque(g.C, "Sección C", "hoja__seccion--fondo")}
+
+        <ul class="hoja__leyenda">
+          <li><i class="hoja__marca hoja__marca--libre"></i>Disponible</li>
+          <li><i class="hoja__marca hoja__marca--elegida"></i>Tu selección</li>
+          <li><i class="hoja__marca hoja__marca--tomada"></i>Reservada</li>
+          <li><i class="hoja__marca hoja__marca--unica"></i>Mesa única</li>
+        </ul>
+      </div>`;
+
+    cablearPlano(lienzo);
+  }
+
+  function mesaHTML(mesa) {
     const seccion = state.sections.find((s) => s.id === mesa.section_id);
+    const precio = seccion?.price_cents ?? 0;
     const libre = mesa.available;
-    const esUnica = Boolean(mesa.label);
+    const unica = Boolean(mesa.label);
+    const elegida = state.mesas.has(mesa.code);
+    const nombre = unica ? mesa.label : mesa.code;
 
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "mesa" + (esUnica ? " mesa--unica" : "");
-    b.dataset.code = mesa.code;
-    b.dataset.posX = mesa.pos_x || 0;
-    b.dataset.estado = libre ? "disponible" : "reservado";
-    b.dataset.badge = libre
-      ? `Disponible · ${mesa.seat_count} sillas · ${money(seccion?.price_cents ?? 0)}`
-      : "Reservada";
-    b.setAttribute("aria-pressed", "false");
-    b.disabled = !libre;
-    b.innerHTML = esUnica
-      ? `<b>${esc(mesa.label)}</b><small>${mesa.seat_count} sillas</small>`
-      : `${esc(mesa.code)}<small>${mesa.seat_count} sillas</small>`;
+    const clases = [
+      "mesa",
+      unica ? "mesa--unica" : "",
+      libre ? "" : "mesa--tomada",
+      elegida ? "mesa--elegida" : "",
+    ].filter(Boolean).join(" ");
 
-    b.addEventListener("click", () => {
+    return `
+      <button type="button" class="${clases}"
+              style="grid-column:${mesa.pos_x || "auto"};grid-row:${mesa.pos_y || "auto"}"
+              data-code="${esc(mesa.code)}"
+              ${libre ? "" : "disabled"}
+              aria-pressed="${elegida ? "true" : "false"}"
+              title="${esc(nombre)} · ${libre ? `${mesa.seat_count} sillas · ${money(precio)}` : "reservada"}">
+        <span class="mesa__nombre">${esc(nombre)}</span>
+        <span class="mesa__sillas">${libre ? `${mesa.seat_count} sillas` : "reservada"}</span>
+      </button>`;
+  }
+
+  function cablearPlano(lienzo) {
+    lienzo.querySelectorAll(".mesa:not([disabled])").forEach((boton) => {
+      const code = boton.dataset.code;
+      const mesa = state.tables.find((m) => m.code === code);
+      if (!mesa) return;
+
+      const seccion = state.sections.find((s) => s.id === mesa.section_id);
+      const precio = seccion?.price_cents ?? 0;
+      const nombre = mesa.label || mesa.code;
+
       const alternar = () => {
-        if (state.mesas.has(mesa.code)) state.mesas.delete(mesa.code);
-        else {
-          state.mesas.set(mesa.code, {
-            code: mesa.code,
-            seats: mesa.seat_count,
-            price_cents: seccion?.price_cents ?? 0,
-          });
+        if (state.mesas.has(code)) state.mesas.delete(code);
+        else state.mesas.set(code, { code, seats: mesa.seat_count, price_cents: precio });
+
+        const ahora = state.mesas.has(code);
+        boton.classList.toggle("mesa--elegida", ahora);
+        boton.setAttribute("aria-pressed", ahora ? "true" : "false");
+
+        // El pulso se dispara solo al elegir, no al soltar.
+        if (ahora) {
+          boton.classList.remove("mesa--pulso");
+          void boton.offsetWidth;
+          boton.classList.add("mesa--pulso");
         }
-        b.setAttribute("aria-pressed", state.mesas.has(mesa.code) ? "true" : "false");
         pintarResumen();
       };
-      // El primer toque pregunta cuántos son; recién después selecciona.
-      if (!state.grupoDefinido) abrirModal(alternar);
-      else alternar();
-    });
 
-    return b;
+      boton.addEventListener("click", () => {
+        // El primer toque pregunta cuántos son; recién después selecciona.
+        if (!state.grupoDefinido) abrirModal(alternar);
+        else alternar();
+      });
+
+      const leer = () => marcarLectura(`${nombre} · ${mesa.seat_count} sillas · ${money(precio)}`);
+      boton.addEventListener("pointerenter", leer);
+      boton.addEventListener("focus", leer);
+    });
+  }
+
+  let lecturaTimer = null;
+  function marcarLectura(texto) {
+    const out = $("planoLectura");
+    if (!out) return;
+    out.textContent = texto;
+    out.classList.add("plano__lectura--viva");
+    clearTimeout(lecturaTimer);
+    lecturaTimer = setTimeout(() => out.classList.remove("plano__lectura--viva"), 2600);
   }
 
   // ---------- modal ----------
@@ -458,7 +574,7 @@
     const necesarias = Math.ceil(state.personas / porMesa);
 
     $("modalCalculo").innerHTML = state.seccion?.conPlano || state.seccion?.section?.assignment_mode === "auto_fcfs"
-      ? `Necesitás <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"} de ${porMesa} sillas.`
+      ? `Necesitas <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"} de ${porMesa} sillas.`
       : `Son <em>${state.personas}</em> ${state.personas === 1 ? "entrada" : "entradas"}.`;
   }
 
@@ -509,7 +625,7 @@
     const necesarias = Math.ceil(state.personas / porMesa);
 
     $("grupoDato").innerHTML = state.seccion?.conPlano || state.seccion?.section?.assignment_mode === "auto_fcfs"
-      ? `<b>${state.personas}</b> ${state.personas === 1 ? "persona" : "personas"} · necesitás <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"}`
+      ? `<b>${state.personas}</b> ${state.personas === 1 ? "persona" : "personas"} · necesitas <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"}`
       : `<b>${state.personas}</b> ${state.personas === 1 ? "entrada" : "entradas"}`;
 
     $("total").textContent = money(totalCents());
@@ -529,7 +645,7 @@
 
     if (!elegidas.length) {
       $("resumenMesas").textContent = "Ninguna mesa seleccionada";
-      $("resumenAviso").textContent = `Elegí ${necesarias} ${necesarias === 1 ? "mesa" : "mesas"} en el plano.`;
+      $("resumenAviso").textContent = `Elige ${necesarias} ${necesarias === 1 ? "mesa" : "mesas"} en el plano.`;
       btn.disabled = true;
       return;
     }

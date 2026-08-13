@@ -1,10 +1,23 @@
-import { requireStaff, serviceClient } from "../_shared/supabase.ts";
+import {
+  esAdmin,
+  esRol,
+  puedeActuarSobre,
+  requireStaff,
+  serviceClient,
+  type StaffRole,
+} from "../_shared/supabase.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
 
 /* Alta y gestión del personal.
 
    Crear cuentas exige la clave de servicio, que no puede vivir en el navegador,
-   por eso pasa por acá. Cada llamada verifica que quien pide sea admin. */
+   por eso pasa por acá. Cada llamada verifica que quien pide sea admin.
+
+   La jerarquía se aplica de este lado y no en el navegador: un admin gestiona
+   meseros, y entre administradores no hay ninguna acción disponible. Editar,
+   degradar o eliminar a un admin o a la cuenta de desarrollo lo hace solo el
+   developer. Esconder los botones en el panel es comodidad; lo que decide es
+   `puedeActuarSobre()`. */
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SVC = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -88,22 +101,62 @@ Deno.serve(async (req) => {
     return json({ changed: true });
   }
 
-  if (staff.role !== "admin") return fail("Solo un administrador puede gestionar personal", 403);
+  if (!esAdmin(staff.role)) return fail("Solo un administrador puede gestionar personal", 403);
+
+  /* El rol pedido, siempre desde una lista blanca: nunca se guarda lo que venga
+     en el cuerpo. Lo que no se reconoce cae en el rol de menos permisos. */
+  const rolPedido = (): StaffRole => (esRol(body.role) ? body.role : "mesero");
+
+  /* La guarda de todas las acciones que apuntan a otra cuenta.
+
+     Primero la propia cuenta: un admin no tiene acciones sobre sí mismo (para
+     su clave existe `change_own_password`). Después la jerarquía, leyendo el rol
+     que la cuenta tiene HOY en la base y no el que venga en el pedido. */
+  const bloqueo = async (id: string): Promise<Response | null> => {
+    if (id === staff.userId && staff.role !== "developer") {
+      return fail("No puedes usar esta acción sobre tu propia cuenta", 400);
+    }
+
+    const { data } = await db
+      .from("staff_profiles").select("role").eq("id", id).maybeSingle();
+
+    if (!data) return fail("Esa cuenta no existe", 404);
+
+    if (!puedeActuarSobre(staff.role, data.role as StaffRole)) {
+      return fail("Solo la cuenta de desarrollo puede gestionar administradores", 403);
+    }
+    return null;
+  };
 
   if (accion === "list") {
     const { data } = await db
       .from("staff_profiles")
       .select("id, email, role, display_name, must_change_password, last_password_change, created_at")
       .order("created_at");
-    return json({ staff: data ?? [] });
+
+    /* Se listan todas, incluida la de desarrollo. Una cuenta con poder total,
+       oculta y permanente dentro del sistema de otra persona es una puerta
+       trasera, aunque la intención sea buena: la dueña tiene que poder ver que
+       existe. Lo que no puede es tocarla, y eso lo dice `gestionable`. */
+    const staffs = (data ?? []).map((f) => ({
+      ...f,
+      es_uno_mismo: f.id === staff.userId,
+      gestionable: f.id !== staff.userId && puedeActuarSobre(staff.role, f.role as StaffRole),
+    }));
+
+    return json({ staff: staffs, mi_rol: staff.role });
   }
 
   if (accion === "create") {
     const email = String(body.email ?? "").trim().toLowerCase();
     const nombre = String(body.display_name ?? "").trim();
-    const rol = body.role === "admin" ? "admin" : "mesero";
+    const rol = rolPedido();
 
     if (!/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) return fail("Correo inválido");
+
+    if (!puedeActuarSobre(staff.role, rol)) {
+      return fail("Solo la cuenta de desarrollo puede crear administradores", 403);
+    }
 
     const pass = claveTemporal();
     let usuario;
@@ -127,7 +180,9 @@ Deno.serve(async (req) => {
       role: rol,
       display_name: nombre || email.split("@")[0],
       must_change_password: true,
-      admin_code: rol === "admin" ? codigoAdmin() : null,
+      // El developer también firma ajustes de nómina: necesita su PIN igual que
+      // un admin. Solo el mesero se queda sin.
+      admin_code: rol === "mesero" ? null : codigoAdmin(),
       created_by: staff.userId,
     });
 
@@ -142,19 +197,26 @@ Deno.serve(async (req) => {
 
   if (accion === "update_role") {
     const id = String(body.id ?? "");
-    const rol = body.role === "admin" ? "admin" : "mesero";
+    const rol = rolPedido();
     if (!id) return fail("Falta el id");
-    if (id === staff.userId && rol !== "admin") {
-      return fail("No podés quitarte a vos mismo el rol de administrador", 400);
+
+    const rechazo = await bloqueo(id);
+    if (rechazo) return rechazo;
+
+    // No alcanza con poder tocar a la cuenta: hay que poder otorgar ese rol.
+    // Si no, un admin podría promover a un mesero hasta administrador y así
+    // saltarse la jerarquía por la puerta de al lado.
+    if (!puedeActuarSobre(staff.role, rol)) {
+      return fail("Solo la cuenta de desarrollo puede nombrar administradores", 403);
     }
 
     const parche: Record<string, unknown> = { role: rol };
-    if (rol === "admin") {
+    if (rol === "mesero") {
+      parche.admin_code = null;
+    } else {
       const { data: actual } = await db
         .from("staff_profiles").select("admin_code").eq("id", id).maybeSingle();
       if (!actual?.admin_code) parche.admin_code = codigoAdmin();
-    } else {
-      parche.admin_code = null;
     }
 
     const { error } = await db.from("staff_profiles").update(parche).eq("id", id);
@@ -165,6 +227,9 @@ Deno.serve(async (req) => {
   if (accion === "reset_password") {
     const id = String(body.id ?? "");
     if (!id) return fail("Falta el id");
+
+    const rechazo = await bloqueo(id);
+    if (rechazo) return rechazo;
 
     const pass = claveTemporal();
     try {
@@ -184,8 +249,17 @@ Deno.serve(async (req) => {
   if (accion === "delete") {
     const id = String(body.id ?? "");
     if (!id) return fail("Falta el id");
-    if (id === staff.userId) return fail("No podés eliminar tu propia cuenta", 400);
 
+    // Vale también para el developer: borrarse con la sesión abierta deja el
+    // sistema sin nadie que pueda gestionar administradores. Para entregar el
+    // proyecto, primero se degrada la cuenta y después la elimina otra.
+    if (id === staff.userId) return fail("No puedes eliminar tu propia cuenta", 400);
+
+    const rechazo = await bloqueo(id);
+    if (rechazo) return rechazo;
+
+    // El legajo no se toca: `empleados.staff_id` es `on delete set null`, así
+    // que la persona pierde el acceso y sigue existiendo como empleado.
     await db.from("staff_profiles").delete().eq("id", id);
     try {
       await authAdmin(`/users/${id}`, { method: "DELETE" });

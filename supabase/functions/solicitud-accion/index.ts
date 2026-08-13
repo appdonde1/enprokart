@@ -1,4 +1,4 @@
-import { requireStaff, serviceClient } from "../_shared/supabase.ts";
+import { esAdmin, requireStaff, serviceClient } from "../_shared/supabase.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
 
 /* Lo que el admin hace con una solicitud recibida.
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
 
   const staff = await requireStaff(req);
   if (!staff) return fail("Necesitas iniciar sesión", 401);
-  if (staff.role !== "admin") return fail("Solo un administrador ve las solicitudes", 403);
+  if (!esAdmin(staff.role)) return fail("Solo un administrador ve las solicitudes", 403);
 
   let body: Record<string, unknown>;
   try {

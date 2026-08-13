@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Ficha del empleado · Pro Kart</title>
+  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/ficha.css" />
+</head>
+<body>
+
+  <!-- `panel-base.js` lo destapa recién después de comprobar la sesión y el rol.
+       La ficha trae cédula, dirección, teléfono y sueldo: no se dibuja nada hasta
+       saber quién está mirando. -->
+  <div id="panelShell" hidden>
+
+    <div class="barra-acciones">
+      <a class="btn-plano" href="empleados.html">← Volver a Empleados</a>
+      <button type="button" class="btn-plano" id="btnImprimir">Imprimir</button>
+    </div>
+
+    <article class="hoja" id="hoja">
+      <p class="hint-plano">Cargando…</p>
+    </article>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="js/panel-base.js"></script>
+  <script src="js/ficha.js"></script>
+</body>
+</html>

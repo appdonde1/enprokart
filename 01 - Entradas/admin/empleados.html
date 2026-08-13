@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090a09" />
+  <title>Empleados · Pro Kart</title>
+  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <div class="admin-shell" id="panelShell" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__marca">
+        <span class="brand-plate">
+          <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo" />
+        </span>
+      </div>
+      <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
+      <div class="sidebar__pie">
+        <span id="userBadge" class="badge badge--vip"></span>
+        <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
+      </div>
+    </aside>
+
+    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+
+    <div class="panel-cuerpo">
+      <header class="panel-topbar">
+        <button type="button" class="hamburguesa" id="btnMenu"
+                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+          <span></span><span></span><span></span>
+        </button>
+        <h1 class="panel-topbar__titulo" id="tituloModulo"></h1>
+      </header>
+
+      <main class="container container--wide">
+        <section class="tab-panel active">
+
+          <div class="modulo-tabs" role="tablist">
+            <button type="button" class="modulo-tab active" data-sub="lista" role="tab">Lista</button>
+            <button type="button" class="modulo-tab" data-sub="alta" role="tab">Agregar empleado</button>
+            <button type="button" class="modulo-tab" data-sub="catalogos" role="tab">Áreas y credenciales</button>
+            <button type="button" class="modulo-tab" data-sub="marcaciones" role="tab">Marcaciones</button>
+          </div>
+
+          <!-- ---------------------------------------------- lista -->
+          <div class="modulo-panel active" data-sub="lista">
+            <div class="table-toolbar">
+              <input type="search" id="buscar" placeholder="Buscar por cédula, nombre o ID" />
+              <label class="casilla">
+                <input type="checkbox" id="verRetirados" />
+                <span>Ver retirados</span>
+              </label>
+            </div>
+
+            <div id="listaEmpleados"></div>
+            <p class="hint" id="pieLista"></p>
+          </div>
+
+          <!-- ---------------------------------------------- alta / edición -->
+          <div class="modulo-panel" data-sub="alta">
+            <div class="panel-card">
+              <h3 id="tituloFormulario">Agregar empleado</h3>
+              <p class="hint">
+                Esto es el legajo, no una cuenta de acceso. Quien además tenga que
+                entrar al panel recibe su cuenta con el botón «Dar acceso», desde la
+                lista: así no se crean decenas de usuarios que nadie usa.
+              </p>
+
+              <form id="empleadoForm" class="form-grid">
+                <div class="field">
+                  <label for="eNombre">Nombre</label>
+                  <input type="text" id="eNombre" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="eApellido">Apellido</label>
+                  <input type="text" id="eApellido" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="eDocumento">Cédula</label>
+                  <input type="text" id="eDocumento" inputmode="numeric" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="eNacimiento">Fecha de nacimiento</label>
+                  <input type="date" id="eNacimiento" />
+                </div>
+                <div class="field">
+                  <label for="eIngreso">Fecha de ingreso</label>
+                  <input type="date" id="eIngreso" />
+                </div>
+                <div class="field">
+                  <label for="eTelefono">Teléfono</label>
+                  <input type="tel" id="eTelefono" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="eEmail">Correo</label>
+                  <input type="email" id="eEmail" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="eDireccion">Dirección</label>
+                  <input type="text" id="eDireccion" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="eArea">Área</label>
+                  <select id="eArea"></select>
+                </div>
+                <div class="field">
+                  <label for="eCredencial">Credencial</label>
+                  <select id="eCredencial"></select>
+                </div>
+                <div class="field">
+                  <label for="eReloj">Código del captahuellas <small>(opcional)</small></label>
+                  <input type="text" id="eReloj" autocomplete="off" />
+                </div>
+              </form>
+
+              <div class="bloque-form">
+                <h4>Días libres</h4>
+                <p class="hint">Los días fijos de la semana que esta persona no trabaja.</p>
+                <div class="dias-libres" id="eDias"></div>
+              </div>
+
+              <div class="bloque-form">
+                <h4>Sueldo</h4>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="eSalario">Monto en reales</label>
+                    <input type="text" id="eSalario" inputmode="decimal" placeholder="80,00" />
+                  </div>
+                  <div class="field">
+                    <label for="eUnidad">Por</label>
+                    <select id="eUnidad">
+                      <option value="hora">Hora</option>
+                      <option value="dia" selected>Día</option>
+                      <option value="semana">Semana</option>
+                      <option value="mes">Mes</option>
+                    </select>
+                  </div>
+                </div>
+
+                <label class="casilla">
+                  <input type="checkbox" id="eTieneBono" />
+                  <span>Tiene bono porcentual</span>
+                </label>
+
+                <div class="field" id="campoBono" hidden>
+                  <label for="eBono">Porcentaje del bono</label>
+                  <input type="number" id="eBono" min="0" max="100" step="0.01" placeholder="33" />
+                </div>
+
+                <p class="hint" id="equivalencia"></p>
+              </div>
+
+              <span class="error" data-for="empleado"></span>
+              <div class="acciones-form">
+                <button type="button" class="btn btn--primary" id="btnGuardarEmpleado">Guardar empleado</button>
+                <button type="button" class="btn btn--ghost" id="btnCancelarEdicion" hidden>Cancelar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---------------------------------------------- catálogos -->
+          <div class="modulo-panel" data-sub="catalogos">
+            <p class="hint">
+              Las bajas no borran: apagan. Hay legajos que apuntan a estas filas, y
+              borrarlas se llevaría puesta la historia de quién trabajó dónde.
+            </p>
+
+            <div class="catalogos-grid">
+              <div class="panel-card">
+                <h3>Áreas</h3>
+                <div class="table-toolbar">
+                  <input type="text" id="areaNueva" placeholder="Nombre del área" />
+                  <button type="button" class="btn btn--ghost" id="btnCrearArea">Agregar</button>
+                </div>
+                <span class="error" data-for="area"></span>
+                <div id="listaAreas"></div>
+              </div>
+
+              <div class="panel-card">
+                <h3>Credenciales</h3>
+                <div class="table-toolbar">
+                  <input type="text" id="credencialNueva" placeholder="Nombre de la credencial" />
+                  <select id="credencialRol">
+                    <option value="">Sin acceso al panel</option>
+                    <option value="mesero">Acceso como mesero</option>
+                    <option value="admin">Acceso como administrador</option>
+                  </select>
+                  <button type="button" class="btn btn--ghost" id="btnCrearCredencial">Agregar</button>
+                </div>
+                <p class="hint">
+                  El acceso sugerido no crea nada solo: propone el rol cuando alguien
+                  pulsa «Dar acceso al panel».
+                </p>
+                <span class="error" data-for="credencial"></span>
+                <div id="listaCredenciales"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---------------------------------------------- marcaciones -->
+          <div class="modulo-panel" data-sub="marcaciones">
+            <div class="panel-card">
+              <h3>Importar marcaciones del captahuellas</h3>
+              <p class="hint">
+                Todavía no se eligió el equipo, así que esta pantalla no asume ningún
+                formato: cargas el archivo y dices tú qué columna es cada cosa. De
+                cada fila se guarda además la línea original tal cual vino, para poder
+                rehacer la interpretación cuando llegue el aparato real sin tener que
+                volver a exportar.
+              </p>
+              <p class="hint">
+                Lo que todavía no se hace es calcular horas con esto. Sin el formato
+                real, cualquier fórmula sería una suposición sobre el dinero de otras
+                personas.
+              </p>
+
+              <input type="file" id="archivoMarcaciones" accept=".csv,.txt,.tsv,text/plain" />
+              <label class="archivo__boton" for="archivoMarcaciones" id="botonArchivo">
+                Elegir archivo del captahuellas
+              </label>
+
+              <div id="mapeoColumnas" hidden>
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="mapSeparador">Separador</label>
+                    <select id="mapSeparador">
+                      <option value="auto">Detectar solo</option>
+                      <option value=",">Coma</option>
+                      <option value=";">Punto y coma</option>
+                      <option value="\t">Tabulación</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="casilla">
+                      <input type="checkbox" id="mapEncabezado" checked />
+                      <span>La primera fila son títulos</span>
+                    </label>
+                  </div>
+                  <div class="field">
+                    <label for="mapReloj">Columna del código de reloj</label>
+                    <select id="mapReloj"></select>
+                  </div>
+                  <div class="field">
+                    <label for="mapMomento">Columna de fecha y hora</label>
+                    <select id="mapMomento"></select>
+                  </div>
+                  <div class="field">
+                    <label for="mapFormato">Orden de la fecha</label>
+                    <select id="mapFormato">
+                      <option value="auto">Detectar solo</option>
+                      <option value="dmy">Día / mes / año</option>
+                      <option value="mdy">Mes / día / año</option>
+                      <option value="iso">Año-mes-día</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="mapTipo">Columna de entrada/salida</label>
+                    <select id="mapTipo"></select>
+                  </div>
+                  <div class="field">
+                    <label for="mapReferencia">Columna del identificador <small>(opcional)</small></label>
+                    <select id="mapReferencia"></select>
+                  </div>
+                </div>
+
+                <div class="table-scroll">
+                  <table class="data-table" id="previaMarcaciones"></table>
+                </div>
+
+                <span class="error" data-for="marcaciones"></span>
+                <button type="button" class="btn btn--primary" id="btnImportar">Importar</button>
+              </div>
+
+              <p class="hint" id="resultadoImportacion"></p>
+            </div>
+          </div>
+
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="js/panel-base.js"></script>
+  <script src="js/empleados-lista.js"></script>
+  <script src="js/empleados.js"></script>
+</body>
+</html>

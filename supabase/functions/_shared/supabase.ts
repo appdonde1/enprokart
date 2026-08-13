@@ -21,7 +21,34 @@ export function userClient(authHeader: string): SupabaseClient {
   );
 }
 
-export type StaffRole = "admin" | "mesero";
+export type StaffRole = "developer" | "admin" | "mesero";
+
+export const ROLES: StaffRole[] = ["developer", "admin", "mesero"];
+
+export function esRol(valor: unknown): valor is StaffRole {
+  return ROLES.includes(valor as StaffRole);
+}
+
+/* `developer` puede todo lo que puede un admin: es la misma llave que abre las
+   políticas de la base, donde `is_admin()` cuenta a los dos. La diferencia entre
+   ambos es a quién pueden gestionar, no qué pueden ver. */
+export function esAdmin(rol: StaffRole): boolean {
+  return rol === "admin" || rol === "developer";
+}
+
+/* Quién puede gestionar a quién.
+
+   Un admin gestiona meseros y empleados. Entre administradores no hay ninguna
+   acción disponible: no pueden crearse, editarse, degradarse ni eliminarse unos
+   a otros, ni tocar la cuenta de desarrollo. Eso lo hace solo el developer.
+
+   La regla vive acá y no repartida por cada función, para que no terminen
+   existiendo dos versiones que digan cosas distintas. */
+export function puedeActuarSobre(actor: StaffRole, objetivo: StaffRole): boolean {
+  if (actor === "developer") return true;
+  if (actor === "admin") return objetivo === "mesero";
+  return false;
+}
 
 export async function requireStaff(
   req: Request,

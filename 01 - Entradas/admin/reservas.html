@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090a09" />
+  <title>Reservas · Pro Kart</title>
+  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <div class="admin-shell" id="panelShell" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__marca">
+        <span class="brand-plate">
+          <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo" />
+        </span>
+      </div>
+      <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
+      <div class="sidebar__pie">
+        <span id="userBadge" class="badge badge--vip"></span>
+        <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
+      </div>
+    </aside>
+
+    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+
+    <div class="panel-cuerpo">
+      <header class="panel-topbar">
+        <button type="button" class="hamburguesa" id="btnMenu"
+                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+          <span></span><span></span><span></span>
+        </button>
+        <h1 class="panel-topbar__titulo" id="tituloModulo"></h1>
+      </header>
+
+      <main class="container container--wide">
+        <section class="tab-panel active">
+
+          <p class="hint">
+            Una reserva de cortesía ocupa el mismo lugar físico que alguien que
+            pagó: reserva las mesas y emite una entrada por invitado, con monto
+            en cero. Queda registrada con tu nombre y el motivo.
+          </p>
+
+          <div class="panel-card">
+            <h3>A quién</h3>
+            <div class="form-grid">
+              <div class="field">
+                <label for="rEvento">Evento</label>
+                <select id="rEvento"></select>
+              </div>
+              <div class="field">
+                <label for="rPersonas">Cuántas personas</label>
+                <input type="number" id="rPersonas" min="1" max="60" value="2" />
+              </div>
+              <div class="field">
+                <label for="rNombre">Nombre</label>
+                <input type="text" id="rNombre" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="rApellido">Apellido</label>
+                <input type="text" id="rApellido" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="rDocumento">Cédula <small>(opcional)</small></label>
+                <input type="text" id="rDocumento" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="rWhatsapp">WhatsApp <small>(opcional)</small></label>
+                <input type="tel" id="rWhatsapp" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <h3>Dónde</h3>
+
+            <div class="modulo-tabs" role="tablist">
+              <button type="button" class="modulo-tab active" data-sub="plano" role="tab">En el plano</button>
+              <button type="button" class="modulo-tab" data-sub="sinplano" role="tab">Sin plano</button>
+            </div>
+
+            <div class="modulo-panel active" data-sub="plano">
+              <p class="hint">
+                Toca las mesas que se van a reservar. Las mesas ya tomadas no se
+                pueden elegir.
+              </p>
+              <div id="planoReservas"></div>
+              <p class="hint" id="resumenMesas"></p>
+            </div>
+
+            <div class="modulo-panel" data-sub="sinplano">
+              <p class="hint">
+                Para las secciones donde el lugar se asigna por orden de llegada
+                o donde se entra de pie.
+              </p>
+              <div class="field">
+                <label for="rSeccion">Sección</label>
+                <select id="rSeccion"></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <h3>Por qué</h3>
+            <div class="form-grid">
+              <div class="field">
+                <label for="rMotivo">Motivo</label>
+                <input type="text" id="rMotivo" placeholder="Prensa, canje, invitado de la casa…" />
+              </div>
+              <div class="field">
+                <label for="rCodigo">Código de administrador</label>
+                <input type="password" id="rCodigo" inputmode="numeric" maxlength="3"
+                       autocomplete="off" placeholder="•••" />
+                <small class="hint">
+                  Tus 3 dígitos. Se comparan en el servidor: confirman que eres tú
+                  quien está frente a la pantalla.
+                </small>
+              </div>
+            </div>
+
+            <span class="error" data-for="reserva"></span>
+            <button type="button" class="btn btn--primary" id="btnEmitir">Emitir cortesía</button>
+          </div>
+
+          <div class="panel-card" id="resultado" hidden></div>
+
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="js/panel-base.js"></script>
+  <script src="js/reservas.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090a09" />
+  <title>Usuarios · Pro Kart</title>
+  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <div class="admin-shell" id="panelShell" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__marca">
+        <span class="brand-plate">
+          <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo" />
+        </span>
+      </div>
+      <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
+      <div class="sidebar__pie">
+        <span id="userBadge" class="badge badge--vip"></span>
+        <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
+      </div>
+    </aside>
+
+    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+
+    <div class="panel-cuerpo">
+      <header class="panel-topbar">
+        <button type="button" class="hamburguesa" id="btnMenu"
+                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+          <span></span><span></span><span></span>
+        </button>
+        <h1 class="panel-topbar__titulo" id="tituloModulo"></h1>
+      </header>
+
+      <main class="container container--wide">
+        <section class="tab-panel active">
+
+          <div class="modulo-tabs" role="tablist">
+            <button type="button" class="modulo-tab active" data-sub="cuentas" role="tab">Cuentas</button>
+            <button type="button" class="modulo-tab" data-sub="alta" role="tab">Crear cuenta</button>
+          </div>
+
+          <!-- ---------------------------------------------- cuentas -->
+          <div class="modulo-panel active" data-sub="cuentas">
+            <div class="panel-card" id="miCuenta"></div>
+
+            <p class="hint" id="explicacionJerarquia"></p>
+
+            <div id="tablaUsuarios"></div>
+          </div>
+
+          <!-- ---------------------------------------------- alta -->
+          <div class="modulo-panel" data-sub="alta">
+            <div class="panel-card">
+              <h3>Crear una cuenta de acceso</h3>
+              <p class="hint">
+                Esto crea una cuenta para entrar al panel, no un legajo. Si la persona
+                además trabaja acá, cargala en Empleados y usa «Dar acceso» desde su
+                fila: así el legajo y la cuenta quedan enlazados.
+              </p>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="uNombre">Nombre</label>
+                  <input type="text" id="uNombre" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="uEmail">Correo</label>
+                  <input type="email" id="uEmail" autocomplete="off" placeholder="nombre@enprokart.com" />
+                </div>
+                <div class="field">
+                  <label for="uRol">Rol</label>
+                  <select id="uRol">
+                    <option value="mesero">Mesero — opera la puerta</option>
+                    <option value="admin">Administrador — gestiona todo el panel</option>
+                  </select>
+                </div>
+              </div>
+
+              <span class="error" data-for="alta"></span>
+              <button type="button" class="btn btn--primary" id="btnCrearUsuario">Crear cuenta</button>
+
+              <p class="hint" id="claveNueva" hidden></p>
+            </div>
+          </div>
+
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="js/panel-base.js"></script>
+  <script src="js/usuarios.js"></script>
+</body>
+</html>

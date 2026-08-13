@@ -1,4 +1,4 @@
-import { requireStaff, serviceClient } from "../_shared/supabase.ts";
+import { esAdmin, requireStaff, serviceClient } from "../_shared/supabase.ts";
 import { generateTicketCode, signTicket } from "../_shared/tickets.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
 
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
   const staff = await requireStaff(req);
   if (!staff) return fail("Necesitas iniciar sesión", 401);
-  if (staff.role !== "admin") return fail("Solo un administrador puede emitir cortesías", 403);
+  if (!esAdmin(staff.role)) return fail("Solo un administrador puede emitir cortesías", 403);
 
   let body: Record<string, any>;
   try {
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
   const personas = Math.floor(Number(body.people ?? 1));
   if (!Number.isFinite(personas) || personas < 1 || personas > MAX_PERSONAS) {
-    return fail("Indicá cuántas personas son");
+    return fail("Indica cuántas personas son");
   }
 
   const { data: event } = await db
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
   } else {
     // ---------------------------------------------------------- sin plano
     const codigoSeccion = limpio(body.section_code, 20).toUpperCase();
-    if (!codigoSeccion) return fail("Elegí una mesa en el plano o una sección");
+    if (!codigoSeccion) return fail("Elige una mesa en el plano o una sección");
 
     const { data: section } = await db
       .from("sections")

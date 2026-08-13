@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0f1117" />
+  <meta name="theme-color" content="#090a09" />
   <title>Panel · Pro Kart</title>
   <link rel="icon" href="../Logo Prokart.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
@@ -20,7 +20,7 @@
   <main class="login-wrap" id="loginWrap">
     <form class="login-card" id="loginForm">
       <span class="brand-plate brand-plate--auth">
-        <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="hero__logo" />
+        <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo brand-logo--auth" />
       </span>
 
       <h1 class="login-titulo">Portal administrativo</h1>
@@ -56,7 +56,7 @@
 
       <div class="login-pie">
         <button type="button" class="login-enlace" id="btnOlvide">Olvidé mi contraseña</button>
-        <a class="login-enlace" href="../empleos.html">¿Querés trabajar con nosotros? Click aquí</a>
+        <a class="login-enlace" href="../empleos.html">¿Quieres trabajar con nosotros? Click aquí</a>
         <!-- Sin esto, quien entra por error a esta pantalla queda sin salida
              más que el botón atrás del navegador. -->
         <a class="login-enlace login-enlace--volver" href="../index.html">← Volver al sitio</a>
@@ -71,7 +71,7 @@
     <form class="bloqueo__caja" id="cambioClaveForm">
       <h2>Cambiá tu contraseña</h2>
       <p class="hint">
-        Estás usando la clave temporal que te entregaron. Para seguir, elegí una
+        Estás usando la clave temporal que te entregaron. Para seguir, elige una
         propia: al menos 8 caracteres, con letras y números.
       </p>
 
@@ -178,11 +178,22 @@
 
       <!-- Editor visual del salón -->
       <section class="tab-panel" id="tab-salon">
-        <p class="hint">
-          Haz clic en una mesa para ajustar sus sillas. Los cambios se aplican al instante
-          en el sitio de venta.
-        </p>
         <div id="salonEditor"></div>
+
+        <!-- Aparece solo cuando hay algo pendiente. Se queda pegada abajo para
+             que la cuenta de cambios sin guardar no se pierda al hacer scroll
+             por un salón de cincuenta mesas. -->
+        <div class="salon-barra" id="salonBarra" hidden>
+          <span class="salon-barra__cuenta" id="salonPendientes"></span>
+          <div class="salon-barra__acciones">
+            <button type="button" class="btn btn--ghost btn--sm" id="btnDescartarSalon">
+              Descartar
+            </button>
+            <button type="button" class="btn btn--primary btn--sm" id="btnGuardarSalon">
+              Guardar cambios
+            </button>
+          </div>
+        </div>
       </section>
 
       <!-- Validación de entradas -->
@@ -266,9 +277,25 @@
               <label for="pCiudadCorta">Sigla</label>
               <input type="text" id="pCiudadCorta" maxlength="4" placeholder="SP" />
             </div>
-            <div class="field">
-              <label for="pImagen">Imagen de portada</label>
-              <input type="text" id="pImagen" placeholder="evento.jpg" />
+            <!-- Antes esto era solo el campo de texto de abajo: había que subir
+                 la imagen por otro lado y escribir su nombre a mano. El botón
+                 sube el archivo al bucket `medios` y completa el campo solo. -->
+            <div class="field field--imagen">
+              <label for="pImagenArchivo">Imagen de portada</label>
+              <div class="subir-imagen">
+                <div class="subir-imagen__previa" id="pImagenPrevia"></div>
+                <div class="subir-imagen__control">
+                  <input type="file" id="pImagenArchivo" accept="image/*" />
+                  <label class="archivo__boton" for="pImagenArchivo" id="pImagenBoton">
+                    Elegir imagen
+                  </label>
+                  <p class="hint">1600 × 900 o más ancha. Se recorta a lo ancho.</p>
+                </div>
+              </div>
+              <label class="subir-imagen__ruta" for="pImagen">
+                Archivo
+                <input type="text" id="pImagen" placeholder="evento.jpg" />
+              </label>
             </div>
           </form>
           <span class="error" data-for="portada"></span>

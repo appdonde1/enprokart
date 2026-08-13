@@ -15,11 +15,11 @@
   gap: 7px;
   color: var(--muted);
   text-decoration: none;
-  font: 600 .64rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .08em;
   text-transform: uppercase;
   padding: 12px 0;
-  transition: color .15s ease;
+  transition: color var(--t-color) ease;
 }
 
 .form-page__volver:hover { color: var(--accent); }
@@ -56,7 +56,7 @@
 
 .campo label {
   color: var(--muted);
-  font: 600 .64rem/1 var(--mono);
+  font: 600 0.72rem/1 var(--mono);
   letter-spacing: .1em;
   text-transform: uppercase;
 }
@@ -73,7 +73,7 @@
   /* 16px como mínimo: por debajo de eso, iOS hace zoom al enfocar el campo y
      el formulario se desarma. */
   font-size: max(1rem, 16px);
-  transition: border-color .15s ease, background .15s ease;
+  transition: border-color var(--t-color) ease, background var(--t-color) ease;
 }
 
 .campo input:focus,
@@ -111,7 +111,7 @@
   cursor: pointer;
   font-size: .88rem;
   text-align: center;
-  transition: border-color .15s ease, color .15s ease, background .15s ease;
+  transition: border-color var(--t-color) ease, color var(--t-color) ease, background var(--t-color) ease;
 }
 
 .archivo__boton:hover,
@@ -150,7 +150,7 @@
   display: grid;
   place-items: center;
   border: 2px solid var(--success);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   color: var(--success);
   font-size: 1.6rem;
 }
