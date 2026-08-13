@@ -89,6 +89,22 @@ export async function createPixPayment(input: PixPaymentInput): Promise<PixPayme
   // emite este sistema.
   const email = input.buyer.email?.trim() || `${document || "comprador"}@prokart.com.br`;
 
+  /* Mercado Pago solo entiende documentos brasileños: CPF de 11 dígitos y CNPJ
+     de 14. Cualquier otra cosa la rechaza, y rechaza el cobro entero con ella.
+
+     El sitio pide "cédula de identidad / CPF" y el salón está en Santa Elena,
+     así que lo habitual es que llegue una cédula, que no es ninguna de las dos.
+     Mandarla igual rotulada como CPF era lo que tiraba abajo la compra: seis
+     intentos seguidos de la misma persona, todos con la mesa reservada y el
+     cobro sin generar.
+
+     La identificación es opcional para PIX. Si el documento no tiene forma de
+     CPF ni de CNPJ no se manda, y el cobro sale igual. El documento no se
+     pierde: sigue guardado en la orden y en la entrada, que es donde hace falta
+     para identificar a la persona en la puerta. */
+  const esCPF = document.length === 11;
+  const esCNPJ = document.length === 14;
+
   const body = {
     transaction_amount: Number((input.amountCents / 100).toFixed(2)),
     description: input.description,
@@ -100,10 +116,10 @@ export async function createPixPayment(input: PixPaymentInput): Promise<PixPayme
       email,
       first_name: input.buyer.name,
       last_name: input.buyer.lastname,
-      ...(document
+      ...(esCPF || esCNPJ
         ? {
           identification: {
-            type: document.length > 11 ? "CNPJ" : "CPF",
+            type: esCNPJ ? "CNPJ" : "CPF",
             number: document,
           },
         }

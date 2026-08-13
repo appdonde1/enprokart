@@ -4,8 +4,14 @@ import { fail, json, preflight } from "../_shared/http.ts";
 
 /* Inicia una compra.
 
-   Se vende por mesa: el comprador elige las mesas que necesita y cada una se
-   toma completa. Las secciones sin mapa (Plata, General) se venden por persona.
+   El precio de una sección es POR PERSONA. Una mesa se toma completa, así que
+   se cobra completa: seis sillas a 400 son 2.400, vayan seis o vayan dos. Es la
+   misma regla que ya rige la reserva —la mesa no se comparte—, aplicada al
+   cobro.
+
+   Antes `price_cents` era el precio de la mesa entera y una mesa de seis salía
+   400 en total, unos 66 por cabeza.
+
    El precio siempre sale de la base, nunca de lo que mande el navegador. */
 
 /* Cuánto vive la reserva mientras el comprador paga.
@@ -99,7 +105,8 @@ Deno.serve(async (req) => {
 
       const porMesa = muestra?.seat_count ?? 4;
       const mesasNecesarias = Math.ceil(personas / porMesa);
-      const montoCents = section.price_cents * mesasNecesarias;
+      // Por persona, y la mesa asignada se paga entera igual que en el plano.
+      const montoCents = section.price_cents * porMesa * mesasNecesarias;
 
       const { data: order, error: orderError } = await db
         .from("orders")
@@ -227,7 +234,11 @@ Deno.serve(async (req) => {
     return fail(`Con ${delEvento.length} mesa(s) entran ${lugares} personas y son ${personas}`, 400);
   }
 
-  const montoCents = delEvento.reduce((acc: number, m: any) => acc + m.sections.price_cents, 0);
+  // Cada mesa se cobra por sus sillas: la mesa va entera, se paga entera.
+  const montoCents = delEvento.reduce(
+    (acc: number, m: any) => acc + m.sections.price_cents * m.seat_count,
+    0,
+  );
 
   const { data: order, error: orderError } = await db
     .from("orders")

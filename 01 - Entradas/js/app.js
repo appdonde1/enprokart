@@ -4,8 +4,9 @@
    Tres pasos: área → lugar → datos. El cobro vive en pagar.html, así la
    página de pago se puede recargar o compartir sin perder la compra.
 
-   Se vende por mesa: la mesa va completa y el precio de la sección es el de
-   una mesa. Un grupo de 7 necesita 2 mesas.
+   El precio de la sección es por persona y la mesa se cobra entera: una mesa de
+   seis sillas a 400 sale 2.400, vayan seis o vayan dos. La mesa no se comparte,
+   así que no se cobra a medias. Un grupo de 7 necesita 2 mesas.
    ========================================================= */
 
 (function () {
@@ -414,9 +415,12 @@
         // El precio y su unidad van separados: como una sola frase, cada área
         // la escribía distinto —"Mesa desde X", "Mesa X", "X por persona"— y
         // las tres cifras quedaban imposibles de comparar de un vistazo.
+        // Todas las áreas muestran el precio por persona: es lo único que las
+        // hace comparables de un vistazo. Cuánto sale la mesa entera va abajo,
+        // porque es lo que se termina pagando.
         precio: money(desde),
-        unidad: "la mesa, desde",
-        incluye: "Mesa de 6 u 8 sillas · la eliges tú",
+        unidad: "por persona",
+        incluye: `Mesa de 6 sillas · ${money(desde * 6)} la mesa`,
         tier: "oro",
         insignia: "Oro",
       });
@@ -431,9 +435,9 @@
           ? "Mesa asignada por orden de llegada"
           : "Acceso de pie, sin mesa ni silla",
         precio: money(s.price_cents),
-        unidad: esPlata ? "la mesa" : "por persona",
+        unidad: "por persona",
         incluye: esPlata
-          ? "Mesa de 4 sillas · se asigna al entrar"
+          ? `Mesa de 4 sillas · ${money(s.price_cents * 4)} la mesa`
           : "Sin mesa · circulas por el salón",
         tier: esPlata ? "plata" : "general",
         insignia: esPlata ? "Plata" : "General",
@@ -507,7 +511,7 @@
       $("sinPlano").hidden = false;
       $("sinPlanoTexto").innerHTML = s.notice
         ? esc(s.notice)
-        : `Cada entrada de ${esc(s.label)} cuesta ${money(s.price_cents)}.`;
+        : `${esc(s.label)}: ${money(s.price_cents)} por persona.`;
       // Sin plano no hay nada que tocar: se pregunta la cantidad de una.
       abrirModal(null);
     }
@@ -626,7 +630,8 @@
 
   function mesaHTML(mesa) {
     const seccion = state.sections.find((s) => s.id === mesa.section_id);
-    const precio = seccion?.price_cents ?? 0;
+    // El precio de la sección es por persona; la mesa se cobra entera.
+    const precio = (seccion?.price_cents ?? 0) * mesa.seat_count;
     const libre = mesa.available;
     const unica = Boolean(mesa.label);
     const elegida = state.mesas.has(mesa.code);
@@ -658,7 +663,7 @@
       if (!mesa) return;
 
       const seccion = state.sections.find((s) => s.id === mesa.section_id);
-      const precio = seccion?.price_cents ?? 0;
+      const precio = seccion?.price_cents ?? 0;   // por persona
       const nombre = mesa.label || mesa.code;
 
       const alternar = () => {
@@ -747,15 +752,22 @@
     return state.grupoDefinido && (state.mesas.size > 0 || !state.seccion?.conPlano);
   }
 
+  /* El precio de la sección es por persona y la mesa se cobra entera: seis
+     sillas a 400 son 2.400, vayan seis o vayan dos. Tiene que dar exactamente
+     lo mismo que calcula create-order, que es quien cobra. */
   function totalCents() {
     if (state.seccion?.conPlano) {
-      return [...state.mesas.values()].reduce((acc, m) => acc + m.price_cents, 0);
+      return [...state.mesas.values()]
+        .reduce((acc, m) => acc + m.price_cents * m.seats, 0);
     }
     const s = state.seccion?.section;
     if (!s) return 0;
     if (s.assignment_mode === "auto_fcfs") {
-      return s.price_cents * Math.ceil(state.personas / mesaTipica());
+      // Plata: la mesa asignada también va entera.
+      const porMesa = mesaTipica();
+      return s.price_cents * porMesa * Math.ceil(state.personas / porMesa);
     }
+    // General: no hay mesa, se paga por cabeza.
     return s.price_cents * state.personas;
   }
 
