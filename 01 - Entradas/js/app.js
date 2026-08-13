@@ -124,9 +124,16 @@
   // Todo evento muestra una imagen: si no cargaron la suya, va la genérica.
   const IMAGEN_GENERICA = "placeholders/evento-generico.jpg";
 
+  /* La fecha va sin hora, a propósito.
+     Con hora, el mismo evento se leía distinto según desde dónde se mirara —el
+     navegador traduce al huso de quien mira— y una fecha de salón no se
+     convierte: es la del salón. Sin hora, la fecha es la misma para todos.
+
+     Por eso también la fecha se guarda al mediodía: desde cualquier huso cae
+     siempre en el mismo día del calendario. */
   const fechaLarga = (iso) => iso
-    ? new Date(iso).toLocaleString("es", {
-      weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+    ? new Date(iso).toLocaleDateString("es", {
+      weekday: "long", day: "numeric", month: "long",
     })
     : "";
 
