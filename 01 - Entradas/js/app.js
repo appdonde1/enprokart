@@ -93,7 +93,7 @@
     }
 
     if (!event) {
-      $("heroTitulo").textContent = "Evento no disponible";
+      $("heroSubtitulo").textContent = "No hay ninguna fecha disponible en este momento.";
       $("areasGrid").innerHTML = '<p class="hint">No se pudo cargar el evento.</p>';
       return;
     }
@@ -117,8 +117,6 @@
         .order("code");
       state.tables = tables || [];
     }
-
-    pintarPrecioDesde();
     pintarAreas();
     suscribirRealtime();
   }
@@ -126,51 +124,181 @@
   // Todo evento muestra una imagen: si no cargaron la suya, va la genérica.
   const IMAGEN_GENERICA = "placeholders/evento-generico.jpg";
 
-  function pintarEvento(event) {
-    const cuando = event.event_date
-      ? new Date(event.event_date).toLocaleString("es", {
-        weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
-      })
-      : "";
+  const fechaLarga = (iso) => iso
+    ? new Date(iso).toLocaleString("es", {
+      weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+    })
+    : "";
 
-    const img = $("eventoImagen");
-    img.src = event.cover_image || IMAGEN_GENERICA;
-    img.alt = event.name;
-    img.addEventListener("error", () => { img.src = IMAGEN_GENERICA; }, { once: true });
-    $("eventoPortada").hidden = false;
-    $("eventoTagline").textContent = event.tagline || "";
-    $("eventoNombre").textContent = event.name;
-    $("eventoFecha").textContent = cuando;
-    // El lugar solo se muestra si está cargado; si no, la fila queda a medias.
-    const lugar = $("eventoLugar");
-    lugar.textContent = event.venue || "";
-    lugar.closest("span").hidden = !event.venue;
+  /* =========================================================
+     EL CARRUSEL DE PORTADA
 
-    // La portada ya dice nombre, bajada y fecha. La columna de la derecha no
-    // repite nada de eso: lleva el precio —lo que se busca después del
-    // nombre— y una ficha con los datos prácticos.
+     Una diapositiva por fecha publicada. La columna de datos de la derecha
+     sigue a la que esté al frente: fecha, lugar y bajada son los de esa fecha,
+     no los de un evento fijo.
+
+     Con una sola fecha no se dibuja ningún control: un carrusel de uno es una
+     foto, y los puntos y las flechas solo estorbarían.
+     ========================================================= */
+
+  const carrusel = {
+    fechas: [],
+    i: 0,
+    reloj: null,
+    PAUSA: 6500,
+  };
+
+  // Nadie quiere que la página se le mueva sola si pidió que no se mueva.
+  const sinMovimiento = () =>
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  function montarCarrusel(fechas) {
+    const portada = $("eventoPortada");
+    const pista = $("portadaPista");
+    if (!portada || !pista || !fechas.length) return;
+
+    carrusel.fechas = fechas;
+    carrusel.i = Math.max(0, fechas.findIndex((e) => e.is_main));
+
+    pista.innerHTML = fechas.map((e, i) => `
+      <article class="portada__slide${i === carrusel.i ? " es-activa" : ""}"
+               role="group" aria-roledescription="diapositiva"
+               aria-label="${i + 1} de ${fechas.length}: ${esc(e.name)}"
+               ${i === carrusel.i ? "" : 'aria-hidden="true"'}>
+        <img class="portada__img" alt="${esc(e.name)}"
+             src="${esc(e.cover_image || IMAGEN_GENERICA)}"
+             ${i === carrusel.i ? 'fetchpriority="high"' : 'loading="lazy"'} />
+        <div class="portada__velo"></div>
+        <div class="portada__texto">
+          ${e.event_type ? `<p class="portada__tipo">${esc(e.event_type)}</p>` : ""}
+          <h1 class="portada__nombre">${esc(e.name)}</h1>
+          <!-- Cada dato aparece solo si está cargado. Sin esta guarda, un evento
+               sin fecha dibujaba un punto naranja solo, sin nada al lado. -->
+          <p class="portada__cuando">
+            ${e.event_date ? `<span><i></i>${esc(fechaLarga(e.event_date))}</span>` : ""}
+            ${e.venue || e.city ? `<span><i></i>${esc(e.venue || e.city)}</span>` : ""}
+          </p>
+        </div>
+      </article>
+    `).join("");
+
+    // Si la imagen del anunciante no baja, entra la genérica y no un hueco.
+    pista.querySelectorAll(".portada__img").forEach((img) => {
+      img.addEventListener("error", () => { img.src = IMAGEN_GENERICA; }, { once: true });
+    });
+
+    const mando = $("portadaMando");
+    const puntos = $("portadaPuntos");
+    const varias = fechas.length > 1;
+    if (mando) mando.hidden = !varias;
+
+    if (varias && puntos) {
+      puntos.innerHTML = fechas.map((e, i) => `
+        <button type="button" class="portada__punto" role="tab"
+                data-i="${i}" aria-selected="${i === carrusel.i}"
+                aria-label="${esc(e.name)}"><span></span></button>
+      `).join("");
+      puntos.querySelectorAll("[data-i]").forEach((b) => {
+        b.addEventListener("click", () => { irASlide(Number(b.dataset.i)); reiniciarReloj(); });
+      });
+      $("portadaAnterior")?.addEventListener("click", () => { mover(-1); reiniciarReloj(); });
+      $("portadaSiguiente")?.addEventListener("click", () => { mover(1); reiniciarReloj(); });
+
+      // Con el dedo: arrastrar es lo primero que alguien prueba en un carrusel.
+      let x0 = null;
+      portada.addEventListener("pointerdown", (e) => { x0 = e.clientX; }, { passive: true });
+      portada.addEventListener("pointerup", (e) => {
+        if (x0 === null) return;
+        const d = e.clientX - x0;
+        x0 = null;
+        if (Math.abs(d) > 45) { mover(d < 0 ? 1 : -1); reiniciarReloj(); }
+      }, { passive: true });
+
+      // El reloj se frena mientras se mira o se navega con el teclado.
+      ["pointerenter", "focusin"].forEach((ev) =>
+        portada.addEventListener(ev, pararReloj));
+      ["pointerleave", "focusout"].forEach((ev) =>
+        portada.addEventListener(ev, arrancarReloj));
+      document.addEventListener("visibilitychange", () =>
+        document.hidden ? pararReloj() : arrancarReloj());
+
+      arrancarReloj();
+    }
+
+    portada.hidden = false;
     document.querySelector(".feature__copy")?.classList.add("feature__copy--secundaria");
-    $("heroSubtitulo").textContent =
-      event.description || "Entradas por mesa, con tu lugar asegurado.";
+    pintarDatosDeSlide();
+  }
 
-    const datos = [["Fecha", cuando], ["Lugar", event.venue]].filter(([, v]) => v);
+  function irASlide(n) {
+    const total = carrusel.fechas.length;
+    if (!total) return;
+    carrusel.i = (n + total) % total;
+
+    const slides = [...document.querySelectorAll(".portada__slide")];
+    slides.forEach((s, i) => {
+      const activa = i === carrusel.i;
+      s.classList.toggle("es-activa", activa);
+      if (activa) s.removeAttribute("aria-hidden");
+      else s.setAttribute("aria-hidden", "true");
+    });
+    document.querySelectorAll(".portada__punto").forEach((p, i) => {
+      p.setAttribute("aria-selected", String(i === carrusel.i));
+    });
+    pintarDatosDeSlide();
+  }
+
+  const mover = (paso) => irASlide(carrusel.i + paso);
+
+  function arrancarReloj() {
+    if (carrusel.reloj || sinMovimiento() || carrusel.fechas.length < 2) return;
+    carrusel.reloj = setInterval(() => mover(1), carrusel.PAUSA);
+  }
+  function pararReloj() { clearInterval(carrusel.reloj); carrusel.reloj = null; }
+  function reiniciarReloj() { pararReloj(); arrancarReloj(); }
+
+  /* La columna de la derecha es la ficha de la fecha que está al frente. La
+     portada ya dice el nombre en grande, así que acá no se repite: van los
+     datos prácticos y el contador de dónde estás parado. */
+  function pintarDatosDeSlide() {
+    const e = carrusel.fechas[carrusel.i];
+    if (!e) return;
+
+    $("heroSubtitulo").textContent =
+      e.description || "Entradas por mesa, con tu lugar asegurado.";
+
+    const datos = [
+      ["Fecha", fechaLarga(e.event_date)],
+      ["Lugar", e.venue || e.city],
+    ].filter(([, v]) => v);
     $("heroDatos").innerHTML = datos
       .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
       .join("");
+
+    const total = carrusel.fechas.length;
+    $("heroContador").textContent = String(carrusel.i + 1).padStart(2, "0");
+    $("heroContadorTexto").textContent = total > 1
+      ? `de ${String(total).padStart(2, "0")} fechas`
+      : "Evento destacado";
+
+    // El botón dice lo que va a pasar: solo la fecha que vende entradas abre
+    // el flujo de compra; las demás llevan al listado.
+    const btn = $("btnComprar");
+    if (!btn) return;
+    const vende = Boolean(e.is_main && e.sells_tickets);
+    btn.dataset.vende = vende ? "1" : "0";
+    btn.innerHTML = vende
+      ? 'Comprar entradas <span>↗</span>'
+      : 'Ver esta fecha <span>↗</span>';
   }
 
-  // El precio más bajo del evento. Se pinta al cargar las secciones, no antes.
-  //
-  // Sale partido en dos: "Mesas desde" es el rótulo y el importe es la cifra.
-  // Como una sola frase, el número —que es el dato que la gente vino a buscar—
-  // competía con su propia aclaración y encima partía el renglón.
-  function pintarPrecioDesde() {
-    if (!state.sections.length) return;
-    const desde = Math.min(...state.sections.map((s) => s.price_cents));
-    const conPlano = state.sections.some((s) => s.assignment_mode === "manual");
-    $("heroTitulo").innerHTML =
-      `<span class="feature__price-rotulo">${conPlano ? "Mesas desde" : "Entradas desde"}</span>` +
-      `<b>${esc(money(desde))}</b>`;
+  function pintarEvento(event) {
+    // El evento principal solo aporta la bajada por defecto: el resto de la
+    // portada la maneja el carrusel.
+    if (!carrusel.fechas.length) {
+      $("heroSubtitulo").textContent =
+        event.description || "Entradas por mesa, con tu lugar asegurado.";
+    }
   }
 
   // ---------- portada: próximos eventos ----------
@@ -182,7 +310,7 @@
 
     const { data } = await db
       .from("events")
-      .select("slug, name, event_date, event_type, city, city_code, description, sells_tickets, is_main")
+      .select("slug, name, event_date, event_type, city, city_code, description, sells_tickets, is_main, cover_image, venue")
       .eq("status", "published")
       .order("event_date");
 
@@ -196,6 +324,10 @@
       cont.innerHTML = '<p class="hint">Todavía no hay fechas publicadas.</p>';
       return;
     }
+
+    // La misma consulta alimenta el listado y el carrusel de portada: son las
+    // mismas fechas y no hay razón para pedirlas dos veces.
+    montarCarrusel(eventos);
 
     cont.innerHTML = eventos.map((e) => {
       const f = e.event_date ? new Date(e.event_date) : null;

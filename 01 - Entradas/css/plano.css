@@ -3,45 +3,9 @@
    Complementa css/style.css; usa sus mismos tokens.
    ========================================================= */
 
-/* ---------------- Portada del evento ---------------- */
-.evento {
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--radius);
-  border: 1px solid var(--line-soft);
-  box-shadow: 0 26px 60px -30px #000;
-  margin-bottom: 26px;
-}
-.evento img { display: block; width: 100%; height: auto; }
-/* El velo era azulado —rgba(10,12,17)— sobre un sitio verde-negro. */
-.evento__velo {
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(9,10,9,0.55) 0%, transparent 32%, rgba(9,10,9,0.92) 100%);
-}
-.evento__texto {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  padding: 22px clamp(16px, 4vw, 32px) clamp(16px, 3vw, 24px);
-}
-/* Rectángulo, no píldora: el sitio es de esquinas rectas. */
-.evento__tipo {
-  display: inline-block; margin: 0 0 8px;
-  font: 700 var(--fs-label)/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
-  color: var(--black); background: var(--accent);
-  padding: 5px 10px; border-radius: var(--radius-sm);
-}
-.evento__tipo:empty { display: none; }
-.evento__nombre {
-  margin: 0 0 6px; font-size: clamp(1.35rem, 4.4vw, 2.2rem);
-  line-height: 1.08; letter-spacing: -0.025em; text-wrap: balance;
-  text-shadow: 0 3px 22px rgba(0,0,0,0.9);
-}
-.evento__cuando {
-  margin: 0; font-size: clamp(0.84rem, 2vw, 1rem); font-weight: 600; color: #f1f0eb;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
-  text-shadow: 0 2px 14px rgba(0,0,0,0.9);
-}
-.evento__cuando > span { display: inline-flex; align-items: center; gap: 7px; }
-.evento__cuando i { width: 5px; height: 5px; border-radius: var(--radius-round); background: var(--accent); flex: none; }
+/* La portada del evento ahora es el carrusel .portada y vive en style.css,
+   que es donde está el resto del hero. Las reglas .evento que había acá no las
+   usaba ya ningún marcado. */
 
 /* ---------------- Barra de grupo ---------------- */
 .grupo {
@@ -472,15 +436,25 @@
   .plano__cabecera { padding: 11px 14px; }
   .plano__lectura { width: 100%; text-align: center; }
 
-  .hoja { padding: 14px 10px 16px; }
-  .hoja__frente { gap: 6px; }
-  .hoja__grid { gap: 3px; }
+  /* En el teléfono la hoja no se encoge: se arrastra.
 
-  .mesa { min-height: 40px; padding: 4px 2px; }
-  .mesa__nombre { font-size: .68rem; }
-  /* En 360px la fila de nueve no deja lugar para dos renglones dentro de una
-     mesa. El número de sillas sigue estando en el marcador de la cabecera. */
-  .hoja__seccion--fondo .mesa__sillas { display: none; }
+     Encogiéndola, las 51 mesas quedaban por debajo del mínimo táctil —A1 medía
+     42×40 y las de la fila de nueve, 29×40— y la fila de sillas de la Sección C
+     había que esconderla por falta de lugar, justo el dato que hace falta para
+     elegir. Un plano se mira arrastrándolo; con un ancho mínimo, cada mesa
+     vuelve a ser tocable y todas dicen lo mismo. */
+  .plano__lienzo {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* El desvanecido del borde derecho es la señal de que hay más salón. */
+    mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+  }
+  .hoja { min-width: 600px; padding: 14px 12px 16px; }
+  .hoja__frente { gap: 8px; }
+  .hoja__grid { gap: 4px; }
+
+  .mesa { min-height: 44px; padding: 5px 3px; }
+  .mesa__nombre { font-size: .74rem; }
 
   .hoja__tarima-barra { font-size: .7rem; letter-spacing: .24em; text-indent: .24em; }
   .hoja__pasarela span { font-size: .52rem; letter-spacing: .2em; }

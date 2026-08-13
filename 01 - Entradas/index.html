@@ -53,18 +53,20 @@
       <div class="feature__media">
         <div class="feature__grid" aria-hidden="true"></div>
 
-        <!-- Portada dinámica: acá vive la identidad del evento (nombre y fecha).
-             La columna de la derecha no las repite. -->
-        <section class="evento" id="eventoPortada" hidden>
-          <img id="eventoImagen" alt="" />
-          <div class="evento__velo"></div>
-          <div class="evento__texto">
-            <p class="evento__tipo" id="eventoTagline"></p>
-            <h1 class="evento__nombre" id="eventoNombre"></h1>
-            <p class="evento__cuando">
-              <span><i></i><span id="eventoFecha"></span></span>
-              <span><i></i><span id="eventoLugar"></span></span>
-            </p>
+        <!-- Carrusel de portada. Una diapositiva por fecha publicada; app.js lo
+             llena desde la base. Con una sola fecha no aparece ningún control:
+             un carrusel de uno es una foto. -->
+        <section class="portada" id="eventoPortada" aria-roledescription="carrusel"
+                 aria-label="Próximas fechas" hidden>
+          <div class="portada__pista" id="portadaPista"></div>
+
+          <div class="portada__mando" id="portadaMando" hidden>
+            <button type="button" class="portada__flecha" id="portadaAnterior"
+                    aria-label="Fecha anterior">‹</button>
+            <div class="portada__puntos" id="portadaPuntos" role="tablist"
+                 aria-label="Elegir fecha"></div>
+            <button type="button" class="portada__flecha" id="portadaSiguiente"
+                    aria-label="Fecha siguiente">›</button>
           </div>
         </section>
 
@@ -77,11 +79,10 @@
       <div class="feature__info">
         <div class="eyebrow"><span></span> Próximo evento</div>
 
+        <!-- La columna sigue a la diapositiva que esté al frente: los datos son
+             los de esa fecha, no los de un evento fijo. -->
         <div class="feature__copy">
           <p class="feature__kicker">Pro Kart · 2026</p>
-          <!-- Con foto de portada acá va el precio, que es el dato que la
-               gente busca después del nombre. Sin foto, el nombre del evento. -->
-          <p class="feature__price" id="heroTitulo">Cargando evento...</p>
           <p id="heroSubtitulo" class="feature__sub">
             Experiencias, carreras y noches especiales en un solo lugar.
           </p>
@@ -90,8 +91,8 @@
 
         <div class="feature__footer">
           <div class="feature__meta">
-            <span class="feature__meta-num">01</span>
-            <span>Evento destacado</span>
+            <span class="feature__meta-num" id="heroContador">01</span>
+            <span id="heroContadorTexto">Evento destacado</span>
           </div>
           <button class="editorial-cta" id="btnComprar" type="button">
             Comprar entradas <span>↗</span>
@@ -242,12 +243,10 @@
 
               <div class="plano__lienzo" id="planoLienzo"></div>
 
-              <ul class="plano__leyenda">
-                <li><i class="ficha ficha--libre"></i> Disponible</li>
-                <li><i class="ficha ficha--sel"></i> Tu selección</li>
-                <li><i class="ficha ficha--tomada"></i> Reservada</li>
-                <li><i class="ficha ficha--unica"></i> Mesa única</li>
-              </ul>
+              <!-- La leyenda la dibuja app.js dentro de la hoja, junto a las
+                   mesas que explica. La que había acá quedaba fuera del papel
+                   y sin CSS: se veía como una lista con viñetas del navegador,
+                   diciendo por segunda vez lo mismo. -->
             </figure>
           </div>
 
@@ -407,6 +406,17 @@
 
       function openBooking(event) {
         if (event) event.preventDefault();
+
+        /* El botón de la portada sigue a la diapositiva que esté al frente.
+           Cuando esa fecha no es la que vende entradas, dice "Ver esta fecha"
+           y tiene que llevar al listado, no abrir un flujo de compra que no le
+           corresponde. app.js marca cuál es cuál en data-vende. */
+        if (event?.currentTarget?.dataset.vende === "0") {
+          document.getElementById("eventos")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
         booking.hidden = false;
         document.body.classList.add("booking-open");
         booking.scrollIntoView({ behavior: "smooth", block: "start" });
