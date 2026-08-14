@@ -489,21 +489,23 @@
       <p class="areas-tarima" aria-hidden="true"><span>Tarima</span></p>
     ` + tarjetas.map((t, i) => `
       <button type="button" class="area-card area-card--${t.tier}" data-area="${esc(t.code)}">
-        <span class="area-card__body">
-          <!-- Nivel y ubicación en un solo rótulo. La insignia suelta repetía
-               la palabra que ya dice el título dos renglones más abajo. -->
-          <span class="area-card__tag">
-            ${esc(t.insignia)} <i>·</i> ${i === 0 ? "Adelante" : i === tarjetas.length - 1 ? "Al fondo" : "Detrás"}
-          </span>
-          <span class="area-card__titulo">${esc(t.label)}</span>
-          <span class="area-card__detalle">${esc(t.detalle)}</span>
-          <span class="area-card__incluye">${esc(t.incluye)}</span>
+        <!-- Nivel y ubicación en un solo rótulo. La insignia suelta repetía
+             la palabra que ya dice el título en el renglón siguiente. -->
+        <span class="area-card__tag">
+          ${esc(t.insignia)} <i>·</i> ${i === 0 ? "Adelante" : i === tarjetas.length - 1 ? "Al fondo" : "Detrás"}
         </span>
+        <span class="area-card__titulo">${esc(t.label)}</span>
+
+        <!-- El precio va pegado al nombre: es lo que se compara entre las tres
+             tarjetas, y separarlo obligaba a saltar de una punta a la otra. -->
         <span class="area-card__precio">
           <span class="price">${esc(t.precio)}</span>
           <span class="area-card__unidad">${esc(t.unidad)}</span>
-          <span class="area-card__ir">Elegir <b>→</b></span>
         </span>
+
+        <span class="area-card__detalle">${esc(t.detalle)}</span>
+        <span class="area-card__incluye">${esc(t.incluye)}</span>
+        <span class="area-card__ir">Elegir <b>→</b></span>
       </button>
     `).join("");
 
@@ -934,13 +936,82 @@
     return ok;
   }
 
-  $("formRegistro").addEventListener("submit", async (event) => {
+  /* ---------- la ventana de pago ----------
+
+     El último vistazo antes de que exista el cobro. Va acá y no en pagar.html
+     a propósito: allá la mesa ya está tomada y el reloj de los cinco minutos
+     ya corre, así que revisar la compra costaría tiempo de reserva. Acá
+     todavía no se llamó a create-order, y por eso "Editar" no tiene nada que
+     cancelar: cierra la ventana y devuelve al formulario. */
+  function abrirVentanaDePago() {
+    const elegidas = [...state.mesas.values()];
+    const lugar = state.seccion?.conPlano
+      ? `${elegidas.length} ${elegidas.length === 1 ? "mesa" : "mesas"}: ${elegidas.map((m) => m.code).join(", ")}`
+      : state.seccion?.section?.label ?? "";
+
+    // Cada línea aparece solo si tiene contenido: el correo es opcional y una
+    // fila vacía haría dudar de si falta un dato. El total va último porque el
+    // CSS le da el peso a la última fila.
+    const filas = [
+      ["Evento", state.event?.name],
+      ["Fecha", fechaLarga(state.event?.event_date)],
+      ["Área", nombreDelArea()],
+      ["Lugar", lugar],
+      [state.personas === 1 ? "Persona" : "Personas", String(state.personas)],
+      ["A nombre de", `${$("nombre").value.trim()} ${$("apellido").value.trim()}`.trim()],
+      ["WhatsApp", $("whatsapp").value.trim()],
+      ["Correo", $("email").value.trim()],
+      ["Total", money(totalCents())],
+    ].filter(([, valor]) => valor);
+
+    $("resumenPago").innerHTML = filas
+      .map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`)
+      .join("");
+
+    setError("pago", "");
+    $("modalPago").hidden = false;
+    $("btnPagar").focus();
+  }
+
+  function cerrarVentanaDePago() {
+    $("modalPago").hidden = true;
+  }
+
+  // Mientras el cobro se está generando la ventana no se cierra: cerrarla
+  // dejaría una compra creada de la que el visitante ya no vería nada.
+  let generandoCobro = false;
+
+  $("formRegistro").addEventListener("submit", (event) => {
     event.preventDefault();
     if (!validar()) return;
+    abrirVentanaDePago();
+  });
 
-    const btn = $("btnContinuar");
+  $("btnEditarCompra").addEventListener("click", () => {
+    cerrarVentanaDePago();
+    $("nombre").focus();
+  });
+
+  $("modalPago").addEventListener("click", (e) => {
+    if (e.target === $("modalPago") && !generandoCobro) cerrarVentanaDePago();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("modalPago").hidden && !generandoCobro) {
+      cerrarVentanaDePago();
+    }
+  });
+
+  $("btnPagar").addEventListener("click", async () => {
+    if (generandoCobro) return;
+    generandoCobro = true;
+
+    const btn = $("btnPagar");
+    const editar = $("btnEditarCompra");
     btn.disabled = true;
+    editar.disabled = true;
     btn.textContent = "Generando cobro...";
+    setError("pago", "");
 
     const cuerpo = {
       // El del evento realmente cargado, no el de la configuración.
@@ -959,16 +1030,21 @@
 
     const { ok, status, data } = await window.callFunction("create-order", cuerpo);
 
+    generandoCobro = false;
     btn.disabled = false;
-    btn.textContent = "Ir a pagar";
+    editar.disabled = false;
+    btn.textContent = "Pagar";
 
     if (!ok) {
+      // Si la mesa se ocupó mientras se revisaba, no hay nada que confirmar:
+      // se cierra la ventana y se vuelve al plano, que es donde se arregla.
       if (status === 409) {
+        cerrarVentanaDePago();
         setError("lugar", data.error || "Ese lugar ya no está disponible.");
         await refrescarMesas();
         irAPaso(2);
       } else {
-        setError("whatsapp", data.error || "No se pudo iniciar la compra.");
+        setError("pago", data.error || "No se pudo iniciar la compra.");
       }
       return;
     }

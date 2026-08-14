@@ -76,19 +76,27 @@
 
 /* =========================================================
    2. Paso 1 — Elegir área
-   La decisión de compra principal. Tres opciones y hay que poder compararlas
-   de un vistazo: dónde te sentás, qué te dan y cuánto sale.
+   Tres tarjetas, una por nivel. La decisión de compra principal, y hay que
+   poder compararlas de un vistazo: dónde te sentás, cuánto sale y qué te dan.
 
-   Las tres van listadas por cercanía a la tarima, así que la lista misma es el
-   plano del salón. Con una barra de tarima arriba de las tres alcanza para
-   decirlo; antes cada tarjeta llevaba su propia copia del mini-plano.
+   Antes eran tres filas anchas: el precio quedaba en la otra punta del renglón
+   y comparar tres cifras obligaba a saltar de un lado al otro de la pantalla.
+   En una tarjeta el precio va debajo del nombre, y las tres quedan una al lado
+   de la otra, alineadas.
    ========================================================= */
 
-.areas-grid { display: grid; gap: 10px; }
+.areas-grid {
+  display: grid;
+  gap: 10px;
+  /* Tres al ancho cuando entran; abajo de eso se apilan solas. 240px es donde
+     "R$ 2.400,00" todavía entra sin partirse. */
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
 
-/* La tarima, una sola vez y para las tres. Marca el frente del salón y desde
-   ahí la lista se lee como se camina: Oro, Plata, General. */
+/* La tarima, una sola vez y para las tres. Marca el frente del salón: las
+   tarjetas van en el orden en que se camina, de adelante hacia el fondo. */
 .areas-tarima {
+  grid-column: 1 / -1;
   margin: 0 0 2px;
   padding: 9px 14px;
   border: 1px solid var(--line);
@@ -104,14 +112,13 @@
 .areas-tarima span { padding-left: .3em; }
 
 .area-card {
-  /* Color del nivel. Se define acá para que baje a la insignia y al filete. */
+  /* Color del nivel. Se define acá para que baje al rótulo y al filete. */
   --tier: #6b706a;
   --tier-tint: rgba(255, 255, 255, .05);
 
   position: relative;
-  width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 22px 20px 20px;
   overflow: hidden;
   text-align: left;
   color: var(--text);
@@ -121,8 +128,12 @@
   border-radius: var(--radius);
   background: var(--bg);
 
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+
   transition:
     border-color var(--t-color) var(--ease),
     background-color var(--t-color) var(--ease),
@@ -134,17 +145,16 @@
 .area-card--plata   { --tier: var(--plata); --tier-tint: var(--plata-tint); }
 .area-card--general { --tier: var(--info);  --tier-tint: var(--info-tint); }
 
-/* Filete de nivel: siempre presente, es lo que identifica la categoría. */
+/* En una tarjeta el filete del nivel va arriba, cruzándola entera: de costado
+   se leía como un adorno del borde y acá corona la tarjeta. */
 .area-card::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
+  inset: 0 0 auto 0;
+  height: 3px;
   background: var(--tier);
   opacity: .85;
-  transition: opacity var(--t-color) var(--ease), width var(--t-color) var(--ease);
+  transition: opacity var(--t-color) var(--ease), height var(--t-color) var(--ease);
 }
 
 /* Marca de elegida: además del color, un tilde. El estado no se comunica solo
@@ -152,7 +162,7 @@
 .area-card::after {
   content: "✓";
   position: absolute;
-  top: 0;
+  top: 3px;
   right: 0;
   width: 26px;
   height: 26px;
@@ -166,75 +176,44 @@
   transition: opacity var(--t-color) var(--ease), transform var(--t-move) var(--ease);
 }
 
-/* Nivel y ubicación en un solo rótulo, con el color del nivel. Antes eran dos
-   chips apilados —la pestaña de ubicación y la insignia del nivel— que en el
-   teléfono se montaban una sobre otra, y la insignia además repetía la palabra
-   que el título dice dos renglones más abajo. */
 .area-card__tag {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 11px;
+  padding: 5px 10px;
   border: 1px solid var(--tier);
   border-radius: var(--radius-sm);
   background: var(--tier-tint);
   color: var(--tier);
-  font: 800 .68rem/1 var(--mono);
+  font: 800 .66rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 .area-card__tag i { font-style: normal; opacity: .5; }
 
-.area-card__body {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-  padding: 20px 18px 18px 22px;
-  min-width: 0;
-}
-
 .area-card__titulo {
-  font: 700 clamp(1.3rem, 5vw, 1.55rem)/1.05 var(--display);
+  font: 700 clamp(1.3rem, 4vw, 1.6rem)/1.05 var(--display);
   letter-spacing: -.04em;
   color: var(--text);
 }
 
-.area-card__detalle {
-  color: var(--muted);
-  font-size: var(--fs-body);
-  line-height: 1.45;
-  max-width: 40ch;
-}
-
-/* La línea de qué incluye: es el dato que decide la compra y antes no estaba
-   en ningún lado. */
-.area-card__incluye {
-  margin-top: 2px;
-  padding-top: 9px;
-  border-top: 1px solid var(--line-soft);
-  width: 100%;
-  color: var(--dim);
-  font: 600 var(--fs-label)/1.5 var(--mono);
-  letter-spacing: .06em;
-}
-
-/* -------- la columna del precio -------- */
+/* -------- el precio, pegado al nombre -------- */
 
 .area-card__precio {
-  display: grid;
-  gap: 3px;
-  justify-items: start;
-  align-content: center;
-  padding: 0 18px 18px 22px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+  margin-bottom: 2px;
 }
 
 .price {
-  display: block;
   color: var(--text);
-  font: 700 clamp(1.5rem, 6vw, 1.9rem)/1 var(--display);
+  font: 700 clamp(1.6rem, 6vw, 2.1rem)/1 var(--display);
   letter-spacing: -.045em;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .area-card__unidad {
@@ -244,13 +223,32 @@
   text-transform: uppercase;
 }
 
-/* La acción se lee como acción: caja propia, no un rótulo suelto. */
+.area-card__detalle {
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+}
+
+/* Qué incluye: es el dato que decide la compra. El filete lo separa de la
+   descripción y le da un piso a la tarjeta. */
+.area-card__incluye {
+  width: 100%;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--dim);
+  font: 600 var(--fs-label)/1.5 var(--mono);
+  letter-spacing: .04em;
+}
+
+/* La acción se lee como acción, y va al pie: con `margin-top: auto` los tres
+   botones quedan alineados aunque las tarjetas tengan textos de distinto largo. */
 .area-card__ir {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 12px;
-  padding: 10px 14px;
+  margin-top: auto;
+  padding: 11px 15px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--muted);
@@ -271,7 +269,7 @@
   transform: var(--lift);
   box-shadow: 0 16px 34px -22px #000;
 }
-.area-card:hover::before { opacity: 1; width: 6px; }
+.area-card:hover::before { opacity: 1; height: 4px; }
 .area-card:hover .area-card__ir {
   color: var(--accent);
   border-color: var(--accent);
@@ -286,22 +284,17 @@
   border-color: var(--accent);
 }
 
-/* Elegida. */
 .area-card[aria-pressed="true"],
-.area-card[data-selected="true"],
 .area-card.is-selected,
-.area-card.selected,
 .area-card--activa {
   border-color: var(--accent);
-  background: linear-gradient(90deg, var(--accent-soft) 0%, var(--surface-2) 55%);
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface-2) 60%);
   box-shadow:
     inset 0 0 0 1px rgba(255, 89, 54, .35),
     0 14px 34px -20px rgba(255, 89, 54, .75);
 }
 .area-card[aria-pressed="true"]::after,
-.area-card[data-selected="true"]::after,
 .area-card.is-selected::after,
-.area-card.selected::after,
 .area-card--activa::after { opacity: 1; transform: scale(1); }
 
 .area-card[aria-pressed="true"] .area-card__ir,
@@ -310,30 +303,8 @@
   border-color: rgba(255, 89, 54, .5);
 }
 
-/* -------- a partir de acá el precio se va a su propia columna -------- */
-
-@media (min-width: 620px) {
-  .area-card {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
-  .area-card__body { padding: 22px 10px 22px 22px; }
-
-  .area-card__precio {
-    justify-items: end;
-    text-align: right;
-    padding: 24px 22px 24px 26px;
-    border-left: 1px solid var(--line-soft);
-    /* El bloque del precio no se estira: se queda del ancho de su número. */
-    min-width: 208px;
-  }
-  .area-card[aria-pressed="true"] .area-card__precio,
-  .area-card--activa .area-card__precio { border-left-color: rgba(255, 89, 54, .4); }
-}
-
 @media (max-width: 420px) {
-  .area-card__body { padding: 18px 15px 16px 19px; }
-  .area-card__precio { padding: 0 15px 16px 19px; }
+  .area-card { padding: 18px 16px 16px; gap: 8px; }
   .areas-tarima { letter-spacing: .22em; }
 }
 
@@ -463,6 +434,61 @@
 }
 .resumen-compra .row span:last-child { text-align: right; }
 .resumen-compra .row:last-child span:first-child { color: var(--accent); }
+
+/* ---------------------------------------------------------
+   La ventana de pago
+
+   Comparte la caja con el modal de cantidad (plano.css), pero acá adentro hay
+   una lista de datos y no un solo número: se alinea a la izquierda, se ensancha
+   para que "A nombre de" y su valor no se pisen, y se le pone tope de alto
+   porque con nueve filas en un teléfono la caja se sale de la pantalla.
+   --------------------------------------------------------- */
+
+.modal__caja--pago {
+  max-width: 460px;
+  text-align: left;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+.modal__caja--pago h3 { text-align: left; }
+.modal__caja--pago > p { margin: 0 0 18px; }
+.modal__caja--pago .resumen-compra { margin-bottom: 14px; }
+
+/* Qué pasa al tocar "Pagar". Dicho antes del botón y no después, que es cuando
+   sirve saberlo. Va en la tipografía del texto y no en la monoespaciada de los
+   rótulos: es una nota al pie, no un dato más de la lista. */
+.pago-aviso {
+  margin: 0 0 18px !important;
+  color: var(--dim);
+  font: 500 var(--fs-meta)/1.5 var(--sans);
+}
+
+.modal__acciones {
+  display: flex;
+  gap: 10px;
+}
+/* "Pagar" es la acción de la ventana y "Editar" la salida: el ancho lo dice
+   antes de que se lean las palabras. */
+.modal__acciones > .btn { flex: 1 1 auto; }
+.modal__acciones > .btn--primary { flex: 1.7 1 auto; }
+
+/* El error de la ventana no cuelga de un campo sino de la ventana entera, como
+   los del paso 2, y se dibuja igual. Va con `:not(:empty)` y no a secas: si no,
+   le gana en especificidad a `.error:empty` y el triángulo rojo queda dibujado
+   debajo de los botones sin que haya pasado nada. */
+.modal__caja--pago .error:not(:empty) {
+  display: block;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 102, 96, .45);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 102, 96, .07);
+}
+
+@media (max-width: 420px) {
+  .modal__acciones { flex-direction: column-reverse; }
+}
 
 /* =========================================================
    6. pagar.html — estructura de página

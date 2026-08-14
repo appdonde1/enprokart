@@ -329,6 +329,30 @@
         <button type="button" class="modal__ok" id="modalOk">Continuar</button>
       </div>
     </div>
+
+    <!-- =====================================================
+         VENTANA DE PAGO
+         Lo último que se ve antes de que el cobro exista. Hasta que no se
+         toca "Pagar" no se llama a create-order: no hay mesa tomada ni reloj
+         corriendo, y por eso "Editar" alcanza con cerrar la ventana.
+         ===================================================== -->
+    <div class="modal" id="modalPago" role="dialog" aria-modal="true"
+         aria-labelledby="modalPagoTitulo" hidden>
+      <div class="modal__caja modal__caja--pago">
+        <h3 id="modalPagoTitulo">Revisa tu compra</h3>
+        <p>Esto es lo que vas a pagar.</p>
+
+        <div class="resumen-compra" id="resumenPago"></div>
+
+        <p class="pago-aviso">Al pagar, tu lugar queda reservado 5 minutos.</p>
+
+        <div class="modal__acciones">
+          <button type="button" class="btn btn--ghost" id="btnEditarCompra">Editar</button>
+          <button type="button" class="btn btn--primary" id="btnPagar">Pagar</button>
+        </div>
+        <span class="error" data-for="pago"></span>
+      </div>
+    </div>
   </main>
 
   <footer class="site-footer">
