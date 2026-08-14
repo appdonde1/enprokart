@@ -70,16 +70,15 @@
 /* =========================================================
    EL PLANO DEL SALÓN
 
-   Un solo SVG con viewBox. No hay una medida en píxeles fijos en todo el
-   dibujo: entra completo en cualquier ancho y las mesas escalan con la
-   pantalla, así que desaparece el recuadro con scroll horizontal que en el
-   teléfono escondía la Sección C entera.
+   Una hoja de plano clara sobre la página oscura, en grilla de CSS. Ya no hay
+   SVG dibujado a mano ni medidas en píxeles: la posición de cada mesa sale de
+   `pos_x`/`pos_y`, que es lo que edita el panel, y el ancho de pantalla lo
+   resuelve el navegador.
 
-   Va oscuro, no sobre papel. La versión en crema resolvía bien el
-   "libre/tomada de un vistazo", pero era otra aplicación metida en medio del
-   sitio, y sobre todo: la luz no se ve sobre papel. El estado sigue sin
-   depender del color —la mesa tomada lleva trama y baja de opacidad— y el
-   naranja queda para lo único que significa en este sitio, "esto es tuyo".
+   Hubo una versión oscura antes de ésta, y su argumento sigue en pie: sobre
+   papel no se ve la luz del salón. Se eligió el papel igual, y por eso el
+   estado de una mesa nunca depende solo del color —la tomada lleva trama— y el
+   naranja se reserva para lo único que significa en este sitio, "esto es tuyo".
    ========================================================= */
 
 /* La barra de total es sticky al pie de la ventana, así que se apoya sobre lo
@@ -281,6 +280,28 @@
   grid-template-columns: repeat(var(--columnas, 3), minmax(0, 1fr));
   gap: 5px;
 }
+
+/* ---------------------------------------------- las dos zonas
+
+   La hoja dibuja el salón entero siempre y apaga la que no se está comprando.
+   Antes cada área mostraba solo lo suyo, y quien elegía Plata no tenía forma de
+   saber qué tenía delante ni a qué distancia de la tarima quedaba.
+
+   La zona apagada baja de opacidad y se dessatura, pero no desaparece: sigue
+   siendo la referencia que dice dónde queda uno. Los botones además se
+   deshabilitan desde el JavaScript, porque atenuar con CSS los dejaría
+   alcanzables con Tab. */
+
+.hoja__zona { transition: opacity var(--t-move) var(--ease); }
+
+.hoja__zona--apagada {
+  opacity: .34;
+  filter: grayscale(.7);
+  pointer-events: none;
+  user-select: none;
+}
+
+.hoja__zona--apagada .hoja__rotulo { border-left-color: var(--tinta-suave); }
 
 /* ---------------------------------------------- las mesas
 

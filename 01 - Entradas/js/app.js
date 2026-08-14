@@ -30,6 +30,17 @@
 
   // Las secciones con plano se ofrecen juntas como "VIP Oro".
   const AREA_ORO = "ORO";
+  const AREA_PLATA = "PLATA";
+
+  /* Oro y Plata se eligen las dos en el plano, así que `assignment_mode` ya no
+     alcanza para separarlas: lo que las distingue es el precio y el lugar en el
+     salón. Oro son las secciones de adelante —A, B, C y las tres únicas—, que
+     comparten tarjeta porque comparten precio; Plata es la del fondo y va sola.
+
+     `AREA_ORO` no es el código de ninguna sección: es el nombre de la tarjeta
+     que las agrupa. `AREA_PLATA` sí coincide con el código de su sección. */
+  const esDePlata = (s) => s.code === AREA_PLATA;
+  const esDeOro = (s) => s.assignment_mode === "manual" && !esDePlata(s);
 
   const $ = (id) => document.getElementById(id);
   const money = (c) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
@@ -409,13 +420,15 @@
 
   // ---------- paso 1: áreas ----------
   function pintarAreas() {
-    const conPlano = state.sections.filter((s) => s.assignment_mode === "manual");
-    const sinPlano = state.sections.filter((s) => s.assignment_mode !== "manual");
+    const oro = state.sections.filter(esDeOro);
+    const plata = state.sections.find(esDePlata);
+    const sinPlano = state.sections.filter(
+      (s) => s.assignment_mode !== "manual" && !esDePlata(s));
 
     const tarjetas = [];
 
-    if (conPlano.length) {
-      const desde = Math.min(...conPlano.map((s) => s.price_cents));
+    if (oro.length) {
+      const desde = Math.min(...oro.map((s) => s.price_cents));
       tarjetas.push({
         code: AREA_ORO,
         label: "VIP Oro",
@@ -434,21 +447,32 @@
       });
     }
 
+    /* Plata va sola y entre Oro y General, que es donde está en el salón. Se
+       elige en el plano igual que Oro: hasta ahora se asignaba por orden de
+       llegada y quien la compraba pagaba sin saber dónde se iba a sentar. */
+    if (plata) {
+      tarjetas.push({
+        code: AREA_PLATA,
+        label: plata.label,
+        detalle: "Eliges tu mesa detrás de la Sección C",
+        precio: money(plata.price_cents),
+        unidad: "por persona",
+        incluye: `Mesa de 4 sillas · ${money(plata.price_cents * 4)} la mesa`,
+        tier: "plata",
+        insignia: "Plata",
+      });
+    }
+
     sinPlano.forEach((s) => {
-      const esPlata = s.assignment_mode === "auto_fcfs";
       tarjetas.push({
         code: s.code,
         label: s.label,
-        detalle: esPlata
-          ? "Mesa asignada por orden de llegada"
-          : "Acceso de pie, sin mesa ni silla",
+        detalle: "Acceso de pie, sin mesa ni silla",
         precio: money(s.price_cents),
         unidad: "por persona",
-        incluye: esPlata
-          ? `Mesa de 4 sillas · ${money(s.price_cents * 4)} la mesa`
-          : "Sin mesa · circulas por el salón",
-        tier: esPlata ? "plata" : "general",
-        insignia: esPlata ? "Plata" : "General",
+        incluye: "Sin mesa · circulas por el salón",
+        tier: "general",
+        insignia: "General",
       });
     });
 
@@ -503,9 +527,17 @@
     setError("lugar", "");
     marcarAreaElegida(code);
 
-    if (code === AREA_ORO) {
-      state.seccion = { code: AREA_ORO, conPlano: true };
-      $("tituloLugar").textContent = "2. Elige tu mesa";
+    // Las dos áreas con plano abren la misma hoja; lo que cambia es qué zona
+    // queda viva y cuál se atenúa detrás.
+    if (code === AREA_ORO || code === AREA_PLATA) {
+      const plata = code === AREA_PLATA;
+      state.seccion = {
+        code,
+        conPlano: true,
+        zona: code,
+        section: plata ? state.sections.find(esDePlata) : null,
+      };
+      $("tituloLugar").textContent = plata ? "2. Elige tu mesa en Plata" : "2. Elige tu mesa";
       $("planoWrap").hidden = false;
       $("sinPlano").hidden = true;
       reiniciarEntradaPlano();
@@ -561,14 +593,17 @@
   let planoYaEntro = false;
   function reiniciarEntradaPlano() { planoYaEntro = false; }
 
-  /* A, B y el fondo.
+  /* A, B, el fondo y Plata.
 
      Las mesas únicas tienen código U1..U3 y viven en secciones propias —una por
      mesa, para que cada una pueda tener su precio— pero físicamente están en la
      columna del medio de la Sección C. Por eso caen en el mismo grupo: el plano
-     dibuja el salón, no el organigrama de secciones. */
+     dibuja el salón, no el organigrama de secciones.
+
+     Plata sí es un grupo aparte: está detrás de todo, cuesta distinto y es la
+     otra área que se puede elegir. Sus mesas van P1..P90. */
   function agrupar() {
-    const por = { A: [], B: [], C: [] };
+    const por = { A: [], B: [], C: [], P: [] };
     for (const m of state.tables) {
       const letra = (m.code || "")[0];
       (por[letra] || por.C).push(m);
@@ -593,6 +628,13 @@
     const entra = !planoYaEntro;
     planoYaEntro = true;
 
+    /* El plano dibuja el salón entero siempre, y apaga la zona que no se está
+       comprando. Antes cada área mostraba solo lo suyo, y quien elegía Plata no
+       tenía forma de saber qué tenía delante ni a qué distancia de la tarima
+       quedaba. Ahora lo ve: la otra zona queda atenuada, de fondo, sin poder
+       tocarse. Es la misma hoja mirada desde dos lugares distintos. */
+    const zona = state.seccion?.zona ?? AREA_ORO;
+
     const bloque = (mesas, nombre, clase = "") => {
       if (!mesas.length) return "";
       return `
@@ -603,6 +645,8 @@
           </div>
         </section>`;
     };
+
+    const apagada = (deLaZona) => (deLaZona === zona ? "" : " hoja__zona--apagada");
 
     lienzo.innerHTML = `
       <div class="hoja${entra ? " hoja--entra" : ""}">
@@ -617,13 +661,19 @@
           <div class="hoja__tarima-pie"></div>
         </div>
 
-        <div class="hoja__frente">
-          ${bloque(g.A, "Sección A")}
-          <div class="hoja__pasarela" aria-hidden="true"><span>Pasarela</span></div>
-          ${bloque(g.B, "Sección B")}
+        <div class="hoja__zona${apagada(AREA_ORO)}" data-zona="${AREA_ORO}">
+          <div class="hoja__frente">
+            ${bloque(g.A, "Sección A")}
+            <div class="hoja__pasarela" aria-hidden="true"><span>Pasarela</span></div>
+            ${bloque(g.B, "Sección B")}
+          </div>
+          ${bloque(g.C, "Sección C", "hoja__seccion--fondo")}
         </div>
 
-        ${bloque(g.C, "Sección C", "hoja__seccion--fondo")}
+        ${g.P.length ? `
+          <div class="hoja__zona${apagada(AREA_PLATA)}" data-zona="${AREA_PLATA}">
+            ${bloque(g.P, "VIP Plata", "hoja__seccion--fondo")}
+          </div>` : ""}
 
         <ul class="hoja__leyenda">
           <li><i class="hoja__marca hoja__marca--libre"></i>Disponible</li>
@@ -665,7 +715,15 @@
   }
 
   function cablearPlano(lienzo) {
-    lienzo.querySelectorAll(".mesa:not([disabled])").forEach((boton) => {
+    /* La zona apagada no se toca ni con el dedo ni con el teclado. Atenuarla
+       solo con CSS la dejaría igual de alcanzable con Tab, y alguien podría
+       elegir una mesa de un área que no está comprando. */
+    lienzo.querySelectorAll(".hoja__zona--apagada .mesa").forEach((boton) => {
+      boton.disabled = true;
+      boton.setAttribute("tabindex", "-1");
+    });
+
+    lienzo.querySelectorAll(".hoja__zona:not(.hoja__zona--apagada) .mesa:not([disabled])").forEach((boton) => {
       const code = boton.dataset.code;
       const mesa = state.tables.find((m) => m.code === code);
       if (!mesa) return;
@@ -725,15 +783,36 @@
     const porMesa = mesaTipica();
     const necesarias = Math.ceil(state.personas / porMesa);
 
-    $("modalCalculo").innerHTML = state.seccion?.conPlano || state.seccion?.section?.assignment_mode === "auto_fcfs"
+    $("modalCalculo").innerHTML = vendePorMesa()
       ? `Necesitas <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"} de ${porMesa} sillas.`
       : `Son <em>${state.personas}</em> ${state.personas === 1 ? "entrada" : "entradas"}.`;
   }
 
+  /* Cuántas personas entran en una mesa del área elegida. Es lo que decide
+     cuántas mesas hacen falta para el grupo, así que Plata no puede usar el
+     número de Oro: sus mesas son de 4 y las de Oro de 6. */
   function mesaTipica() {
+    if (state.seccion?.zona === AREA_PLATA) return 4;
     if (state.seccion?.conPlano) return 6;
     if (state.seccion?.section?.assignment_mode === "auto_fcfs") return 4;
     return 1;
+  }
+
+  /* Un área vende por mesa si se elige en el plano o si la mesa se asigna sola.
+     General es la única que vende por cabeza. Hoy ninguna sección es
+     `auto_fcfs` —Plata dejó de serlo—, pero la pregunta sigue siendo sobre el
+     modo y no sobre el nombre, que es lo que permite agregar una sección nueva
+     sin tocar esto. */
+  const vendePorMesa = () =>
+    Boolean(state.seccion?.conPlano) ||
+    state.seccion?.section?.assignment_mode === "auto_fcfs";
+
+  /* Cómo se llama el área en el resumen de la compra. Oro es una tarjeta que
+     agrupa varias secciones, así que su nombre no sale de ninguna; Plata y
+     General sí tienen el suyo. */
+  function nombreDelArea() {
+    if (state.seccion?.zona === AREA_ORO) return "VIP Oro";
+    return state.seccion?.section?.label ?? "";
   }
 
   $("mas").addEventListener("click", () => { state.personas = Math.min(60, state.personas + 1); pintarModal(); });
@@ -783,7 +862,7 @@
     const porMesa = mesaTipica();
     const necesarias = Math.ceil(state.personas / porMesa);
 
-    $("grupoDato").innerHTML = state.seccion?.conPlano || state.seccion?.section?.assignment_mode === "auto_fcfs"
+    $("grupoDato").innerHTML = vendePorMesa()
       ? `<b>${state.personas}</b> ${state.personas === 1 ? "persona" : "personas"} · necesitas <em>${necesarias}</em> ${necesarias === 1 ? "mesa" : "mesas"}`
       : `<b>${state.personas}</b> ${state.personas === 1 ? "entrada" : "entradas"}`;
 
@@ -831,7 +910,7 @@
       : state.seccion?.section?.label ?? "";
 
     $("resumenCompra").innerHTML = `
-      <div class="row"><span>Área</span><span>${esc(state.seccion?.conPlano ? "VIP Oro" : state.seccion?.section?.label)}</span></div>
+      <div class="row"><span>Área</span><span>${esc(nombreDelArea())}</span></div>
       <div class="row"><span>Personas</span><span>${state.personas}</span></div>
       <div class="row"><span>Lugar</span><span>${esc(detalle)}</span></div>
       <div class="row"><span>Total</span><span>${money(totalCents())}</span></div>
