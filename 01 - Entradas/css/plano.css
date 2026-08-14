@@ -470,7 +470,10 @@
     /* El desvanecido del borde derecho es la señal de que hay más salón. */
     mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
   }
-  .hoja { min-width: 600px; padding: 14px 12px 16px; }
+  /* 760px y no 600: la Sección Plata son quince columnas, y a 600 cada mesa
+     quedaba en 34px, por debajo de lo que se puede tocar sin errar. Se arrastra
+     un poco más, que es como se mira un plano. */
+  .hoja { min-width: 760px; padding: 14px 12px 16px; }
   .hoja__frente { gap: 8px; }
   .hoja__grid { gap: 4px; }
 

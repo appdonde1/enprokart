@@ -809,10 +809,11 @@
 
      Dos reglas ordenan esta pantalla.
 
-     La primera: solo se dibujan las secciones que tienen plano. Plata asigna
-     por orden de llegada y su mapa nunca se muestra al comprador, así que
-     pintar sus 120 mesas acá era pedirle a la persona que revisara una por una
-     algo que nadie elige a mano. Se resume en una fila con su capacidad.
+     La primera: solo se dibujan las secciones que tienen plano. Las que
+     asignan el lugar solas o no tienen mesa —hoy, General— se resumen en una
+     fila con su capacidad: dibujarlas era pedirle a la persona que revisara
+     una por una algo que nadie elige a mano. Plata sí se dibuja: desde que se
+     elige en el plano, su mapa es lo que ve el comprador.
 
      La segunda: nada se guarda solo. Antes, cada precio tenía su botón y cada
      silla escribía en la base al tocarla, así que un clic de más ya era un
