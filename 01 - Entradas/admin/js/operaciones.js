@@ -100,7 +100,7 @@
                 ${P.esc(f.comprador)}
                 ${f.es_cortesia ? '<span class="etiqueta">cortesía</span>' : ""}
               </td>
-              <!-- El documento lo aporta Mercado Pago al aprobarse el pago, así
+              <!-- El documento lo aporta la pasarela al aprobarse el pago, así
                    que una compra sin pagar todavía no lo tiene. -->
               <td class="num" data-label="Cédula">${f.documento
                 ? P.esc(f.documento)

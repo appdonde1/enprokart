@@ -1918,7 +1918,7 @@ tr.fila-retirada:hover { opacity: 1; }
 }
 
 /* Celda sin dato todavía. No es un error: el documento del comprador lo aporta
-   Mercado Pago cuando el pago se aprueba, así que una compra pendiente no lo
+   la pasarela cuando el pago se aprueba, así que una compra pendiente no lo
    tiene y un guion suelto se leería como que falta algo. */
 .vacio-celda {
   color: var(--dim);

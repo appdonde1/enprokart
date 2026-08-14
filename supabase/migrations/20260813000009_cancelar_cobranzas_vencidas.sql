@@ -1,8 +1,8 @@
 -- Deja constancia de qué cobranzas de Asaas ya se apagaron.
 --
--- El QR de Asaas no vence en cinco minutos como el de Mercado Pago: vive hasta
--- doce meses. La reserva de la mesa dura cinco. Si solo soltáramos la mesa, el
--- QR viejo seguiría cobrando y alguien podría pagar una mesa ya revendida.
+-- El QR de Asaas no vence en minutos: vive hasta doce meses. La reserva de la
+-- mesa dura cinco. Si solo soltáramos la mesa, el QR viejo seguiría cobrando y
+-- alguien podría pagar una mesa ya revendida.
 --
 -- Cancelar la cobranza es lo que cierra esa puerta, pero no puede hacerlo el
 -- cron: pg_cron corre SQL puro y pg_net no está habilitado en este proyecto,

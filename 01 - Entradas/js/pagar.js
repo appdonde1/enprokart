@@ -205,7 +205,7 @@
     btn.textContent = "Ya pagué, verificar";
   });
 
-  // El pago lo confirma el webhook de Mercado Pago; acá solo se consulta.
+  // El pago lo confirma el webhook de Asaas; acá solo se consulta.
   consultar(false);
   pollTimer = setInterval(() => consultar(false), 4000);
 })();

@@ -1,7 +1,6 @@
 /* Asaas: cobro PIX.
  *
- * Reemplaza a Mercado Pago. Dos diferencias importantes con lo anterior, y las
- * dos cambian el diseño, no solo el proveedor:
+ * Dos cosas de Asaas condicionan el diseño y no solo la forma de llamarlo:
  *
  * 1. Asaas exige un `customer` para cada cobranza, y para crear un customer
  *    exige `cpfCnpj`. No hay forma de omitirlo. Como el sitio dejó de pedir el
@@ -214,9 +213,9 @@ export async function reembolsar(paymentId: string, motivo: string): Promise<boo
 /* ---------------------------------------------------------------- webhook */
 
 /* Asaas manda el token que uno configuró, tal cual, en `asaas-access-token`.
-   No hay firma HMAC como en Mercado Pago: la seguridad es que el token no se
-   conozca. Sin secreto configurado se rechaza todo — es preferible a dar por
-   pagada una entrada que nadie pagó. */
+   No hay firma HMAC: la seguridad es que el token no se conozca. Sin secreto
+   configurado se rechaza todo — es preferible a dar por pagada una entrada que
+   nadie pagó. */
 export function tokenValido(req: Request): boolean {
   const esperado = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
   const recibido = req.headers.get("asaas-access-token");

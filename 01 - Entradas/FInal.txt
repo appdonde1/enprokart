@@ -1,12 +1,17 @@
-Una decisión de diseño que vale la pena que sepas: el webhook no confía en lo que le llega. Mercado Pago solo avisa "algo cambió"; el sistema consulta la API para saber el estado real del pago. Así una notificación falsificada no puede emitir entradas.
+Una decisión de diseño que vale la pena que sepas: el webhook no confía en lo
+que le llega. Asaas solo avisa "algo cambió"; el sistema consulta su API para
+saber el estado real del pago. Así una notificación falsificada no puede
+emitir entradas.
 
-Bóveda actualizada con ambos cambios y la tabla de secretos pendientes.
+Secretos que necesita el cobro, todos ya cargados en Supabase:
 
-Para vender de verdad faltan dos credenciales tuyas (sin ellas el cobro falla, como viste en las pruebas):
+  ASAAS_API_KEY        Asaas → Integrações → Chaves de API
+  ASAAS_WEBHOOK_TOKEN  el mismo que se puso en el webhook de Asaas
+  ASAAS_CPF_LOCAL      CPF del local; todas las cobranzas cuelgan de él
+  ASAAS_ENV            produccion | sandbox
 
-MP_ACCESS_TOKEN → Mercado Pago → Tus integraciones → Credenciales
-MP_WEBHOOK_SECRET → Webhooks → Configurar notificación
-Y registrar esta URL como notificación en Mercado Pago:
-https://tgilgfwxtghcqskfyzif.supabase.co/functions/v1/mercadopago-webhook
+URL registrada como webhook en Asaas:
+https://tgilgfwxtghcqskfyzif.supabase.co/functions/v1/asaas-webhook
 
-¿Me pasás las credenciales de prueba para dejar una compra funcionando de punta a punta, o preferís que arranque creando los usuarios del personal?
+Eventos: PAYMENT_RECEIVED, PAYMENT_CONFIRMED, PAYMENT_OVERDUE,
+PAYMENT_DELETED, PAYMENT_REFUNDED.

@@ -56,9 +56,8 @@ async function apagarCobranzasVencidas(db: any): Promise<void> {
 
 /* Cuánto vive la reserva mientras el comprador paga.
 
-   Con Mercado Pago este plazo era también el del QR. Con Asaas no: su QR vive
-   hasta doce meses y no hay forma de acortarlo, así que este número es lo único
-   que limita la ventana de pago. Cuando vence, la mesa vuelve a la venta y la
+   El QR de Asaas vive hasta doce meses y no hay forma de acortarlo, así que
+   este número es lo único que limita la ventana de pago. Cuando vence, la mesa vuelve a la venta y la
    cobranza se apaga en el próximo barrido. */
 const HOLD_MINUTES = 5;
 const MAX_MESAS = 8;

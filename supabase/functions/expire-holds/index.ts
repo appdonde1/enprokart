@@ -7,10 +7,10 @@ import { fail, json } from "../_shared/http.ts";
  * Respaldo para cuando pg_cron no está disponible: se agenda desde el panel
  * (Edge Functions > Cron). Protegida con un secreto propio porque no lleva JWT.
  *
- * Lo segundo es nuevo y no es opcional. El QR de Asaas no vence en cinco
- * minutos como el de Mercado Pago: vive hasta el fin del día. Si solo
- * soltáramos la mesa, el QR viejo seguiría cobrando y alguien podría pagar una
- * mesa que ya se revendió. Cancelar la cobranza es lo que cierra esa puerta.
+ * Lo segundo no es opcional. El QR de Asaas no vence en minutos: vive hasta
+ * doce meses. Si solo soltáramos la mesa, el QR viejo seguiría cobrando y
+ * alguien podría pagar una mesa que ya se revendió. Cancelar la cobranza es lo
+ * que cierra esa puerta.
  */
 Deno.serve(async (req) => {
   const esperado = Deno.env.get("CRON_SECRET");

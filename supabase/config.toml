@@ -392,7 +392,6 @@ verify_jwt = false
 [functions.get-order-status]
 verify_jwt = false
 
-# Mercado Pago firma con HMAC en x-signature, no manda JWT de Supabase.
 # Asaas no manda un JWT de Supabase: la autenticación es el token propio que
 # viaja en la cabecera asaas-access-token y que valida la función.
 [functions.asaas-webhook]
