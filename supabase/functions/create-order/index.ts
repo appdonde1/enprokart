@@ -1,5 +1,5 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { createPixPayment } from "../_shared/mercadopago.ts";
+import { crearCobroPix } from "../_shared/asaas.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
 
 /* Inicia una compra.
@@ -361,16 +361,17 @@ async function cobrar(db: any, p: CobroParams): Promise<Response> {
 
   let pix;
   try {
-    pix = await createPixPayment({
+    /* Asaas no recibe la URL del webhook por cobranza: se configura una vez
+       para toda la cuenta. Y tampoco recibe un vencimiento en minutos —el QR
+       vive hasta el fin del día—, así que la ventana real de pago la marca la
+       reserva de la mesa, y `expire-holds` cancela la cobranza al soltarla. */
+    pix = await crearCobroPix({
       orderId: orderId!,
       amountCents: p.montoCents,
       description: `${p.event.name} · ${p.sectionLabel} · ${p.descripcionLugar}`,
-      expiresAt,
-      notificationUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook`,
       buyer: {
-        name: p.buyer.nombre,
-        lastname: p.buyer.apellido,
-        document: p.buyer.documento,
+        nombre: p.buyer.nombre,
+        apellido: p.buyer.apellido,
         whatsapp: p.buyer.whatsapp,
         email: p.buyer.email,
       },
@@ -380,7 +381,7 @@ async function cobrar(db: any, p: CobroParams): Promise<Response> {
     await db.from("orders").update({ status: "failed" }).eq("id", orderId);
     // El detalle de la pasarela queda en los logs de la función, no en la
     // respuesta: al comprador no le sirve y expone cómo está armado el cobro.
-    console.error("create-order/mercadopago", error);
+    console.error("create-order/asaas", error);
     return fail("No se pudo generar el cobro PIX. Intenta de nuevo.", 502);
   }
 
