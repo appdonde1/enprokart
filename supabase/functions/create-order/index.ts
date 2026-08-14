@@ -1,6 +1,46 @@
 import { serviceClient } from "../_shared/supabase.ts";
-import { crearCobroPix } from "../_shared/asaas.ts";
+import { cancelarCobro, crearCobroPix } from "../_shared/asaas.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
+
+/* Apaga las cobranzas de reservas que ya vencieron.
+ *
+ * El QR de Asaas vive hasta doce meses; la reserva de la mesa, cinco minutos.
+ * Si la cobranza sigue viva después de soltar la mesa, alguien puede pagar un
+ * lugar que ya se revendió.
+ *
+ * Esto debería hacerlo el cron, pero no puede: pg_cron corre SQL puro y pg_net
+ * no está habilitado, así que desde la base no hay forma de llamar a Asaas.
+ * Se hace acá, y no es un rodeo: una mesa solo se revende pasando por esta
+ * función, así que barrer antes de tomar una mesa cierra la ventana justo
+ * donde el peligro existe.
+ *
+ * Va acotado a unas pocas por llamada: una compra no puede ponerse lenta
+ * porque haya cien cobranzas viejas colgando. Las que sobran caen en la
+ * siguiente compra, y la red del webhook cubre lo que se escape. */
+const BARRIDO_MAX = 8;
+
+async function apagarCobranzasVencidas(db: any): Promise<void> {
+  const { data: viejas } = await db
+    .from("orders")
+    .select("id, provider_payment_id")
+    .in("status", ["expired", "canceled", "failed"])
+    .not("provider_payment_id", "is", null)
+    .is("charge_canceled_at", null)
+    .limit(BARRIDO_MAX);
+
+  if (!viejas?.length) return;
+
+  await Promise.all(viejas.map(async (o: any) => {
+    // Si Asaas rechaza la cancelación porque ya estaba pagada o borrada, se
+    // marca igual: reintentarla en cada compra no la va a arreglar, y la red
+    // del webhook se ocupa del caso en que sí entró plata.
+    const ok = await cancelarCobro(o.provider_payment_id).catch(() => false);
+    await db.from("orders")
+      .update({ charge_canceled_at: new Date().toISOString() })
+      .eq("id", o.id);
+    if (!ok) console.warn("create-order/barrido: Asaas no canceló", o.provider_payment_id);
+  }));
+}
 
 /* Inicia una compra.
 
@@ -16,9 +56,10 @@ import { fail, json, preflight } from "../_shared/http.ts";
 
 /* Cuánto vive la reserva mientras el comprador paga.
 
-   Es el mismo plazo que se le pide a Mercado Pago para el vencimiento del QR:
-   si el PIX vence, la mesa tiene que volver a estar en venta enseguida. Tenerla
-   bloqueada más tiempo que el QR es una mesa muerta, nadie puede pagarla. */
+   Con Mercado Pago este plazo era también el del QR. Con Asaas no: su QR vive
+   hasta doce meses y no hay forma de acortarlo, así que este número es lo único
+   que limita la ventana de pago. Cuando vence, la mesa vuelve a la venta y la
+   cobranza se apaga en el próximo barrido. */
 const HOLD_MINUTES = 5;
 const MAX_MESAS = 8;
 const MAX_PERSONAS = 60;
@@ -76,6 +117,9 @@ Deno.serve(async (req) => {
   }
 
   const db = serviceClient();
+
+  // Antes de tomar una mesa: apagar las cobranzas de las que ya se soltaron.
+  await apagarCobranzasVencidas(db).catch((e) => console.error("create-order/barrido", e));
 
   const { data: event } = await db
     .from("events").select("id, name, status").eq("slug", body.event_slug).maybeSingle();
