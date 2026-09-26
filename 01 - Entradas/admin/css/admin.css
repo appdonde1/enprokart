@@ -3029,3 +3029,53 @@ tr.fila-retirada:hover { opacity: 1; }
   padding: 6px 10px;
 }
 
+.mesa-popover__fila-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-editar-nota {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font: 600 0.68rem/1 var(--mono);
+  letter-spacing: 0.05em;
+  padding: 2px 4px;
+  text-decoration: underline;
+  transition: color var(--t-color) ease;
+}
+.btn-editar-nota:hover { color: #fff; }
+
+.mesa-popover__editor-nota {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mesa-popover__editor-nota input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.8rem;
+}
+
+.mesa-popover__editor-nota input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--campo-anillo);
+}
+
+.mesa-popover__editor-nota-acciones {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+

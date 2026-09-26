@@ -130,7 +130,87 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 4. Agregar notas personalizadas de table_notes
+    const { data: notasMesas } = await db
+      .from("table_notes")
+      .select("table_code, notes, updated_at, updated_by")
+      .eq("event_id", eventId);
+
+    for (const nm of notasMesas ?? []) {
+      if (nm.notes && nm.notes.trim()) {
+        const tCode = nm.table_code;
+        if (!mesasMap[tCode]) {
+          mesasMap[tCode] = {
+            table_code: tCode,
+            comprador: "Nota asignada",
+            descripcion: nm.notes,
+            motivo: nm.notes,
+            nota_personalizada: nm.notes,
+            estado: "note",
+            is_courtesy: false,
+          };
+        } else {
+          mesasMap[tCode].descripcion = nm.notes;
+          mesasMap[tCode].motivo = nm.notes;
+          mesasMap[tCode].nota_personalizada = nm.notes;
+        }
+      }
+    }
+
     return json({ info_mesas: mesasMap });
+  }
+
+  /* Guardar / editar descripción o nota personalizada de una mesa */
+  if (body.action === "guardar_nota_mesa") {
+    const eventId = String(body.event_id ?? "");
+    const tableCode = String(body.table_code ?? "").trim().toUpperCase();
+    const notes = String(body.notes ?? "").trim();
+
+    if (!eventId || !tableCode) return fail("Falta el evento y código de mesa");
+
+    // 1. Guardar en table_notes
+    const { error: errNote } = await db
+      .from("table_notes")
+      .upsert({
+        event_id: eventId,
+        table_code: tableCode,
+        notes,
+        updated_by: staff.userId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "event_id,table_code" });
+
+    if (errNote) {
+      console.error("error guardar_nota_mesa:", errNote);
+      return fail("No se pudo guardar la nota", 500);
+    }
+
+    // 2. Si hay órdenes asociadas con esa mesa, actualizar notes y courtesy_log
+    const { data: ordenes } = await db
+      .from("orders")
+      .select("id, is_courtesy, order_tables(table_code), tickets(id, table_code)")
+      .eq("event_id", eventId)
+      .neq("status", "canceled");
+
+    for (const ord of ordenes ?? []) {
+      const ordenTables = (ord.order_tables ?? []).map((ot: any) => ot.table_code);
+      const ticketTables = (ord.tickets ?? []).map((t: any) => t.table_code);
+      if (ordenTables.includes(tableCode) || ticketTables.includes(tableCode)) {
+        await db.from("orders").update({ notes }).eq("id", ord.id);
+        if (ord.is_courtesy) {
+          const tIds = (ord.tickets ?? []).map((t: any) => t.id).filter(Boolean);
+          if (tIds.length) {
+            await db.from("courtesy_log").update({ reason: notes }).in("ticket_id", tIds);
+          }
+        }
+      }
+    }
+
+    return json({
+      ok: true,
+      table_code: tableCode,
+      notes,
+      mensaje: `Descripción de la mesa ${tableCode} actualizada con éxito.`
+    });
   }
 
   /* Liberar una reserva completa, indiferente del dinero.

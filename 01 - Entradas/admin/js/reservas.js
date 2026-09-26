@@ -490,18 +490,25 @@
 
     // Cuerpo
     const cuerpo = $("popoverCuerpo");
+    const descActual = info?.descripcion || info?.motivo || "";
+
     if (info) {
       cuerpo.innerHTML = `
         <div class="mesa-popover__fila">
           <span class="mesa-popover__etiqueta">A nombre de</span>
           <span class="mesa-popover__valor"><strong>${P.esc(info.comprador)}</strong></span>
         </div>
-        ${info.motivo || info.descripcion ? `
-          <div class="mesa-popover__fila">
-            <span class="mesa-popover__etiqueta">Descripción / Motivo</span>
-            <div class="mesa-popover__motivo">${P.esc(info.motivo || info.descripcion)}</div>
+        <div class="mesa-popover__fila">
+          <div class="mesa-popover__fila-cabecera">
+            <span class="mesa-popover__etiqueta">Descripción / Nota</span>
+            <button type="button" class="btn-editar-nota" id="btnAbrirEditorNota">
+              ${descActual ? "✏️ Editar" : "+ Agregar nota"}
+            </button>
           </div>
-        ` : ""}
+          <div id="contenedorNotaMesa">
+            ${descActual ? `<div class="mesa-popover__motivo">${P.esc(descActual)}</div>` : `<small class="hint" style="margin:2px 0 0;">Sin descripción</small>`}
+          </div>
+        </div>
         <div class="mesa-popover__fila">
           <span class="mesa-popover__etiqueta">Detalle</span>
           <span class="mesa-popover__valor">
@@ -523,6 +530,15 @@
           <span class="mesa-popover__etiqueta">Estado</span>
           <span class="mesa-popover__valor">Mesa reservada o tomada en el sistema.</span>
         </div>
+        <div class="mesa-popover__fila">
+          <div class="mesa-popover__fila-cabecera">
+            <span class="mesa-popover__etiqueta">Descripción / Nota</span>
+            <button type="button" class="btn-editar-nota" id="btnAbrirEditorNota">+ Agregar nota</button>
+          </div>
+          <div id="contenedorNotaMesa">
+            <small class="hint" style="margin:2px 0 0;">Sin descripción</small>
+          </div>
+        </div>
       `;
     } else {
       cuerpo.innerHTML = `
@@ -534,7 +550,79 @@
           <span class="mesa-popover__etiqueta">Capacidad</span>
           <span class="mesa-popover__valor">${mesa.seat_count} personas</span>
         </div>
+        <div class="mesa-popover__fila">
+          <div class="mesa-popover__fila-cabecera">
+            <span class="mesa-popover__etiqueta">Nota de mesa</span>
+            <button type="button" class="btn-editar-nota" id="btnAbrirEditorNota">+ Agregar nota</button>
+          </div>
+          <div id="contenedorNotaMesa">
+            ${descActual ? `<div class="mesa-popover__motivo">${P.esc(descActual)}</div>` : `<small class="hint" style="margin:2px 0 0;">Sin nota</small>`}
+          </div>
+        </div>
       `;
+    }
+
+    // Configurar editor interactivo de notas
+    const btnAbrirEditor = $("btnAbrirEditorNota");
+    if (btnAbrirEditor) {
+      btnAbrirEditor.onclick = (e) => {
+        e.stopPropagation();
+        popoverFijo = true; // Mantener abierto mientras se edita
+        const contenedor = $("contenedorNotaMesa");
+        contenedor.innerHTML = `
+          <div class="mesa-popover__editor-nota">
+            <input type="text" id="popNotaInput" value="${P.esc(descActual)}" placeholder="Ej: Invitado VIP, mesa junta, etc." maxlength="160" />
+            <div class="mesa-popover__editor-nota-acciones">
+              <button type="button" class="btn btn--sm btn--primary" id="btnGuardarNotaMesa">Guardar</button>
+              <button type="button" class="btn btn--sm btn--ghost" id="btnCancelarNotaMesa">Cancelar</button>
+            </div>
+          </div>
+        `;
+        const input = $("popNotaInput");
+        input.focus();
+        input.select();
+
+        $("btnCancelarNotaMesa").onclick = () => mostrarPopover(boton, code, true);
+
+        $("btnGuardarNotaMesa").onclick = async () => {
+          const nuevaNota = input.value.trim();
+          const evento = eventoActual();
+          if (!evento) return;
+
+          $("btnGuardarNotaMesa").disabled = true;
+          $("btnGuardarNotaMesa").textContent = "Guardando...";
+
+          try {
+            await P.fn("operaciones", {
+              action: "guardar_nota_mesa",
+              event_id: evento.id,
+              table_code: code,
+              notes: nuevaNota,
+            });
+
+            if (!estado.mesasInfo[code]) {
+              estado.mesasInfo[code] = {
+                table_code: code,
+                comprador: "Nota asignada",
+                descripcion: nuevaNota,
+                motivo: nuevaNota,
+                is_courtesy: false,
+              };
+            } else {
+              estado.mesasInfo[code].descripcion = nuevaNota;
+              estado.mesasInfo[code].motivo = nuevaNota;
+            }
+
+            // Actualizar lectura del botón en el mapa
+            boton.dataset.lectura = `${mesa.label || mesa.code} · ${estado.mesasInfo[code].comprador} · ${nuevaNota || "Sin descripción"}`;
+
+            mostrarPopover(boton, code, true);
+          } catch (err) {
+            alert(`Error al guardar descripción: ${err.message}`);
+            mostrarPopover(boton, code, true);
+          }
+        };
+      };
     }
 
     // Acciones
