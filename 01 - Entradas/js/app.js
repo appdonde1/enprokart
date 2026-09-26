@@ -17,7 +17,8 @@
 
   const state = {
     event: null,
-    sections: [],
+    sections: [],        // las que se pueden comprar
+    sectionsVisibles: [], // todas, incluidas las agotadas — solo las usa el paso 1
     tables: [],
     seccion: null,      // sección elegida (o grupo de secciones del plano)
     personas: 2,
@@ -43,37 +44,94 @@
   const esDeOro = (s) => s.assignment_mode === "manual" && !esDePlata(s);
 
   const $ = (id) => document.getElementById(id);
-  const money = (c) => `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
+
+  /* Antes esto era `toFixed(2).replace(".", ",")`, que no pone separador de
+     miles: una mesa de seis a R$ 400 se imprimía «R$ 2400,00». El formateador
+     nativo lo resuelve y además pone el espacio duro que usa el portugués de
+     Brasil. Se construye una sola vez porque Intl es caro de instanciar. */
+  const REALES = new Intl.NumberFormat("pt-BR", {
+    style: "currency", currency: "BRL",
+  });
+  const money = (c) => REALES.format((c || 0) / 100);
   const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+  /* El mensaje se escribía en un <span> suelto: sin id, sin role, y el campo no
+     lo apuntaba con nada. O sea que quien usa un lector de pantalla enviaba el
+     formulario, no pasaba nada audible, y el foco se quedaba donde estaba.
+     Ahora el span se anuncia solo y el campo declara que está inválido y por
+     qué. `role="alert"` ya viene del HTML: si se pusiera acá, al mismo tiempo
+     que el texto, varios lectores no llegan a anunciarlo. */
   function setError(campo, mensaje) {
     const el = document.querySelector(`.error[data-for="${campo}"]`);
-    if (el) el.textContent = mensaje || "";
+    if (el) {
+      el.textContent = mensaje || "";
+      if (!el.id) el.id = `error-${campo}`;
+    }
+
     const input = $(campo);
-    if (input) input.classList.toggle("invalid", Boolean(mensaje));
+    if (!input) return;
+
+    input.classList.toggle("invalid", Boolean(mensaje));
+    if (mensaje) {
+      input.setAttribute("aria-invalid", "true");
+      if (el?.id) input.setAttribute("aria-describedby", el.id);
+    } else {
+      input.removeAttribute("aria-invalid");
+    }
+  }
+
+  /* Al primer campo con error, para no obligar a buscarlo. `preventScroll` y un
+     desplazamiento propio: el foco directo salta el campo al borde de arriba,
+     debajo del encabezado pegajoso. */
+  function irAlPrimerError() {
+    const primero = document.querySelector("#formRegistro [aria-invalid='true']");
+    if (!primero) return;
+    primero.focus({ preventScroll: true });
+    primero.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   // ---------- navegación ----------
-  function irAPaso(n) {
-    document.querySelectorAll(".step-panel").forEach((p) => p.classList.remove("active"));
-    $(`panel-${n}`).classList.add("active");
 
+  /* Mueve el riel de pasos y nada más. Va aparte de `irAPaso` porque el paso 4
+     —el pago— no tiene panel propio: es una ventana. Y mueve todos los rieles
+     de la página de una vez, que es como la ventana de pago mantiene el suyo
+     en hora sin saber que existe. */
+  function marcarPaso(n) {
     document.querySelectorAll(".step-indicator").forEach((el) => {
       const s = Number(el.dataset.step);
       el.classList.toggle("active", s === n);
       el.classList.toggle("done", s < n);
     });
+  }
+
+  /* En qué paso estabas, para saber hacia dónde va el siguiente. */
+  let pasoActual = 1;
+
+  function irAPaso(n) {
+    /* El panel entra desde el lado hacia el que vas: adelante desde la derecha,
+       atrás desde la izquierda. Sin esto se entiende que algo cambió, pero no
+       si avanzaste o retrocediste — y son cuatro pasos, así que importa. */
+    const panels = document.querySelector(".booking-panels");
+    if (panels) panels.dataset.dir = n < pasoActual ? "atras" : "adelante";
+    pasoActual = n;
+
+    document.querySelectorAll(".step-panel").forEach((p) => p.classList.remove("active"));
+    $(`panel-${n}`).classList.add("active");
+
+    marcarPaso(n);
 
     $("resumen").hidden = n === 1 || !haySeleccion();
+    // Los botones del paso 2 viven en el pie del flujo, fuera del panel.
+    $("pieLugar").hidden = n !== 2;
+    $("pieDatos").hidden = n !== 3;
 
-    // El flujo vive dentro de #reservar, en medio de la página. Antes esto
-    // ocultaba el hero y subía al tope: como el hero desaparecía, el visitante
-    // terminaba mirando "Próximos eventos" en vez del paso siguiente.
-    const shell = $("reservar");
-    if (shell && !shell.hidden) {
-      shell.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    /* Abierto, el flujo ocupa la ventana entera y el que scrollea es el panel,
+       no la página. Así que al cambiar de paso lo que hay que devolver arriba
+       es el panel nuevo: mover la página no haría nada, y el paso entrante se
+       quedaría a media altura si el anterior estaba scrolleado. */
+    const panel = $(`panel-${n}`);
+    if (panel) panel.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // Abrir el flujo y desplazarse hasta él lo hace el script de index.html,
@@ -115,10 +173,24 @@
 
     const { data: sections } = await db
       .from("sections")
-      .select("id, code, label, price_cents, assignment_mode, capacity, notice, theme_color")
+      .select("id, code, label, price_cents, assignment_mode, capacity, notice, theme_color, on_sale")
       .eq("event_id", event.id)
       .order("sort_order");
-    state.sections = sections || [];
+
+    /* Lo apagado en el panel no se puede comprar, pero sí se tiene que ver.
+
+       Antes esto era un filtro y punto: la sección apagada desaparecía de la
+       lista sin ninguna explicación. Y como el admin apaga una sección
+       justamente cuando se agota, el efecto era que el área más cara —la que
+       más tira de la venta— se borraba sola de la página, y quien la había
+       visto el día anterior no entendía qué había pasado.
+
+       Ahora hay dos listas. `state.sections` son las que se pueden comprar, y
+       es la que sigue alimentando el plano, el resumen y el cobro: nada de eso
+       cambia. `state.sectionsVisibles` las lleva todas, y la usa solo el paso 1
+       para poder dibujar la agotada en su sitio, en gris y sin poder tocarla. */
+    state.sectionsVisibles = sections || [];
+    state.sections = (sections || []).filter((s) => s.on_sale !== false);
 
     const conPlano = state.sections.filter((s) => s.assignment_mode === "manual");
     if (conPlano.length) {
@@ -149,21 +221,38 @@
     })
     : "";
 
-  /* =========================================================
-     EL CARRUSEL DE PORTADA
+  /* Para el listón: día y mes, sin el día de la semana. En un cartel «26 de
+     septiembre» es la forma en que la fecha se lee de un vistazo; añadirle
+     «sábado» delante alarga la línea sin aportar nada que no se deduzca. */
+  const fechaCorta = (iso) => iso
+    ? new Date(iso).toLocaleDateString("es", { day: "numeric", month: "long" })
+    : "";
 
-     Una diapositiva por fecha publicada. La columna de datos de la derecha
-     sigue a la que esté al frente: fecha, lugar y bajada son los de esa fecha,
-     no los de un evento fijo.
+  /* =========================================================
+     EL CARRUSEL DE PORTADA — PANORÁMICO
+
+     Una diapositiva por fecha publicada, de lado a lado de la pantalla. La
+     ficha de debajo sigue a la que esté al frente: fecha, lugar y bajada son
+     los de esa fecha, no los de un evento fijo.
+
+     El desplazamiento es scroll nativo con scroll-snap: este archivo no mueve
+     nada con el dedo, solo mira dónde quedó el scroll y marca cuál es la
+     activa. El carrusel anterior movía un transform con pointerdown/pointerup,
+     y en el teléfono el navegador se quedaba con el gesto y el pointerup no
+     llegaba: deslizar no hacía nada.
+
+     El reloj no es un setInterval: es la animación CSS de la barra de progreso.
+     Cuando la barra se termina de llenar se pasa a la siguiente. Así lo que se
+     ve y lo que pasa no pueden desincronizarse, y pausar es pausar la barra.
 
      Con una sola fecha no se dibuja ningún control: un carrusel de uno es una
-     foto, y los puntos y las flechas solo estorbarían.
+     foto, y las barras y las flechas solo estorbarían.
      ========================================================= */
 
   const carrusel = {
     fechas: [],
     i: 0,
-    reloj: null,
+    destino: null,   // a dónde va un desplazamiento pedido por código
     PAUSA: 6500,
   };
 
@@ -179,110 +268,160 @@
     carrusel.fechas = fechas;
     carrusel.i = Math.max(0, fechas.findIndex((e) => e.is_main));
 
-    pista.innerHTML = fechas.map((e, i) => `
-      <article class="portada__slide${i === carrusel.i ? " es-activa" : ""}"
+    pista.innerHTML = fechas.map((e, i) => {
+      const src = esc(e.cover_image || IMAGEN_GENERICA);
+      const carga = i === carrusel.i ? 'fetchpriority="high"' : 'loading="lazy"';
+      /* Sobre la foto, solo el nombre y la fecha: son los dos datos que el
+         admin escribe en la pestaña Portada para esto. Lo demás va en la ficha
+         de debajo. */
+      return `
+      <article class="portada__slide" data-i="${i}"
                role="group" aria-roledescription="diapositiva"
-               aria-label="${i + 1} de ${fechas.length}: ${esc(e.name)}"
-               ${i === carrusel.i ? "" : 'aria-hidden="true"'}>
-        <img class="portada__img" alt="${esc(e.name)}"
-             src="${esc(e.cover_image || IMAGEN_GENERICA)}"
-             ${i === carrusel.i ? 'fetchpriority="high"' : 'loading="lazy"'} />
-        <div class="portada__velo"></div>
-        <div class="portada__texto">
-          ${e.event_type ? `<p class="portada__tipo">${esc(e.event_type)}</p>` : ""}
-          <h1 class="portada__nombre">${esc(e.name)}</h1>
-          <!-- Cada dato aparece solo si está cargado. Sin esta guarda, un evento
-               sin fecha dibujaba un punto naranja solo, sin nada al lado. -->
-          <p class="portada__cuando">
-            ${e.event_date ? `<span><i></i>${esc(fechaLarga(e.event_date))}</span>` : ""}
-            ${e.venue || e.city ? `<span><i></i>${esc(e.venue || e.city)}</span>` : ""}
-          </p>
+               aria-label="${i + 1} de ${fechas.length}: ${esc(e.name)}">
+        <div class="portada__media">
+          <img class="portada__fondo" src="${src}" alt="" aria-hidden="true" ${carga} decoding="async" />
+          <img class="portada__img" src="${src}" alt="${esc(e.name)}" ${carga} decoding="async" />
         </div>
-      </article>
-    `).join("");
+        <div class="portada__velo" aria-hidden="true"></div>
+        <div class="portada__liston">
+          <p class="portada__titulo">${esc(e.name)}</p>
+          ${e.event_date
+            ? `<p class="portada__fecha">${esc(fechaCorta(e.event_date))}</p>` : ""}
+        </div>
+      </article>`;
+    }).join("");
 
-    // Si la imagen del anunciante no baja, entra la genérica y no un hueco.
-    pista.querySelectorAll(".portada__img").forEach((img) => {
-      img.addEventListener("error", () => { img.src = IMAGEN_GENERICA; }, { once: true });
+    /* Cuando la imagen llega se conoce su forma. Un afiche vertical no se
+       recorta para llenar el cuadro apaisado: la hoja lo muestra entero sobre
+       una copia desenfocada. */
+    pista.querySelectorAll(".portada__slide").forEach((slide) => {
+      const img = slide.querySelector(".portada__img");
+      const fondo = slide.querySelector(".portada__fondo");
+      const medir = () => slide.classList.toggle("portada__slide--vertical",
+        img.naturalHeight > img.naturalWidth * 0.9);
+
+      if (img.complete && img.naturalWidth) medir();
+      else img.addEventListener("load", medir, { once: true });
+
+      // Si la imagen del evento no baja, entra la genérica y no un hueco.
+      img.addEventListener("error", () => {
+        img.addEventListener("load", medir, { once: true });
+        img.src = IMAGEN_GENERICA;
+        fondo.src = IMAGEN_GENERICA;
+      }, { once: true });
     });
 
-    const mando = $("portadaMando");
-    const puntos = $("portadaPuntos");
+    const barras = $("portadaPuntos");
+    const anterior = $("portadaAnterior");
+    const siguiente = $("portadaSiguiente");
     const varias = fechas.length > 1;
-    if (mando) mando.hidden = !varias;
+    [barras, anterior, siguiente].forEach((el) => { if (el) el.hidden = !varias; });
 
-    if (varias && puntos) {
-      puntos.innerHTML = fechas.map((e, i) => `
-        <button type="button" class="portada__punto" role="tab"
-                data-i="${i}" aria-selected="${i === carrusel.i}"
-                aria-label="${esc(e.name)}"><span></span></button>
+    if (varias && barras) {
+      portada.style.setProperty("--portada-pausa", `${carrusel.PAUSA}ms`);
+      barras.innerHTML = fechas.map((e, i) => `
+        <button type="button" class="portada__tab" role="tab"
+                data-i="${i}" aria-selected="false"
+                aria-label="${esc(e.name)}"><span><i></i></span></button>
       `).join("");
-      puntos.querySelectorAll("[data-i]").forEach((b) => {
-        b.addEventListener("click", () => { irASlide(Number(b.dataset.i)); reiniciarReloj(); });
+      barras.querySelectorAll("[data-i]").forEach((b) => {
+        b.addEventListener("click", () => irASlide(Number(b.dataset.i)));
       });
-      $("portadaAnterior")?.addEventListener("click", () => { mover(-1); reiniciarReloj(); });
-      $("portadaSiguiente")?.addEventListener("click", () => { mover(1); reiniciarReloj(); });
+      anterior?.addEventListener("click", () => mover(-1));
+      siguiente?.addEventListener("click", () => mover(1));
 
-      // Con el dedo: arrastrar es lo primero que alguien prueba en un carrusel.
-      let x0 = null;
-      portada.addEventListener("pointerdown", (e) => { x0 = e.clientX; }, { passive: true });
-      portada.addEventListener("pointerup", (e) => {
-        if (x0 === null) return;
-        const d = e.clientX - x0;
-        x0 = null;
-        if (Math.abs(d) > 45) { mover(d < 0 ? 1 : -1); reiniciarReloj(); }
+      /* El reloj. Con «reducir movimiento» la barra no se anima; además la hoja
+         global acorta cualquier animación a casi cero, y si se escuchara el
+         final igual, pasaría de fecha en fecha sin parar. */
+      if (sinMovimiento()) {
+        portada.classList.add("portada--quieta");
+      } else {
+        barras.addEventListener("animationend", (ev) => {
+          if (ev.animationName === "portada-progreso") mover(1);
+        });
+      }
+
+      /* Se pausa mientras el dedo está encima, con el ratón encima, con el foco
+         adentro y con la pestaña en segundo plano. Al tocar también se olvida
+         cualquier desplazamiento en camino: el dedo manda. */
+      const pausar = () => portada.classList.add("portada--pausa");
+      const seguir = () => portada.classList.remove("portada--pausa");
+      pista.addEventListener("touchstart", () => { carrusel.destino = null; pausar(); }, { passive: true });
+      pista.addEventListener("touchend", seguir, { passive: true });
+      pista.addEventListener("touchcancel", seguir, { passive: true });
+      portada.addEventListener("mouseenter", pausar);
+      portada.addEventListener("mouseleave", seguir);
+      portada.addEventListener("focusin", pausar);
+      portada.addEventListener("focusout", seguir);
+      document.addEventListener("visibilitychange", () =>
+        document.hidden ? pausar() : seguir());
+
+      /* El scroll dice cuál quedó al frente. Se mide en el cuadro siguiente y no
+         en cada evento. Mientras un desplazamiento pedido por código está en
+         camino se ignoran las posiciones intermedias: si no, irían marcando
+         como activas todas las fechas por las que pasa. */
+      let cuadro = 0;
+      pista.addEventListener("scroll", () => {
+        cancelAnimationFrame(cuadro);
+        cuadro = requestAnimationFrame(() => {
+          const ancho = pista.clientWidth || 1;
+          const i = Math.round(pista.scrollLeft / ancho);
+          if (carrusel.destino !== null) {
+            if (i === carrusel.destino && Math.abs(pista.scrollLeft - i * ancho) < 4) {
+              carrusel.destino = null;
+            }
+            return;
+          }
+          if (i !== carrusel.i && i >= 0 && i < carrusel.fechas.length) activar(i);
+        });
       }, { passive: true });
 
-      // El reloj se frena mientras se mira o se navega con el teclado.
-      ["pointerenter", "focusin"].forEach((ev) =>
-        portada.addEventListener(ev, pararReloj));
-      ["pointerleave", "focusout"].forEach((ev) =>
-        portada.addEventListener(ev, arrancarReloj));
-      document.addEventListener("visibilitychange", () =>
-        document.hidden ? pararReloj() : arrancarReloj());
-
-      arrancarReloj();
+      // Al girar el teléfono cambia el ancho: la fecha del frente se queda.
+      window.addEventListener("resize", () => {
+        pista.scrollLeft = carrusel.i * pista.clientWidth;
+      });
     }
 
     portada.hidden = false;
-    document.querySelector(".feature__copy")?.classList.add("feature__copy--secundaria");
-    // Deja la pista en la diapositiva de arranque sin animar la entrada.
-    pista.style.transition = "none";
-    pista.style.transform = `translateX(-${carrusel.i * 100}%)`;
-    requestAnimationFrame(() => { pista.style.transition = ""; });
+    // La primera vez sin animación: la portada aparece ya en su fecha.
+    requestAnimationFrame(() => { pista.scrollLeft = carrusel.i * pista.clientWidth; });
+    activar(carrusel.i);
+  }
+
+  /* Marca cuál está al frente: la diapositiva, su barra y la ficha de debajo.
+     Cambiar `es-activa` es lo que reinicia el acercamiento y la entrada del
+     título; cambiar `aria-selected` reinicia la barra, o sea el reloj. */
+  function activar(n) {
+    carrusel.i = n;
+    document.querySelectorAll(".portada__slide").forEach((s, i) => {
+      const activa = i === n;
+      s.classList.toggle("es-activa", activa);
+      if (activa) s.removeAttribute("aria-hidden");
+      else s.setAttribute("aria-hidden", "true");
+    });
+    document.querySelectorAll(".portada__tab").forEach((b, i) => {
+      b.setAttribute("aria-selected", String(i === n));
+      b.classList.toggle("es-vista", i < n);
+    });
     pintarDatosDeSlide();
   }
 
   function irASlide(n) {
     const total = carrusel.fechas.length;
-    if (!total) return;
-    carrusel.i = (n + total) % total;
-
-    // La pista se corre a la izquierda: la que entra viene desde la derecha.
     const pista = $("portadaPista");
-    if (pista) pista.style.transform = `translateX(-${carrusel.i * 100}%)`;
+    if (!total || !pista) return;
+    const i = (n + total) % total;
+    if (i === carrusel.i) return;
 
-    const slides = [...document.querySelectorAll(".portada__slide")];
-    slides.forEach((s, i) => {
-      const activa = i === carrusel.i;
-      s.classList.toggle("es-activa", activa);
-      if (activa) s.removeAttribute("aria-hidden");
-      else s.setAttribute("aria-hidden", "true");
+    carrusel.destino = i;
+    pista.scrollTo({
+      left: i * pista.clientWidth,
+      behavior: sinMovimiento() ? "auto" : "smooth",
     });
-    document.querySelectorAll(".portada__punto").forEach((p, i) => {
-      p.setAttribute("aria-selected", String(i === carrusel.i));
-    });
-    pintarDatosDeSlide();
+    activar(i);
   }
 
   const mover = (paso) => irASlide(carrusel.i + paso);
-
-  function arrancarReloj() {
-    if (carrusel.reloj || sinMovimiento() || carrusel.fechas.length < 2) return;
-    carrusel.reloj = setInterval(() => mover(1), carrusel.PAUSA);
-  }
-  function pararReloj() { clearInterval(carrusel.reloj); carrusel.reloj = null; }
-  function reiniciarReloj() { pararReloj(); arrancarReloj(); }
 
   /* La columna de la derecha es la ficha de la fecha que está al frente. La
      portada ya dice el nombre en grande, así que acá no se repite: van los
@@ -315,8 +454,8 @@
     const vende = Boolean(e.is_main && e.sells_tickets);
     btn.dataset.vende = vende ? "1" : "0";
     btn.innerHTML = vende
-      ? 'Comprar entradas <span>↗</span>'
-      : 'Ver esta fecha <span>↗</span>';
+      ? 'Comprar entradas'
+      : 'Ver esta fecha';
   }
 
   function pintarEvento(event) {
@@ -374,22 +513,38 @@
             <span>${esc(e.city_code || "")}</span>
             <small>${esc(e.city || "")}</small>
           </div>
-          <span class="event-row__arrow">↗</span>
+          <span class="event-row__arrow" aria-hidden="true"></span>
         </a>
       `;
     }).join("");
 
     // Las filas se crean después del script que abre la reserva, así que se
     // reutiliza el mismo botón en vez de duplicar esa lógica.
+    /* La fila lleva a la compra aunque la portada esté mostrando otra fecha.
+       El botón de la portada decide según la diapositiva del frente: si el
+       carrusel había rotado a una fecha que no vende, tocar esta fila solo
+       bajaba al listado. Primero se trae al frente la fecha que vende. */
     cont.querySelectorAll("[data-abre-reserva]").forEach((fila) => {
       fila.addEventListener("click", (e) => {
         e.preventDefault();
+        const vende = carrusel.fechas.findIndex((f) => f.is_main && f.sells_tickets);
+        if (vende >= 0) irASlide(vende);
         $("btnComprar")?.click();
       });
     });
   }
 
   // ---------- portada: menú ----------
+
+  /* Fotos de la casa para los productos que todavía no tienen la suya. Ya
+     estaban en el repositorio y no las usaba nadie. */
+  const PLACEHOLDERS_MENU = [
+    "placeholders/menu-parrilla.jpg",
+    "placeholders/menu-burger.jpg",
+    "placeholders/menu-pizza.jpg",
+    "placeholders/menu-tenders.jpg",
+  ];
+
   async function cargarMenu() {
     const cont = $("listaMenu");
     if (!cont) return;
@@ -405,24 +560,72 @@
       return;
     }
 
-    // Sin precios: el menú de la portada muestra qué hay, no cuánto cuesta.
-    cont.innerHTML = data.map((p, i) => `
-      <figure class="menu-tile${p.image_url ? " menu-tile--foto" : ""}"
-              ${p.image_url ? `style="background-image:url('${esc(p.image_url)}')"` : ""}>
+    /* Sin precios: el menú de la portada muestra qué hay, no cuánto cuesta.
+
+       La foto era un `background-image` inline. Eso costaba tres cosas: no
+       admite `loading="lazy"` —así que el teléfono se bajaba las cuatro fotos
+       antes de que nadie llegara a la sección—, no admite `alt`, y la URL
+       terminaba dentro de `url('…')` mientras `esc()` no escapa la comilla
+       simple: un nombre de archivo con apóstrofo rompía el atributo entero. */
+    cont.innerHTML = data.map((p, i) => {
+      /* Si el producto no tiene foto cargada entra una de la casa, en vez de la
+         trama diagonal: el collage vive de las imágenes y con la mitad de las
+         baldosas en gris se lee como si faltara algo. Se reparten por posición
+         y no al azar para que no cambien en cada recarga. */
+      const foto = p.image_url || PLACEHOLDERS_MENU[i % PLACEHOLDERS_MENU.length];
+      return `
+      <figure class="menu-tile menu-tile--foto${p.image_url ? "" : " menu-tile--generica"}">
+        <img class="menu-tile__foto" src="${esc(foto)}"
+             alt="" loading="lazy" decoding="async" />
         <figcaption>
           <b>${String(i + 1).padStart(2, "0")}</b>
           <strong>${esc(p.name)}</strong>
           ${p.description ? `<em>${esc(p.description)}</em>` : ""}
         </figcaption>
       </figure>
-    `).join("");
+    `;
+    }).join("");
+
+    // Si una foto cargada desde la base no baja, entra la de la casa en su
+    // lugar y la baldosa no queda en negro.
+    cont.querySelectorAll(".menu-tile__foto").forEach((img, i) => {
+      img.addEventListener("error", () => {
+        img.src = PLACEHOLDERS_MENU[i % PLACEHOLDERS_MENU.length];
+      }, { once: true });
+    });
   }
 
   // ---------- paso 1: áreas ----------
+
+  /* Cuántas mesas quedan libres en un conjunto de secciones.
+     Solo tiene respuesta para las áreas que se eligen en el plano: de esas
+     conocemos cada mesa y su disponibilidad. Para las de entrada general la
+     base nos da la capacidad total, no la vendida, así que devuelve null y la
+     tarjeta no dice nada en vez de inventar un número. */
+  function mesasLibres(secciones) {
+    const ids = new Set(secciones.map((s) => s.id));
+    if (!state.tables.length) return null;
+    return state.tables.filter((t) => ids.has(t.section_id) && t.available).length;
+  }
+
+  /* Una sección está agotada por dos caminos, y los dos cuentan:
+       · el admin la apagó en el panel (`on_sale === false`), que es lo que hace
+         cuando ya no quedan lugares;
+       · o quedan cero mesas libres en el plano, que lo sabemos solos. */
+  function estaAgotada(secciones) {
+    if (!secciones.length) return false;
+    if (secciones.every((s) => s.on_sale === false)) return true;
+    const libres = mesasLibres(secciones);
+    return libres === 0;
+  }
+
   function pintarAreas() {
-    const oro = state.sections.filter(esDeOro);
-    const plata = state.sections.find(esDePlata);
-    const sinPlano = state.sections.filter(
+    // El paso 1 dibuja todas, incluidas las agotadas; el resto del flujo sigue
+    // trabajando solo con las que se pueden comprar.
+    const todas = state.sectionsVisibles ?? state.sections;
+    const oro = todas.filter(esDeOro);
+    const plata = todas.find(esDePlata);
+    const sinPlano = todas.filter(
       (s) => s.assignment_mode !== "manual" && !esDePlata(s));
 
     const tarjetas = [];
@@ -441,9 +644,16 @@
         // porque es lo que se termina pagando.
         precio: money(desde),
         unidad: "por persona",
-        incluye: `Mesa de 6 sillas · ${money(desde * 6)} la mesa`,
+        incluye: [`Mesa de 6 sillas`, `${money(desde * 6)} la mesa entera`, `Eliges tu mesa en el plano`, `Las más cerca de la tarima`],
         tier: "oro",
         insignia: "Oro",
+        libres: mesasLibres(oro),
+        agotada: estaAgotada(oro),
+        /* El ancla de la comparación. No dice «la más elegida» porque no
+           tenemos ese dato y no se inventa: dice que es la que está más cerca
+           del escenario, que es verdad por construcción —las áreas se ordenan
+           por cercanía a la tarima unas líneas más abajo—. */
+        destacada: "Mejor ubicación",
       });
     }
 
@@ -457,9 +667,11 @@
         detalle: "Eliges tu mesa detrás de la Sección C",
         precio: money(plata.price_cents),
         unidad: "por persona",
-        incluye: `Mesa de 4 sillas · ${money(plata.price_cents * 4)} la mesa`,
+        incluye: [`Mesa de 4 sillas`, `${money(plata.price_cents * 4)} la mesa entera`, `Eliges tu mesa en el plano`, `Detrás de la Sección C`],
         tier: "plata",
         insignia: "Plata",
+        libres: mesasLibres([plata]),
+        agotada: estaAgotada([plata]),
       });
     }
 
@@ -470,9 +682,11 @@
         detalle: "Acceso de pie, sin mesa ni silla",
         precio: money(s.price_cents),
         unidad: "por persona",
-        incluye: "Sin mesa · circulas por el salón",
+        incluye: ["Entrada individual", "Acceso de pie", "Circulas por el salón", "Sin lugar asignado"],
         tier: "general",
         insignia: "General",
+        libres: null,   // sin plano no sabemos cuántas quedan
+        agotada: s.on_sale === false,
       });
     });
 
@@ -487,13 +701,39 @@
        insignia y en el título. */
     $("areasGrid").innerHTML = `
       <p class="areas-tarima" aria-hidden="true"><span>Tarima</span></p>
-    ` + tarjetas.map((t, i) => `
-      <button type="button" class="area-card area-card--${t.tier}" data-area="${esc(t.code)}">
-        <!-- Nivel y ubicación en un solo rótulo. La insignia suelta repetía
-             la palabra que ya dice el título en el renglón siguiente. -->
-        <span class="area-card__tag">
-          ${esc(t.insignia)} <i>·</i> ${i === 0 ? "Adelante" : i === tarjetas.length - 1 ? "Al fondo" : "Detrás"}
+    ` + tarjetas.map((t, i) => {
+      const agotada = Boolean(t.agotada);
+      const donde = i === 0 ? "Adelante"
+        : i === tarjetas.length - 1 ? "Al fondo" : "Detrás";
+
+      /* La disponibilidad solo se muestra cuando la sabemos y cuando dice algo:
+         «quedan 40 mesas» no ayuda a decidir y mete ruido en la tarjeta. Por
+         debajo de diez es cuando el dato empieza a pesar. */
+      const quedan = t.libres !== null && t.libres > 0 && t.libres <= 10
+        ? `<span class="area-card__quedan">Quedan ${t.libres} ${t.libres === 1 ? "mesa" : "mesas"}</span>`
+        : "";
+
+      return `
+      <button type="button" class="area-card area-card--${t.tier}${agotada ? " area-card--agotada" : ""}${t.destacada && !agotada ? " area-card--destacada" : ""}"
+              data-area="${esc(t.code)}" style="--i:${i + 1}"${agotada ? " disabled" : ""}>
+
+        <!-- La cinta del nivel, en su metal. La llevan las tres: antes solo la
+             tenía Oro, y como Oro estaba agotado —y a las agotadas se les quita
+             el destello— la pantalla acababa sin un solo brillo.
+             Agotada cambia de mensaje pero no desaparece: un nivel agotado
+             sigue siendo el nivel que es, y decirlo en la esquina es lo que
+             explica por qué está en gris. -->
+        <span class="area-card__cinta${agotada ? " area-card__cinta--agotada" : ""}">
+          ${agotada ? "Agotado" : esc(t.insignia)}
         </span>
+
+        <!-- El tilde de «elegida». Va en un elemento propio porque los dos
+             pseudo-elementos de la tarjeta los ocupa el material. -->
+        <span class="area-card__ok" aria-hidden="true">✓</span>
+
+        <!-- Solo la posición. El nivel ya lo dice la cinta, y decirlo aquí otra
+             vez era la tercera aparición de la misma palabra en la tarjeta. -->
+        <span class="area-card__tag">${donde}</span>
         <span class="area-card__titulo">${esc(t.label)}</span>
 
         <!-- El precio va pegado al nombre: es lo que se compara entre las tres
@@ -504,21 +744,49 @@
         </span>
 
         <span class="area-card__detalle">${esc(t.detalle)}</span>
-        <span class="area-card__incluye">${esc(t.incluye)}</span>
-        <span class="area-card__ir">Elegir <b>→</b></span>
+
+        <!-- La acción va en medio, no al final: es lo que hace que la tarjeta se
+             lea como una oferta cerrada —qué es, cuánto, y el botón— y deja la
+             lista de abajo como el detalle que se consulta si hace falta. -->
+        <span class="area-card__ir">${agotada ? "Sin lugares" : "Elegir"}</span>
+
+        <!-- Lo que incluye, en lista. Antes era una sola línea corrida en el
+             gris más apagado de la tarjeta, siendo el dato que decide la compra.
+             Todas las líneas salen de datos que tenemos: sillas, precio de la
+             mesa entera, cómo se asigna el lugar y dónde queda. -->
+        <ul class="area-card__lista">
+          ${t.incluye.map((x) => `<li>${esc(x)}</li>`).join("")}
+        </ul>
+        ${quedan}
       </button>
-    `).join("");
+    `;
+    }).join("");
 
     $("areasGrid").querySelectorAll("[data-area]").forEach((btn) => {
-      btn.setAttribute("aria-pressed", "false");
       btn.addEventListener("click", () => elegirArea(btn.dataset.area));
     });
+
+    /* La entrada. Se marca acá y no se deja al observador de scroll porque
+       estas tarjetas nacen dentro de un panel que puede estar oculto: cuando el
+       flujo se abre ya están pintadas, y el observador no dispararía nunca.
+
+       La tarima va primero —es el frente del salón y ordena la lectura— y
+       detrás las áreas, de adelante hacia el fondo. El `--i` de cada tarjeta lo
+       lleva ya la plantilla; acá solo se enciende la animación. */
+    if (!sinMovimiento()) {
+      $("areasGrid").querySelector(".areas-tarima")?.classList.add("entra");
+      $("areasGrid").querySelectorAll(".area-card").forEach((c) => c.classList.add("entra"));
+    }
   }
 
-  // Al volver con "Cambiar área" hay que ver cuál se había elegido.
+  /* Al volver con "Cambiar área" hay que ver cuál se había elegido.
+     Era `aria-pressed`, que describe un interruptor que queda hundido; estos
+     botones no conmutan nada, avanzan al paso 2. `aria-current` es lo que
+     significa de verdad: de este conjunto, éste es el vigente. */
   function marcarAreaElegida(code) {
     $("areasGrid").querySelectorAll("[data-area]").forEach((btn) => {
-      btn.setAttribute("aria-pressed", btn.dataset.area === code ? "true" : "false");
+      if (btn.dataset.area === code) btn.setAttribute("aria-current", "true");
+      else btn.removeAttribute("aria-current");
     });
   }
 
@@ -933,6 +1201,15 @@
       setError("whatsapp", "Incluye el código de área. Ej: (11) 99999-9999"); ok = false;
     } else setError("whatsapp", "");
 
+    /* El correo ya no es opcional: ahí llegan las entradas con su código. La
+       comprobación es la misma que hace create-order, para que el formulario
+       no deje pasar algo que el servidor va a rechazar. */
+    const correo = $("email").value.trim();
+    if (!correo) { setError("email", "Ingresa tu correo: ahí te llegan las entradas."); ok = false; }
+    else if (!/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(correo)) {
+      setError("email", "Ese correo no parece válido. Ej: nombre@correo.com"); ok = false;
+    } else setError("email", "");
+
     return ok;
   }
 
@@ -950,8 +1227,7 @@
       : state.seccion?.section?.label ?? "";
 
     // Cada línea aparece solo si tiene contenido: el correo es opcional y una
-    // fila vacía haría dudar de si falta un dato. El total va último porque el
-    // CSS le da el peso a la última fila.
+    // fila vacía haría dudar de si falta un dato.
     const filas = [
       ["Evento", state.event?.name],
       ["Fecha", fechaLarga(state.event?.event_date)],
@@ -961,20 +1237,25 @@
       ["A nombre de", `${$("nombre").value.trim()} ${$("apellido").value.trim()}`.trim()],
       ["WhatsApp", $("whatsapp").value.trim()],
       ["Correo", $("email").value.trim()],
-      ["Total", money(totalCents())],
     ].filter(([, valor]) => valor);
 
     $("resumenPago").innerHTML = filas
       .map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`)
       .join("");
 
+    // El total no va en la lista: vive en el pie, donde no se lo lleva el scroll.
+    $("pagoTotal").textContent = money(totalCents());
+
     setError("pago", "");
     $("modalPago").hidden = false;
+    marcarPaso(4);
     $("btnPagar").focus();
   }
 
   function cerrarVentanaDePago() {
     $("modalPago").hidden = true;
+    // El riel vuelve a Datos, que es el paso al que se vuelve.
+    marcarPaso(3);
   }
 
   // Mientras el cobro se está generando la ventana no se cierra: cerrarla
@@ -983,7 +1264,7 @@
 
   $("formRegistro").addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!validar()) return;
+    if (!validar()) { irAlPrimerError(); return; }
     abrirVentanaDePago();
   });
 

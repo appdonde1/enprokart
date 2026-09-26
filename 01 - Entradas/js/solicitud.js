@@ -45,7 +45,7 @@ window.ProKartSolicitud = (() => {
   }
 
   function validarArchivo(archivo) {
-    if (!archivo) return "Adjuntá tu currículum";
+    if (!archivo) return "Adjunta tu currículum";
     const ext = archivo.name.split(".").pop()?.toLowerCase() ?? "";
     if (!EXTENSIONES.includes(ext)) return "El currículum tiene que ser PDF, DOC o DOCX";
     if (archivo.size > MAX_CV_BYTES) return "El archivo no puede pesar más de 5 MB";

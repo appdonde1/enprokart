@@ -108,6 +108,9 @@ Deno.serve(async (req) => {
   if (whatsapp.replace(/\D/g, "").length < 10) {
     return fail("El número de WhatsApp no parece válido");
   }
+  // El correo dejó de ser opcional: es por donde llega el código de la entrada,
+  // y una compra sin correo es una entrada que no se le puede mandar a nadie.
+  if (!email) return fail("Falta un correo válido: es donde llegan las entradas");
   if (!body.event_slug) return fail("Falta el evento");
 
   const personas = Math.floor(Number(body.people ?? 0));
@@ -135,10 +138,11 @@ Deno.serve(async (req) => {
 
     const { data: section } = await db
       .from("sections")
-      .select("id, code, label, price_cents, assignment_mode, capacity")
+      .select("id, code, label, price_cents, assignment_mode, capacity, on_sale")
       .eq("event_id", event.id).eq("code", seccion).maybeSingle();
 
     if (!section) return fail("Sección inexistente", 404);
+    if (section.on_sale === false) return fail(`${section.label} no está a la venta`, 409);
     if (section.assignment_mode === "manual") {
       return fail("En esta sección hay que elegir la mesa en el plano");
     }
@@ -162,6 +166,7 @@ Deno.serve(async (req) => {
           buyer_lastname: apellido,
           buyer_document: documento,
           buyer_whatsapp: whatsapp,
+          buyer_email: email,
           amount_cents: montoCents,
           people: personas,
           tables_count: mesasNecesarias,
@@ -262,7 +267,7 @@ Deno.serve(async (req) => {
 
   const { data: mesas } = await db
     .from("tables")
-    .select("id, code, seat_count, section_id, sections!inner(id, event_id, code, label, price_cents, assignment_mode)")
+    .select("id, code, seat_count, section_id, sections!inner(id, event_id, code, label, price_cents, assignment_mode, on_sale)")
     .in("code", codigos);
 
   const delEvento = (mesas ?? []).filter((m: any) => m.sections.event_id === event.id);
@@ -273,6 +278,10 @@ Deno.serve(async (req) => {
   if (delEvento.some((m: any) => m.sections.assignment_mode !== "manual")) {
     return fail("Esa sección no se elige desde el plano");
   }
+  // El sitio ya no dibuja las secciones apagadas, pero el código de una mesa
+  // puede llegar de una pestaña abierta desde antes de apagarla.
+  const apagada = (delEvento as any[]).find((m) => m.sections.on_sale === false);
+  if (apagada) return fail(`${apagada.sections.label} no está a la venta`, 409);
 
   const lugares = delEvento.reduce((acc: number, m: any) => acc + m.seat_count, 0);
   if (lugares < personas) {
@@ -294,6 +303,7 @@ Deno.serve(async (req) => {
       buyer_lastname: apellido,
       buyer_document: documento,
       buyer_whatsapp: whatsapp,
+      buyer_email: email,
       amount_cents: montoCents,
       people: personas,
       tables_count: delEvento.length,
@@ -389,6 +399,7 @@ async function cobrar(db: any, p: CobroParams): Promise<Response> {
         buyer_lastname: p.buyer.apellido,
         buyer_document: p.buyer.documento,
         buyer_whatsapp: p.buyer.whatsapp,
+        buyer_email: p.buyer.email,
         amount_cents: p.montoCents,
         people: p.personas,
         tables_count: 0,

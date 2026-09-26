@@ -7,27 +7,10 @@
 
   const db = window.supabaseClient;
 
-  /* Los módulos de esta página, agrupados como se usan: lo del evento, lo de
-     la puerta y lo que se administra. Un mesero solo ve el grupo de la puerta. */
-  const TABS = {
-    resumen: { label: "Resumen", roles: ["admin"], grupo: "Evento" },
-    salon: { label: "Salón", roles: ["admin"], grupo: "Evento" },
-    portada: { label: "Portada", roles: ["admin"], grupo: "Evento" },
-    eventos: { label: "Eventos", roles: ["admin"], grupo: "Evento" },
-    validar: { label: "Validar", roles: ["admin", "mesero"], grupo: "Puerta" },
-    entradas: { label: "Entradas", roles: ["admin", "mesero"], grupo: "Puerta" },
-  };
-
-  // Módulos que viven en su propia página porque tienen filtros y estado propios.
-  const PAGINAS = [
-    { href: "reservas.html", label: "Reservas", roles: ["admin"], grupo: "Gestión" },
-    { href: "operaciones.html", label: "Operaciones", roles: ["admin"], grupo: "Gestión" },
-    { href: "solicitudes.html", label: "Solicitudes", roles: ["admin"], grupo: "Gestión" },
-    { href: "publicidad.html", label: "Publicidad", roles: ["admin"], grupo: "Gestión" },
-    { href: "empleados.html", label: "Empleados", roles: ["admin"], grupo: "Personal" },
-    { href: "nomina.html", label: "Nómina", roles: ["admin"], grupo: "Personal" },
-    { href: "usuarios.html", label: "Usuarios", roles: ["admin"], grupo: "Personal" },
-  ];
+  /* Los módulos de la barra —cuáles hay, en qué grupo, con qué icono y para qué
+     rol— viven en js/nav.js. Acá había una de las dos listas que existían: la
+     otra estaba en panel-base.js, sin roles y con otros nombres para los mismos
+     módulos. Dos listas de lo mismo se separan solas, y ya lo habían hecho. */
 
   /* `developer` ve lo mismo que un admin: es la misma llave que abre las
      políticas de la base, donde `is_admin()` cuenta a los dos. La diferencia
@@ -41,7 +24,10 @@
     loginForm: document.getElementById("loginForm"),
     btnLogin: document.getElementById("btnLogin"),
     shell: document.getElementById("shell"),
-    tabs: document.getElementById("tabs"),
+    // El hueco de la barra se llama igual en las nueve páginas: antes era
+    // `tabs` acá y `panelNav` en las otras ocho, y ese solo detalle impedía
+    // que las dos rutas compartieran el mismo renderizador.
+    tabs: document.getElementById("panelNav"),
     userBadge: document.getElementById("userBadge"),
     btnLogout: document.getElementById("btnLogout"),
     eventSelect: document.getElementById("eventSelect"),
@@ -236,7 +222,7 @@
     if (nueva1 !== nueva2) return setError("cambioClave", "Las dos claves nuevas no coinciden.");
     if (nueva1.length < 8) return setError("cambioClave", "La clave nueva necesita al menos 8 caracteres.");
     if (!/[a-zA-Z]/.test(nueva1) || !/[0-9]/.test(nueva1)) {
-      return setError("cambioClave", "Combiná letras y números.");
+      return setError("cambioClave", "Combina letras y números.");
     }
     if (nueva1 === actual) return setError("cambioClave", "La clave nueva tiene que ser distinta de la actual.");
 
@@ -291,40 +277,38 @@
   });
 
   // ---------- barra lateral ----------
+  /* El modelo, los iconos y el marcado los emite nav.js, que es el único dueño.
+     Acá vivía la mitad de arriba de esa duplicación —una segunda lista de
+     módulos y un segundo generador de HTML—. */
   function renderTabs() {
     const rol = rolDeVista(state.role);
-    const modulos = Object.entries(TABS).filter(([, cfg]) => cfg.roles.includes(rol));
-    const paginas = PAGINAS.filter((p) => p.roles.includes(rol));
 
-    // Se arma por grupos y en el orden en que aparecen, sin ordenar alfabético:
-    // el orden dice cómo se usa el panel.
-    const grupos = [];
-    const agregar = (grupo, html) => {
-      const existente = grupos.find((g) => g.nombre === grupo);
-      if (existente) existente.items.push(html);
-      else grupos.push({ nombre: grupo, items: [html] });
-    };
+    window.PanelNav.render(ui.tabs, { rol, spa: true });
 
-    for (const [key, cfg] of modulos) {
-      agregar(cfg.grupo, `<button type="button" class="sidebar__item" data-tab="${key}">${cfg.label}</button>`);
-    }
-    for (const p of paginas) {
-      agregar(p.grupo, `<a class="sidebar__item" href="${p.href}">${p.label}</a>`);
-    }
-
-    ui.tabs.innerHTML = grupos.map((g) => `
-      <div class="sidebar__grupo">
-        <p class="sidebar__rotulo">${g.nombre}</p>
-        ${g.items.join("")}
-      </div>
-    `).join("");
-
-    ui.tabs.querySelectorAll("[data-tab]").forEach((btn) => {
-      btn.addEventListener("click", () => abrirTab(btn.dataset.tab));
+    // Delegado: el nodo se recrea entero en cada render, así que enganchar cada
+    // botón por separado obligaba a reenganchar después de cada dibujo.
+    ui.tabs.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-tab]");
+      if (btn) abrirTab(btn.dataset.tab);
     });
 
-    // Los meseros entran directo a lo que usan en la puerta.
-    abrirTab(rol === "admin" ? "resumen" : "validar");
+    window.PanelNav.montarBarra();
+
+    /* El módulo se recuerda en el ancla. Sin esto, recargar la página volvía
+       siempre a «Resumen» —se perdía en qué módulo estabas— y el botón «atrás»
+       del navegador sacaba del panel en vez de retroceder un módulo.
+       Los meseros entran directo a lo que usan en la puerta. */
+    const delAncla = location.hash.slice(1);
+    const permitido = window.PanelNav.NAV
+      .flatMap((g) => g.items)
+      .some((i) => !i.pagina && i.id === delAncla && i.roles.includes(rol));
+
+    abrirTab(permitido ? delAncla : (rol === "admin" ? "resumen" : "validar"));
+
+    window.addEventListener("hashchange", () => {
+      const id = location.hash.slice(1);
+      if (id && id !== state.tab) abrirTab(id);
+    });
   }
 
   function abrirTab(tab) {
@@ -343,44 +327,31 @@
     }
 
     state.tab = tab;
-    ui.tabs.querySelectorAll("[data-tab]").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.tab === tab);
-    });
+
+    /* Marca los dos tipos de ítem. Antes solo tocaba los `[data-tab]`, así que
+       estando dentro de un módulo los enlaces a las otras páginas no se
+       marcaban nunca: la barra no decía dónde estabas si venías de una de ellas. */
+    window.PanelNav.marcarActivo(ui.tabs, tab);
+
     document.querySelectorAll(".tab-panel").forEach((panel) => {
       panel.classList.toggle("active", panel.id === `tab-${tab}`);
     });
 
     const titulo = document.getElementById("tituloModulo");
-    if (titulo) titulo.textContent = TABS[tab]?.label ?? "";
+    if (titulo) titulo.textContent = window.PanelNav.titulo(tab);
 
-    // En el teléfono la barra tapa el contenido: elegir algo tiene que cerrarla.
-    cerrarMenu();
+    // Sin `pushState` se llenaría el historial con una entrada por pestaña.
+    if (location.hash.slice(1) !== tab) {
+      history.replaceState(null, "", `#${tab}`);
+    }
 
     // Al salir de Validar la cámara se apaga sola.
     if (tab !== "validar") window.ProKartEscaner?.apagar();
   }
 
-  // ---------- menú en teléfono ----------
-  function abrirMenu() {
-    document.getElementById("sidebar")?.classList.add("abierta");
-    document.getElementById("sidebarVelo")?.removeAttribute("hidden");
-    document.getElementById("btnMenu")?.setAttribute("aria-expanded", "true");
-    document.body.classList.add("menu-abierto");
-  }
-
-  function cerrarMenu() {
-    document.getElementById("sidebar")?.classList.remove("abierta");
-    document.getElementById("sidebarVelo")?.setAttribute("hidden", "");
-    document.getElementById("btnMenu")?.setAttribute("aria-expanded", "false");
-    document.body.classList.remove("menu-abierto");
-  }
-
-  document.getElementById("btnMenu")?.addEventListener("click", () => {
-    const abierta = document.getElementById("sidebar")?.classList.contains("abierta");
-    abierta ? cerrarMenu() : abrirMenu();
-  });
-  document.getElementById("sidebarVelo")?.addEventListener("click", cerrarMenu);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarMenu(); });
+  /* El cajón de teléfono lo maneja nav.js —incluido cerrarlo al tocar un ítem—.
+     Acá había una copia literal de lo que ya estaba en panel-base.js, escrita
+     de otra manera y sin devolver el foco al botón al cerrar. */
 
   // ---------- pestañas dentro de un módulo ----------
   // Delegado: sirve para los módulos que ya existen y para los que se agreguen,
@@ -439,7 +410,7 @@
   async function cargarEvento() {
     const { data: sections } = await db
       .from("sections")
-      .select("id, code, label, price_cents, assignment_mode, capacity, sort_order")
+      .select("id, code, label, price_cents, assignment_mode, capacity, sort_order, on_sale")
       .eq("event_id", state.eventId)
       .order("sort_order");
 
@@ -824,12 +795,22 @@
   const MAX_SILLAS = 40;
 
   // Lo editado y todavía no guardado. Vacío = no hay nada pendiente.
-  const borrador = { precios: new Map(), sillas: new Map() };
+  const borrador = { precios: new Map(), sillas: new Map(), venta: new Map() };
 
   const tieneMapa = (section) => section.assignment_mode === "manual";
   const precioDe = (s) => (borrador.precios.has(s.id) ? borrador.precios.get(s.id) : s.price_cents);
   const sillasDe = (t) => (borrador.sillas.has(t.id) ? borrador.sillas.get(t.id) : t.seat_count);
-  const pendientes = () => borrador.precios.size + borrador.sillas.size;
+  const pendientes = () => borrador.precios.size + borrador.sillas.size + borrador.venta.size;
+
+  /* Oro no es una sección: es el nombre de las de adelante —A, B, C y las tres
+     únicas—, que comparten precio y se ofrecen juntas en una sola tarjeta.
+     Plata es la del fondo y va aparte. Es la misma división que hace el sitio.
+     Se pregunta por el modo y el código, no por el nombre, para que una
+     sección nueva entre sola. */
+  const esDePlata = (s) => s.code === "PLATA" || s.code === "VIP_PLATA";
+  const esDeOro = (s) => s.assignment_mode === "manual" && !esDePlata(s);
+  const esDeGeneral = (s) => !esDeOro(s) && !esDePlata(s);
+  const aLaVenta = (s) => (borrador.venta.has(s.id) ? borrador.venta.get(s.id) : s.on_sale !== false);
 
   function renderSalon() {
     const conMapa = state.sections.filter(tieneMapa)
@@ -855,10 +836,34 @@
         </dl>
       </div>
 
+      ${bloqueVentas()}
+
       <p class="salon-tarima" aria-hidden="true"><span>Tarima</span></p>
 
+      <!-- Las mesas únicas van juntas y apiladas, en su propia columna a la
+           derecha. Sueltas dentro de la misma retícula que las secciones caían
+           donde quedara hueco —U2 arriba, U3 en medio, U1 al otro lado—, así que
+           el plano del panel decía un orden que el salón no tiene. Apiladas U1,
+           U2, U3 se leen como la fila que son, igual que en el sitio. -->
       <div class="salon-mapa">
-        ${conMapa.map(bloqueSeccion).join("")}
+        <div class="salon-zonas">
+          ${conMapa.filter((s) => !esUnica(s) && !esDelFondo(s)).map(bloqueSeccion).join("")}
+        </div>
+        ${conMapa.some(esUnica) ? `
+          <div class="salon-unicas">
+            ${conMapa.filter(esUnica)
+              .sort((a, b) => String(a.label).localeCompare(String(b.label), "es", { numeric: true }))
+              .map(bloqueSeccion).join("")}
+          </div>
+        ` : ""}
+
+        <!-- Las secciones de diez columnas o más van debajo, a lo ancho de la
+             hoja: en la columna que dejan libre las únicas no entraban. -->
+        ${conMapa.some(esDelFondo) ? `
+          <div class="salon-fondo">
+            ${conMapa.filter(esDelFondo).map(bloqueSeccion).join("")}
+          </div>
+        ` : ""}
       </div>
 
       ${sinMapa.length ? `
@@ -875,6 +880,122 @@
     pintarBarraSalon();
   }
 
+  /* Qué se está vendiendo de cada nivel (Oro, Plata, General), y el interruptor
+     de cada sección.
+
+     Van los dos mandos (todas / cada una) porque son dos decisiones distintas:
+     "esta noche Oro/Plata/General no se vende" es una sola, y "la Sección B
+     está en obra" es otra. Sin el primero, apagar un nivel entero requiere
+     múltiples clics; sin el segundo, no habría forma de dejar afuera una sola
+     sección. */
+  function bloqueVentaGrupo(titulo, hint, secciones, tierClass, grupoId) {
+    if (!secciones.length || !esAdmin()) return "";
+
+    const abiertas = secciones.filter(aLaVenta).length;
+    const n = secciones.length;
+    const nombreBase = titulo.replace(/ a la venta$/i, "");
+    const sufijo = nombreBase.toLowerCase().endsWith("a") ? "a" : "o";
+
+    let cuentaTexto = "";
+    if (abiertas === n) {
+      cuentaTexto = n === 1 ? `${esc(nombreBase)} a la venta` : `Las ${n} a la venta`;
+    } else if (abiertas === 0) {
+      cuentaTexto = `${esc(nombreBase)} cerrad${sufijo}`;
+    } else {
+      cuentaTexto = `${abiertas} de ${n} a la venta`;
+    }
+
+    return `
+      <section class="salon-venta salon-venta--${tierClass}">
+        <div class="salon-venta__texto">
+          <h3 class="salon-rotulo">${esc(titulo)}</h3>
+          <p class="hint">${hint}</p>
+        </div>
+
+        <div class="salon-venta__mando">
+          <span class="salon-venta__cuenta">${cuentaTexto}</span>
+          <button type="button" class="btn btn--ghost" data-venta-todas="1" data-grupo="${grupoId}"
+                  ${abiertas === n ? "disabled" : ""}>Abrir ${n === 1 ? "sección" : "todas"}</button>
+          <button type="button" class="btn btn--ghost" data-venta-todas="0" data-grupo="${grupoId}"
+                  ${abiertas === 0 ? "disabled" : ""}>Cerrar ${n === 1 ? "sección" : "todas"}</button>
+        </div>
+
+        <ul class="salon-venta__lista">
+          ${secciones.map((s) => `
+            <li>
+              <button type="button" role="switch" data-venta="${s.id}"
+                      aria-checked="${aLaVenta(s) ? "true" : "false"}"
+                      class="interruptor ${aLaVenta(s) ? "interruptor--si" : ""} ${borrador.venta.has(s.id) ? "interruptor--tocado" : ""}">
+                <span class="interruptor__pista" aria-hidden="true"><i></i></span>
+                <span class="interruptor__nombre">${esc(s.label)}</span>
+                <span class="interruptor__estado">${aLaVenta(s) ? "A la venta" : "Cerrada"}</span>
+              </button>
+            </li>`).join("")}
+        </ul>
+      </section>`;
+  }
+
+  function bloqueVentas() {
+    const oro = state.sections.filter(esDeOro);
+    const plata = state.sections.filter(esDePlata);
+    const general = state.sections.filter(esDeGeneral);
+
+    const bOro = bloqueVentaGrupo(
+      "Oro a la venta",
+      "Lo apagado no se ofrece en el sitio: no sale su tarjeta ni se dibujan sus mesas. Las entradas ya vendidas siguen valiendo, y en Reservas se puede seguir sentando invitados ahí.",
+      oro,
+      "oro",
+      "oro"
+    );
+
+    const bPlata = bloqueVentaGrupo(
+      "Plata a la venta",
+      "Lo apagado no se ofrece en el sitio: la tarjeta de Plata saldrá como agotada y no se podrán elegir sus mesas. Las reservas existentes se mantienen.",
+      plata,
+      "plata",
+      "plata"
+    );
+
+    const bGeneral = bloqueVentaGrupo(
+      "General a la venta",
+      "Entradas de pie / sin plano. Si se apaga, saldrá como agotada en el sitio y no se podrán comprar entradas de esta sección.",
+      general,
+      "general",
+      "general"
+    );
+
+    return [bOro, bPlata, bGeneral].filter(Boolean).join("");
+  }
+
+  /* Una sección de una sola mesa es una «mesa única». Se agrupan aparte para
+     poder apilarlas en su propia columna: mezcladas con las secciones grandes,
+     la retícula las repartía por los huecos y el orden dejaba de significar
+     nada. Ordenadas por código salen U1, U2, U3.
+
+     Declaración de función y no `const`: `renderSalon` la usa unas ochenta
+     líneas más arriba. Hoy funciona porque nadie llama a `renderSalon` hasta
+     después de cargar, pero con `const` eso depende del orden de llamada y una
+     declaración se eleva y no depende de nada. */
+  function esUnica(s) {
+    return state.tables.filter((t) => t.section_id === s.id).length === 1;
+  }
+
+  /* Cuántas columnas ocupa una sección en el plano. Sale de `pos_x`, que es lo
+     que guarda la base. */
+  function columnasDe(section) {
+    return Math.max(1, ...state.tables
+      .filter((t) => t.section_id === section.id)
+      .map((t) => t.pos_x || 1));
+  }
+
+  /* Una sección de diez columnas o más —hoy VIP Plata, con quince— no entra en
+     la columna que dejan libre las mesas únicas: se cortaba en la décima mesa y
+     las otras cinco de cada fila quedaban fuera de la vista. Va en su propia
+     fila, debajo, con el ancho entero de la hoja. */
+  function esDelFondo(section) {
+    return !esUnica(section) && columnasDe(section) >= 10;
+  }
+
   function bloqueSeccion(section) {
     const tablas = state.tables
       .filter((t) => t.section_id === section.id)
@@ -883,13 +1004,29 @@
     const columnas = Math.max(...tablas.map((t) => t.pos_x || 1));
     const lugares = tablas.reduce((a, t) => a + sillasDe(t), 0);
     const unica = tablas.length === 1;
+    const cerrada = !aLaVenta(section);
+
+    /* Una sección ancha ocupa la fila entera del plano. La Sección C son nueve
+       mesas por fila y, metida en una columna de trescientos y pico píxeles, no
+       cabía: salía con barra de scroll y los botones de sillas montados unos
+       sobre otros. El número de columnas lo decide la base —`pos_x`—, así que si
+       mañana una sección crece, esto la acompaña sin tocar nada.
+
+       Cinco es el corte: hasta cuatro, una sección convive bien al lado de otra;
+       de cinco en adelante, cada mesa baja del mínimo con el que se puede leer
+       el número y tocar los botones. */
+    const ancha = columnas >= 5;
+    // Quince mesas por fila: la casilla se aprieta para que entren sin scroll.
+    const densa = columnas >= 10;
 
     return `
-      <section class="salon-seccion ${unica ? "salon-seccion--unica" : ""}"
+      <section class="salon-seccion${unica ? " salon-seccion--unica" : ""}${ancha ? " salon-seccion--ancha" : ""}${densa ? " salon-seccion--densa" : ""}${cerrada ? " salon-seccion--cerrada" : ""}"
                style="--columnas:${columnas}">
         <header class="salon-seccion__head">
           <h3>${esc(section.label)}</h3>
-          <span class="salon-seccion__dato">${tablas.length} ${tablas.length === 1 ? "mesa" : "mesas"} · ${lugares} lugares</span>
+          <span class="salon-seccion__dato">
+            ${cerrada ? "No está a la venta · " : ""}${tablas.length} ${tablas.length === 1 ? "mesa" : "mesas"} · ${lugares} lugares
+          </span>
           ${campoPrecio(section)}
         </header>
         <div class="salon-grid">${tablas.map(celdaMesa).join("")}</div>
@@ -899,16 +1036,17 @@
   function bloqueSinMapa(section) {
     const tablas = state.tables.filter((t) => t.section_id === section.id);
     const lugares = tablas.reduce((a, t) => a + sillasDe(t), 0);
+    const cerrada = !aLaVenta(section);
 
     const capacidad = tablas.length
       ? `${tablas.length} mesas · ${lugares} lugares`
       : (section.capacity ? `${section.capacity} lugares` : "sin tope");
 
     return `
-      <section class="salon-bolsa">
+      <section class="salon-bolsa${cerrada ? " salon-bolsa--cerrada" : ""}">
         <div>
           <h4>${esc(section.label)}</h4>
-          <span class="salon-seccion__dato">${capacidad} · ${esc(descripcionModo(section))}</span>
+          <span class="salon-seccion__dato">${cerrada ? "No está a la venta · " : ""}${capacidad} · ${esc(descripcionModo(section))}</span>
         </div>
         ${campoPrecio(section)}
       </section>`;
@@ -946,7 +1084,7 @@
     const tocada = borrador.sillas.has(table.id);
 
     return `
-      <div class="salon-mesa ${lleno ? "salon-mesa--llena" : ""} ${tocada ? "salon-mesa--tocada" : ""}"
+      <div class="salon-mesa ${lleno ? "salon-mesa--llena" : ""} ${tocada ? "salon-mesa--tocada" : ""} ${table.label ? "salon-mesa--unica" : ""}"
            data-table="${table.id}"
            style="grid-column:${table.pos_x || "auto"};grid-row:${table.pos_y || "auto"}">
         <span class="salon-mesa__num">${esc(table.code || table.label || table.number)}</span>
@@ -970,6 +1108,28 @@
     ui.salonEditor.querySelectorAll("[data-precio]").forEach((input) => {
       input.addEventListener("input", () => anotarPrecio(input.dataset.precio, input.value));
     });
+
+    ui.salonEditor.querySelectorAll("[data-venta]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const s = state.sections.find((x) => x.id === btn.dataset.venta);
+        if (s) anotarVenta(s, !aLaVenta(s));
+      });
+    });
+
+    ui.salonEditor.querySelectorAll("[data-venta-todas]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const abrir = btn.dataset.ventaTodas === "1";
+        const grupo = btn.dataset.grupo;
+        let filtro = esDeOro;
+        if (grupo === "plata") filtro = esDePlata;
+        else if (grupo === "general") filtro = esDeGeneral;
+        else if (grupo === "oro") filtro = esDeOro;
+        else if (grupo === "todas") filtro = () => true;
+
+        state.sections.filter(filtro).forEach((s) => anotarVenta(s, abrir, false));
+        renderSalon();
+      });
+    });
   }
 
   /* Anotar, no guardar. Si el valor vuelve a ser el que ya estaba en la base, el
@@ -985,6 +1145,15 @@
     else borrador.precios.set(sectionId, centavos);
 
     pintarBarraSalon();
+  }
+
+  /* Igual que el precio: si el interruptor vuelve a donde estaba, el cambio se
+     borra del borrador en vez de contar como pendiente. */
+  function anotarVenta(section, abierta, repintar = true) {
+    if (abierta === (section.on_sale !== false)) borrador.venta.delete(section.id);
+    else borrador.venta.set(section.id, abierta);
+
+    if (repintar) renderSalon();
   }
 
   function anotarSillas(tableId, delta) {
@@ -1030,6 +1199,16 @@
       }
     }
 
+    for (const [sectionId, abierta] of borrador.venta) {
+      const { error } = await db.from("sections").update({ on_sale: abierta }).eq("id", sectionId);
+      if (error) fallos.push(`Venta de ${nombreSeccion(sectionId)}: ${error.message}`);
+      else {
+        const s = state.sections.find((x) => x.id === sectionId);
+        if (s) s.on_sale = abierta;
+        borrador.venta.delete(sectionId);
+      }
+    }
+
     for (const [tableId, cuenta] of borrador.sillas) {
       // El trigger de la base rechaza reducir por debajo de sillas ya tomadas.
       const { error } = await db.from("tables").update({ seat_count: cuenta }).eq("id", tableId);
@@ -1061,6 +1240,7 @@
     if (!confirm("¿Descartar los cambios sin guardar del salón?")) return;
     borrador.precios.clear();
     borrador.sillas.clear();
+    borrador.venta.clear();
     renderSalon();
   }
 

@@ -4,15 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#090a09" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pro Kart Admin" />
   <title>Reservas · Pro Kart</title>
-  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="icon" href="../iconos/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="../iconos/apple-touch-icon.png" />
+  <link rel="manifest" href="../manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&amp;family=Outfit:wght@300..800&amp;family=IBM+Plex+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
+  <!-- La hoja del plano de la web: el admin ve el salón igual que quien compra. -->
+  <link rel="stylesheet" href="../css/plano.css" />
 </head>
 <body>
 
@@ -25,18 +30,18 @@
         </span>
       </div>
       <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
-      <div class="sidebar__pie">
+      <div class="sidebar__pie" id="sidebarPie">
         <span id="userBadge" class="badge badge--vip"></span>
         <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
       </div>
     </aside>
 
-    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+    <div class="sidebar__velo" id="sidebarVelo"></div>
 
     <div class="panel-cuerpo">
       <header class="panel-topbar">
         <button type="button" class="hamburguesa" id="btnMenu"
-                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+                aria-label="Ver nombres del menú" aria-expanded="false" aria-controls="sidebar">
           <span></span><span></span><span></span>
         </button>
         <h1 class="panel-topbar__titulo" id="tituloModulo"></h1>
@@ -74,9 +79,17 @@
                 <label for="rDocumento">Cédula <small>(opcional)</small></label>
                 <input type="text" id="rDocumento" autocomplete="off" />
               </div>
+              <!-- A un invitado de la casa no se le exigen datos de contacto:
+                   los tres campos de abajo se llenan si se saben. Lo que no se
+                   sepa queda vacío, no con un relleno inventado. -->
               <div class="field">
                 <label for="rWhatsapp">WhatsApp <small>(opcional)</small></label>
                 <input type="tel" id="rWhatsapp" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="rEmail">Correo <small>(opcional)</small></label>
+                <input type="email" id="rEmail" autocomplete="off"
+                       placeholder="Para mandarle su entrada" />
               </div>
             </div>
           </div>
@@ -92,9 +105,27 @@
             <div class="modulo-panel active" data-sub="plano">
               <p class="hint">
                 Toca las mesas que se van a reservar. Las mesas ya tomadas no se
-                pueden elegir.
+                pueden elegir. En el teléfono, pellizca el plano con dos dedos
+                para alejarlo o acercarlo.
               </p>
-              <div id="planoReservas"></div>
+              <!-- La misma figura que el paso 2 de la compra en la web: cabecera
+                   con el marcador de la mesa tocada y, adentro, la hoja con la
+                   tarima. En el teléfono la hoja se arrastra dentro del lienzo y
+                   se aleja o acerca pellizcando o con los botones de zoom. -->
+              <figure class="plano">
+                <figcaption class="plano__cabecera">
+                  <span class="plano__rotulo">Plano del salón</span>
+                  <div class="plano__zoom" id="planoZoom" role="group" aria-label="Zoom del plano" hidden>
+                    <button type="button" data-zoom="alejar" aria-label="Alejar el plano">−</button>
+                    <button type="button" data-zoom="entero" class="plano__zoom-entero">Ver todo</button>
+                    <button type="button" data-zoom="acercar" aria-label="Acercar el plano">+</button>
+                  </div>
+                  <output class="plano__lectura" id="planoLectura" aria-live="polite">
+                    Toca una mesa
+                  </output>
+                </figcaption>
+                <div class="plano__lienzo" id="planoReservas"></div>
+              </figure>
               <p class="hint" id="resumenMesas"></p>
             </div>
 
@@ -141,6 +172,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="../js/config.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/panel-base.js"></script>
   <script src="js/reservas.js"></script>
 </body>

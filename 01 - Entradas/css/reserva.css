@@ -61,17 +61,32 @@
    1. Riel de pasos (index + pagar)
    ========================================================= */
 
+/* El riel ya no envuelve: los cuatro pasos reparten el ancho a partes iguales,
+   que es lo que hace que la línea que los une signifique algo. Envolviendo, el
+   riel se partía en dos renglones y los tramos quedaban colgando. */
 .steps-rail {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 20px;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 0;
   min-width: 0;
 }
-.step-indicator__label { white-space: nowrap; }
 .step-indicator__dot {
   flex: none;
-  font: 700 0.72rem/1 var(--mono);
+  font: 700 var(--fs-label)/1 var(--mono);
+}
+
+/* En el teléfono los nombres de los cuatro pasos no entran a la vez. Se quedan
+   todos los puntos —que es lo que dibuja el camino— y el nombre solo en el paso
+   en curso, que es el único que hace falta leer. */
+@media (max-width: 560px) {
+  .booking-steps { padding: 16px 18px 14px; }
+  .step-indicator:not(.active) .step-indicator__label {
+    /* `visibility` y no `display`: reservando el sitio, los puntos no se
+       desplazan hacia arriba al cambiar de paso. */
+    visibility: hidden;
+  }
+  .step-indicator__label { font-size: .68rem; letter-spacing: .06em; }
 }
 
 /* =========================================================
@@ -85,12 +100,55 @@
    de la otra, alineadas.
    ========================================================= */
 
+/* Una columna primero, tres desde 700px. Antes era `auto-fit` con un mínimo de
+   240px, y con los 56px de padding anidado que hay encima —.booking-panels más
+   .step-panel— las tres columnas no entraban hasta los ~890px de ventana. O
+   sea que entre 530 y 890 salían dos arriba y una abajo a lo ancho: la huérfana
+   se leía como destacada sin serlo, y comparar tres cifras —que es todo el
+   propósito de este componente— dejaba de ser posible justo en el rango más
+   común. Con columnas explícitas el salto es de una a tres y no hay estado 2+1.
+
+   El título reserva dos renglones para que el precio de las tres tarjetas caiga
+   siempre a la misma altura: son tarjetas flex independientes, así que un
+   nombre que parte en dos líneas empujaba su precio y las cifras dejaban de
+   alinearse, que es justo lo que hay que comparar. Subgrid sería lo elegante,
+   pero el número de hijos cambia entre tarjetas —la cinta y el aviso de
+   disponibilidad son condicionales—, así que la cuenta de filas no cuadra. */
 .areas-grid {
   display: grid;
   gap: 10px;
-  /* Tres al ancho cuando entran; abajo de eso se apilan solas. 240px es donde
-     "R$ 2.400,00" todavía entra sin partirse. */
-  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  grid-template-columns: 1fr;
+}
+
+/* ---------- el podio ----------
+   Oro al centro y elevado, Plata y Bronce a los lados. Es la forma en que ya
+   se lee un podio, así que la jerarquía no hay que explicarla: se ve.
+
+   El orden del HTML es Oro, Plata, Bronce —de mayor a menor— porque es el orden
+   en que conviene leerlos apilados en el teléfono, que es donde se usa esto.
+   En pantalla ancha las columnas se reordenan y Oro queda al medio. */
+@media (min-width: 700px) {
+  .areas-grid {
+    grid-template-columns: repeat(3, 1fr);
+    align-items: stretch;
+    gap: var(--s-4);
+  }
+  /* Vertical, no cuadrada. Con la lista de características la tarjeta ya crece,
+     pero el mínimo garantiza la proporción de retrato aunque una sección traiga
+     menos líneas que otra. */
+  .area-card { min-height: 480px; }
+  .area-card__titulo { min-height: 2.1em; }
+
+  .area-card--plata   { grid-column: 1; grid-row: 2; }
+  .area-card--oro     { grid-column: 2; grid-row: 2; }
+  .area-card--general { grid-column: 3; grid-row: 2; }
+
+  /* El del centro se levanta y respira más: es la altura del podio. */
+  .area-card--oro {
+    padding-top: 30px;
+    padding-bottom: 26px;
+    box-shadow: 0 22px 60px -30px rgba(217, 184, 93, .55);
+  }
 }
 
 /* La tarima, una sola vez y para las tres. Marca el frente del salón: las
@@ -111,6 +169,41 @@
 }
 .areas-tarima span { padding-left: .3em; }
 
+/* =========================================================
+   CÓMO APARECEN LAS TARJETAS
+
+   Las pinta app.js cuando vuelve la consulta, así que hasta ese momento el
+   hueco está vacío. Aparecer las tres de golpe desperdicia el único momento en
+   que el visitante mira esta pantalla con atención.
+
+   Entran de abajo, con muelle y escalonadas: primero la tarima —que es el
+   frente del salón y ordena la lectura—, y detrás las tres áreas de adelante
+   hacia el fondo, en el mismo orden en que se camina el salón.
+
+   `--i` lo pone app.js en cada tarjeta. 90ms entre una y otra: menos no se
+   percibe como cascada, más se siente lento. */
+.areas-tarima.entra,
+.area-card.entra {
+  animation: area-entra .58s var(--spring) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+@keyframes area-entra {
+  from {
+    opacity: 0;
+    /* Sube y crece un poco: se lee como algo que llega y se coloca, no como
+       una lista que se desplaza. Sin `filter: blur`, que crearía un contexto
+       de apilado y rompería el ::before del cristal a mitad de animación. */
+    transform: translate3d(0, 26px, 0) scale(.965);
+  }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .areas-tarima.entra,
+  .area-card.entra { animation: none; }
+}
+
 .area-card {
   /* Color del nivel. Se define acá para que baje al rótulo y al filete. */
   --tier: #6b706a;
@@ -119,7 +212,6 @@
   position: relative;
   margin: 0;
   padding: 22px 20px 20px;
-  overflow: hidden;
   text-align: left;
   color: var(--text);
   font-family: var(--sans);
@@ -141,33 +233,97 @@
     box-shadow var(--t-move) var(--ease);
 }
 
-.area-card--oro     { --tier: var(--oro);   --tier-tint: var(--oro-tint); }
-.area-card--plata   { --tier: var(--plata); --tier-tint: var(--plata-tint); }
-.area-card--general { --tier: var(--info);  --tier-tint: var(--info-tint); }
+.area-card--oro     { --tier: var(--oro);    --tier-tint: var(--oro-tint); }
+.area-card--plata   { --tier: var(--plata);  --tier-tint: var(--plata-tint); }
+/* Bronce y no azul: los tres niveles se leen como escala sin leer las etiquetas. */
+.area-card--general { --tier: var(--bronce); --tier-tint: var(--bronce-tint); }
 
-/* En una tarjeta el filete del nivel va arriba, cruzándola entera: de costado
-   se leía como un adorno del borde y acá corona la tarjeta. */
+/* ---------- el material ----------
+
+   Aproximación web de cristal esmerilado. Cuatro capas y ninguna sobra:
+
+     1. el RESPLANDOR del color del nivel, detrás de la tarjeta y saliéndose de
+        ella. Es lo que le da al cristal algo que refractar; sin él, cualquier
+        superficie translúcida sobre un fondo oscuro es un rectángulo gris.
+        Antes existía pero no se veía: `overflow: hidden` en la tarjeta lo
+        recortaba justo en el borde, que es donde tenía que asomar;
+     2. la superficie, con su degradado para que la luz caiga de arriba;
+     3. el realce del hombro superior izquierdo, que fija de dónde viene la luz;
+     4. el bisel interior, que le da grosor al canto.
+
+   Sin `backdrop-filter`: esta tarjeta vive dentro de un panel que scrollea, y
+   desenfocar lo de detrás obliga a recalcular en cada cuadro del scroll. El
+   desenfoque real se reserva para lo que está fijo — cabecera y ventanas.
+   El resplandor y las capas hacen toda la lectura sin coste. */
+.area-card {
+  isolation: isolate;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(140deg,
+      color-mix(in srgb, var(--tier) 10%, transparent),
+      rgba(255, 255, 255, .02) 46%),
+    var(--glass-bg-fuerte);
+  /* El filete del nivel deja de ser un pseudo-elemento y pasa al canto: los dos
+     pseudos hacen falta para el material, y un borde superior de color dice lo
+     mismo sin gastar ninguno. */
+  border-color: var(--glass-borde);
+  border-top-color: color-mix(in srgb, var(--tier) 60%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--tier) 32%, rgba(255, 255, 255, .28)),
+    inset 0 -1px 0 rgba(255, 255, 255, .05),
+    0 0 40px -6px color-mix(in srgb, var(--tier) 34%, transparent),
+    var(--shadow);
+}
+
+/* Capa 3: el hombro iluminado. Detrás del contenido, delante del fondo. */
 .area-card::before {
   content: "";
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: var(--tier);
-  opacity: .85;
-  transition: opacity var(--t-color) var(--ease), height var(--t-color) var(--ease);
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(120% 78% at 14% 0%,
+    color-mix(in srgb, var(--tier) 16%, rgba(255, 255, 255, .10)), transparent 48%);
+  transition: opacity var(--t-color) var(--ease);
+}
+
+/* Capa 4: el bisel. Un segundo canto a 1px del primero. */
+.area-card::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, .05);
+  pointer-events: none;
+}
+
+/* Sin color-mix la tarjeta queda con superficie plana y borde del nivel: se ve
+   correcta, solo que sin material. La condición prueba una DECLARACIÓN entera,
+   no el valor suelto: `@supports not (color-mix(...))` no es válido y el bloque
+   se descartaría sin avisar. */
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .area-card {
+    background: var(--surface);
+    border-top-color: var(--tier);
+    box-shadow: var(--shadow);
+  }
+  .area-card::before { background: none; }
 }
 
 /* Marca de elegida: además del color, un tilde. El estado no se comunica solo
-   por color. */
-.area-card::after {
-  content: "✓";
+   por color. Va en un elemento propio y no en un pseudo porque los dos pseudos
+   de la tarjeta los ocupa el material. */
+.area-card__ok {
   position: absolute;
-  top: 3px;
+  top: 0;
   right: 0;
-  width: 26px;
-  height: 26px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
+  border-radius: 0 var(--radius-lg) 0 var(--radius);
   background: var(--accent);
   color: var(--black);
   font: 700 .82rem/1 var(--sans);
@@ -185,7 +341,10 @@
   border-radius: var(--radius-sm);
   background: var(--tier-tint);
   color: var(--tier);
-  font: 800 .66rem/1 var(--mono);
+  /* Estaba a .66rem, o sea 10,6px: por debajo del piso que la hoja de tokens
+     declara como mínimo legible, y encima con el color del nivel sobre el fondo
+     oscuro. Sube al piso. */
+  font: 700 var(--fs-label)/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -225,36 +384,165 @@
 
 .area-card__detalle {
   color: var(--muted);
-  font-size: var(--fs-body);
+  font-size: var(--fs-meta);
   line-height: 1.45;
 }
 
-/* Qué incluye: es el dato que decide la compra. El filete lo separa de la
-   descripción y le da un piso a la tarjeta. */
-.area-card__incluye {
+/* Qué incluye, en lista con tilde. Era una sola línea corrida en el gris más
+   apagado de la tarjeta, siendo el dato que decide la compra: cuatro hechos
+   sueltos separados por puntos medios, que el ojo lee como una frase y no como
+   una lista de lo que te llevas.
+
+   El tilde va dibujado con `border` en un pseudo girado: un SVG por línea son
+   doce peticiones de nada, y una fuente de iconos para un solo glifo no se
+   justifica. */
+.area-card__lista {
   width: 100%;
-  margin-top: 2px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line-soft);
-  color: var(--dim);
-  font: 600 var(--fs-label)/1.5 var(--mono);
-  letter-spacing: .04em;
+  margin: 4px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+  display: grid;
+  gap: 9px;
 }
 
-/* La acción se lee como acción, y va al pie: con `margin-top: auto` los tres
-   botones quedan alineados aunque las tarjetas tengan textos de distinto largo. */
-.area-card__ir {
+.area-card__lista li {
+  position: relative;
+  padding-left: 24px;
+  color: var(--text);
+  font-size: var(--fs-meta);
+  line-height: 1.4;
+  text-align: left;
+}
+
+.area-card__lista li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: .32em;
+  width: 11px;
+  height: 6px;
+  border-left: 2px solid var(--tier);
+  border-bottom: 2px solid var(--tier);
+  transform: rotate(-45deg);
+}
+
+/* Cuántas quedan. Solo aparece cuando el número dice algo (diez o menos) y solo
+   en las áreas que se eligen en el plano, que son de las que conocemos mesa por
+   mesa. El color de aviso sin que sea una alarma. */
+.area-card__quedan {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding: 11px 15px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  color: var(--muted);
+  gap: 7px;
+  color: var(--oro);
   font: 700 var(--fs-label)/1 var(--mono);
-  letter-spacing: .12em;
+  letter-spacing: .1em;
   text-transform: uppercase;
+}
+.area-card__quedan::before {
+  content: "";
+  width: 6px; height: 6px; flex: none;
+  border-radius: var(--radius-round);
+  background: currentColor;
+}
+
+/* La cinta de la tarjeta ancla. Va en la esquina, encima del filete del nivel,
+   y no ocupa sitio en el flujo: si empujara al resto, esta tarjeta quedaría
+   desalineada respecto de las otras dos, que es lo contrario de lo que busca. */
+.area-card__cinta {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  overflow: hidden;
+  padding: 6px 11px;
+  border-radius: 0 var(--radius) 0 var(--radius);
+  background: var(--accent);
+  color: var(--black);
+  font: 700 var(--fs-label)/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+/* La cinta toma el color de su nivel: en el podio, la de Oro es dorada.
+   El degradado de tres paradas es lo que convierte un dorado plano en metal —
+   claro arriba, saturado al medio, oscuro abajo. */
+.area-card--oro .area-card__cinta,
+.area-card--plata .area-card__cinta,
+.area-card--general .area-card__cinta {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--tier) 55%, #fff) 0%,
+    var(--tier) 46%,
+    color-mix(in srgb, var(--tier) 72%, #000) 100%
+  );
+  color: #16150f;
+  box-shadow: 0 2px 12px -2px color-mix(in srgb, var(--tier) 70%, transparent);
+}
+
+/* El brillo: una banda clara que cruza el metal cada seis segundos. Se para al
+   pasar el ratón por la tarjeta —si el destello compite con el estado de hover,
+   los dos pierden— y no existe con movimiento reducido. */
+.area-card__cinta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, .62) 50%,
+    transparent 65%
+  );
+  transform: translateX(-120%);
+  animation: cinta-brillo 6s var(--ease) 1.2s infinite;
+}
+.area-card:hover .area-card__cinta::after { animation-play-state: paused; }
+
+@keyframes cinta-brillo {
+  0%        { transform: translateX(-120%); }
+  18%, 100% { transform: translateX(120%); }
+}
+
+/* Agotada: el metal se apaga pero la cinta sigue siendo la del nivel. El
+   destello se va, porque un brillo sobre algo que no se puede comprar es una
+   promesa falsa. */
+.area-card__cinta--agotada {
+  background: var(--surface-3);
+  color: var(--dim);
+  box-shadow: none;
+  border: 1px solid var(--line);
+}
+.area-card--oro .area-card__cinta--agotada {
+  color: color-mix(in srgb, var(--oro) 65%, var(--dim));
+  border-color: color-mix(in srgb, var(--oro) 30%, var(--line));
+}
+.area-card__cinta--agotada::after { content: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .area-card__cinta::after { animation: none; content: none; }
+}
+
+/* La acción, a lo ancho de la tarjeta y en el medio: la tarjeta se lee como una
+   oferta cerrada —qué es, cuánto, y el botón— y lo que va debajo es el detalle
+   que se consulta si hace falta. Es el único sitio del sitio donde un botón va
+   a ancho completo, y aquí está justificado: el ancho es el de la tarjeta, no el
+   de la pantalla, y marca el corte entre la oferta y su letra pequeña. */
+.area-card__ir {
+  width: 100%;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 13px 18px;
+  border: 1px solid color-mix(in srgb, var(--tier) 40%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--tier) 14%, transparent);
+  color: var(--text);
+  /* Sans en caja normal, como el resto de botones del sitio. */
+  font: 600 var(--fs-body)/1 var(--sans);
+  letter-spacing: -.005em;
   transition: color var(--t-color) var(--ease),
               border-color var(--t-color) var(--ease),
               background-color var(--t-color) var(--ease);
@@ -263,20 +551,28 @@
 
 /* -------- estados -------- */
 
-.area-card:hover {
-  border-color: #5a5e57;
+/* El hover solo donde hay ratón. En una pantalla táctil el estado se queda
+   pegado después de tocar, así que la tarjeta que acabás de elegir se ve
+   levantada por el resto de la sesión. */
+@media (hover: hover) {
+.area-card:not(:disabled):hover {
+  border-color: var(--line-hover);
   background: var(--surface);
   transform: var(--lift);
   box-shadow: 0 16px 34px -22px #000;
 }
-.area-card:hover::before { opacity: 1; height: 4px; }
-.area-card:hover .area-card__ir {
+.area-card:not(:disabled):hover::before { opacity: 1; height: 4px; }
+.area-card:not(:disabled):hover .area-card__ir {
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-.area-card:hover .area-card__ir b { transform: translateX(3px); }
-.area-card:active { transform: none; }
+.area-card:not(:disabled):hover .area-card__ir b { transform: translateX(3px); }
+}
+
+/* Con el dedo el acuse tiene que ser inmediato: no hay hover previo que avise
+   de que el toque va a registrar. */
+.area-card:not(:disabled):active { transform: scale(.985); }
 
 .area-card:focus-visible {
   outline: 2px solid var(--accent);
@@ -284,7 +580,9 @@
   border-color: var(--accent);
 }
 
-.area-card[aria-pressed="true"],
+/* Elegida. El selector era [aria-pressed="true"], que describía estas tarjetas
+   como interruptores: no conmutan nada, avanzan al paso siguiente. */
+.area-card[aria-current="true"],
 .area-card.is-selected,
 .area-card--activa {
   border-color: var(--accent);
@@ -293,14 +591,54 @@
     inset 0 0 0 1px rgba(255, 89, 54, .35),
     0 14px 34px -20px rgba(255, 89, 54, .75);
 }
-.area-card[aria-pressed="true"]::after,
-.area-card.is-selected::after,
-.area-card--activa::after { opacity: 1; transform: scale(1); }
+.area-card[aria-current="true"] .area-card__ok,
+.area-card.is-selected .area-card__ok,
+.area-card--activa .area-card__ok { opacity: 1; transform: scale(1); }
 
-.area-card[aria-pressed="true"] .area-card__ir,
+/* Elegida, la cinta se retira: la esquina la ocupa el tilde, y una tarjeta ya
+   elegida no necesita que le sigan diciendo por qué era la recomendada. */
+.area-card[aria-current="true"] .area-card__cinta { opacity: 0; transform: scale(.9); }
+
+.area-card[aria-current="true"] .area-card__ir,
 .area-card--activa .area-card__ir {
   color: var(--accent);
   border-color: rgba(255, 89, 54, .5);
+}
+
+/* -------- destacada: la que ancla la comparación -------- */
+.area-card--destacada {
+  border-color: rgba(255, 89, 54, .45);
+  background: linear-gradient(180deg, rgba(255, 89, 54, .05) 0%, var(--bg) 45%);
+}
+.area-card--destacada::before { opacity: 1; height: 4px; }
+
+/* -------- agotada -------- */
+/* No se comunica solo por color: además del gris va la trama diagonal, el texto
+   dice «Sin lugares» y el botón está deshabilitado de verdad. Antes este estado
+   no existía: una sección sin lugares desaparecía de la lista sin ninguna
+   explicación, y quien la había visto el día anterior no entendía por qué. */
+.area-card--agotada {
+  cursor: not-allowed;
+  border-color: var(--line-soft);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 7px,
+    rgba(255, 255, 255, .022) 7px 14px
+  );
+}
+.area-card--agotada::before { opacity: .25; }
+.area-card--agotada .area-card__titulo,
+.area-card--agotada .price { color: var(--dim); }
+.area-card--agotada .area-card__tag {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--dim);
+}
+.area-card--agotada .area-card__incluye,
+.area-card--agotada .area-card__detalle { color: var(--dim); }
+.area-card--agotada .area-card__ir {
+  border-color: var(--line-soft);
+  color: var(--dim);
 }
 
 @media (max-width: 420px) {
@@ -349,17 +687,32 @@
   font-size: max(1rem, 16px);
   font-family: var(--sans);
   line-height: 1.3;
+  /* Colores de los tokens --campo-* de style.css: un escalón más claro que la
+     tarjeta y con borde visible. Antes iban con el negro de la página y casi no
+     se distinguían del fondo. */
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
+  border-radius: var(--radius);
+  color: var(--text);
   transition: border-color var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
 }
-.field input::placeholder { color: var(--dim); }
+.field input::placeholder,
+.field textarea::placeholder { color: var(--campo-placeholder); opacity: 1; }
+
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+  border-color: var(--campo-borde-hover);
+  background-color: var(--campo-bg-hover);
+}
 
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
   outline: 0;
   border-color: var(--accent);
-  background: var(--surface-2);
-  box-shadow: 0 0 0 2px rgba(255, 89, 54, .32);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
 }
 
 /* -------- Error --------
@@ -418,9 +771,50 @@
   padding-top: 20px;
   border-top: 1px solid var(--line-soft);
 }
-.actions > .btn { flex: 1 1 auto; }
-.actions > .btn--primary { flex: 1.7 1 auto; }
-.actions > .btn--link { flex: 0 0 auto; }
+
+/* Con el flujo a pantalla completa, los botones se quedan pegados al pie del
+   panel: «Continuar» tiene que estar donde el pulgar ya está, no al final de
+   una lista que hay que recorrer. `margin-top: auto` los empuja abajo cuando
+   sobra sitio; el `sticky` los mantiene visibles cuando falta. */
+body.booking-open .actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  margin-bottom: 0;
+  padding-bottom: var(--s-5);
+  /* Opaco: debajo pasa el contenido scrolleando. */
+  background: var(--surface);
+}
+
+/* El pie del paso 2 («Cambiar área» y «Continuar») no vive dentro del panel:
+   es la última fila de la grilla del flujo, debajo del total. Pegado con sticky
+   dentro del panel que scrollea, nacía encima del plano y tapaba mesas en el
+   teléfono. Como fila propia, el panel termina arriba de él y nada queda debajo.
+   El relleno lateral lo alinea con el total, que mide como mucho 900px. */
+.booking-pie[hidden] { display: none; }
+body.booking-open .booking-pie {
+  position: static;
+  margin: 0;
+  padding:
+    12px
+    max(var(--s-5), calc((100% - 900px) / 2))
+    calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+/* Los botones NO se estiran. Esto decía `flex: 1 1 auto` en el secundario y
+   `1.7 1 auto` en el principal: con `flex-grow`, los dos se repartían todo el
+   ancho disponible, así que en el flujo a pantalla completa «Continuar» acababa
+   midiendo unos 800px. Un botón de 800px ya no se lee como botón.
+
+   Ahora cada uno mide lo que dice más su relleno, y lo que reparte el espacio
+   es la fila: el principal a la derecha, que es donde termina la lectura y
+   donde está el pulgar. */
+.actions { justify-content: flex-end; }
+.actions > .btn { flex: 0 1 auto; }
+/* El terciario se va al otro extremo: no compite con la acción que avanza. */
+.actions > .btn--ghost:first-child,
+.actions > .btn--link:first-child { margin-right: auto; }
 
 /* =========================================================
    5. Resumen del paso 3
@@ -436,23 +830,76 @@
 .resumen-compra .row:last-child span:first-child { color: var(--accent); }
 
 /* ---------------------------------------------------------
-   La ventana de pago
+   Paso 4 — el pago
 
    Comparte la caja con el modal de cantidad (plano.css), pero acá adentro hay
-   una lista de datos y no un solo número: se alinea a la izquierda, se ensancha
-   para que "A nombre de" y su valor no se pisen, y se le pone tope de alto
-   porque con nueve filas en un teléfono la caja se sale de la pantalla.
+   una lista de datos y no un solo número: se alinea a la izquierda y se
+   ensancha para que "A nombre de" y su valor no se pisen.
+
+   Tres franjas: el riel de pasos arriba, el resumen en el medio y las acciones
+   al pie. El relleno vive en las franjas y no en la caja, para que el riel
+   llegue de borde a borde y para que en el teléfono el pie se pueda pegar
+   abajo sin que le quede un margen colgando.
    --------------------------------------------------------- */
 
 .modal__caja--pago {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   max-width: 460px;
-  text-align: left;
   max-height: calc(100dvh - 40px);
-  overflow-y: auto;
+  padding: 0;
+  overflow: hidden;   /* el riel respeta el radio de la caja */
+  text-align: left;
 }
+
+.pago-cab { flex: none; }
+.pago-cab .booking-steps { padding: 15px 20px 13px; }
+
+/* Lo único que hace scroll es el resumen: el riel y los botones se quedan. */
+.pago-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 22px 4px;
+}
+
+.pago-pie {
+  flex: none;
+  padding: 16px 22px 20px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+}
+
 .modal__caja--pago h3 { text-align: left; }
-.modal__caja--pago > p { margin: 0 0 18px; }
-.modal__caja--pago .resumen-compra { margin-bottom: 14px; }
+.pago-cuerpo > p { margin: 0 0 18px; }
+.modal__caja--pago .resumen-compra { margin-bottom: 0; }
+
+/* La última fila de un resumen se pinta en naranja porque suele ser el total.
+   Acá el total se fue al pie, así que la última fila es un dato como los
+   demás y se pinta como los demás. */
+#resumenPago .row:last-child { font-weight: inherit; color: inherit; }
+#resumenPago .row:last-child span:first-child { color: var(--muted); }
+
+.pago-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 10px !important;
+}
+.pago-total span {
+  color: var(--muted);
+  font: 700 var(--fs-label)/1.4 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.pago-total strong {
+  color: var(--accent);
+  font: 700 var(--fs-lead)/1.1 var(--display);
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Qué pasa al tocar "Pagar". Dicho antes del botón y no después, que es cuando
    sirve saberlo. Va en la tipografía del texto y no en la monoespaciada de los
@@ -469,8 +916,10 @@
 }
 /* "Pagar" es la acción de la ventana y "Editar" la salida: el ancho lo dice
    antes de que se lean las palabras. */
-.modal__acciones > .btn { flex: 1 1 auto; }
-.modal__acciones > .btn--primary { flex: 1.7 1 auto; }
+/* Misma regla que en `.actions`: nada de `flex-grow`. */
+.modal__acciones { justify-content: flex-end; }
+.modal__acciones > .btn { flex: 0 1 auto; }
+.modal__acciones > .btn--ghost:first-child { margin-right: auto; }
 
 /* El error de la ventana no cuelga de un campo sino de la ventana entera, como
    los del paso 2, y se dibuja igual. Va con `:not(:empty)` y no a secas: si no,
@@ -486,9 +935,45 @@
   background: rgba(255, 102, 96, .07);
 }
 
+/* En el teléfono la ventana es la pantalla.
+
+   Una caja flotando sobre el fondo deja ver el flujo detrás y mueve la
+   atención justo cuando hay que decidir; y con el resumen entero encima, la
+   caja crecía hasta tocar los dos bordes igual, pero con esquinas y sombra
+   que ya no separaban de nada. Ocupando todo, el riel de pasos queda arriba,
+   los botones abajo —siempre alcanzables con el pulgar, sin scrollear— y el
+   resumen se lee en el medio. */
+@media (max-width: 560px) {
+  #modalPago { padding: 0; align-items: stretch; }
+
+  .modal__caja--pago {
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Cuatro pasos no entran en una línea de 390px con sus nombres. El número
+     alcanza para saber dónde estás; el nombre lo lleva el paso en curso. */
+  .pago-cab .booking-steps { padding: 13px 16px 11px; }
+  .pago-cab .step-indicator:not(.active) .step-indicator__label { visibility: hidden; }
+
+  .pago-cuerpo { padding: 20px 16px 4px; }
+
+  /* El respiro de abajo esquiva la barra de gestos del teléfono. */
+  .pago-pie { padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
+}
+
 @media (max-width: 420px) {
   .modal__acciones { flex-direction: column-reverse; }
 }
+
+/* Con la ventana abierta el fondo no se mueve. Atado a que se vea y no a una
+   clase que alguien tenga que acordarse de quitar, igual que el overlay de
+   bienvenida en style.css. */
+body:has(#modalPago:not([hidden])) { overflow: hidden; }
 
 /* =========================================================
    6. pagar.html — estructura de página
@@ -569,6 +1054,10 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   margin-top: 26px;
   border: 1px solid var(--line);
   background: var(--line);
+  /* El hueco de 1px no conoce el radio: sin recorte deja un rombo en cada
+     esquina. */
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 @media (min-width: 800px) {
   .pay-layout { grid-template-columns: minmax(0, .85fr) minmax(0, 1fr); }
@@ -727,7 +1216,8 @@ main.container:not(.editorial-page) > .step-panel > .hint { margin-bottom: 24px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 13px;
+  min-height: 46px;
+  padding: 12px 15px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--bg);
@@ -992,9 +1482,11 @@ main.container:not(.editorial-page) .verify-card .hint {
   .ticket__info { padding: 20px 16px 18px; }
   .ticket__qr { padding: 20px 14px; }
   .ticket__info .row strong { min-width: 100%; }
-  /* Apilados y a ancho completo. No se invierte el orden: el foco del
-     teclado tiene que recorrerlos como se ven. */
-  .actions > .btn { flex: 1 1 100%; }
+  /* En el teléfono siguen sin estirarse: se agrupan a la derecha y bajan de
+     línea si no caben. Un botón a sangre de borde a borde deja de leerse como
+     botón y pasa a leerse como una barra. */
+  .actions { gap: 8px; }
+  .actions > .btn { flex: 0 1 auto; }
   .footer { letter-spacing: .06em; }
 }
 

@@ -1,7 +1,9 @@
 import { serviceClient } from "../_shared/supabase.ts";
 import { CAIDO, PAGADO, obtenerCobro, reembolsar, tokenValido } from "../_shared/asaas.ts";
 import { generateTicketCode, signTicket } from "../_shared/tickets.ts";
-import { fail, json } from "../_shared/http.ts";
+import { notificarTelegram } from "../_shared/telegram.ts";
+import { enviarEntradasPorCorreo } from "../_shared/email.ts";
+import { fail, json, preflight } from "../_shared/http.ts";
 
 /* Avisos de cobro de Asaas.
  *
@@ -11,6 +13,8 @@ import { fail, json } from "../_shared/http.ts";
  */
 
 Deno.serve(async (req) => {
+  const cors = preflight(req);
+  if (cors) return cors;
   if (req.method !== "POST") return fail("Método no permitido", 405);
 
   if (!tokenValido(req)) {
@@ -59,7 +63,7 @@ Deno.serve(async (req) => {
 
   const { data: order } = await db
     .from("orders")
-    .select("id, status, event_id, section_id, people, buyer_name, buyer_lastname, buyer_document, buyer_whatsapp, amount_cents")
+    .select("id, order_number, status, event_id, section_id, people, buyer_name, buyer_lastname, buyer_document, buyer_whatsapp, buyer_email, amount_cents")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -182,6 +186,62 @@ Deno.serve(async (req) => {
   await db.from("seats")
     .update({ status: "occupied", held_by: null, held_until: null, ticket_id: emitidas[0].id })
     .eq("held_by", order.id);
+
+  // Cargar datos del evento para el correo y la notificación
+  const { data: event } = await db
+    .from("events")
+    .select("name, event_date")
+    .eq("id", order.event_id)
+    .maybeSingle();
+
+  const fechaFormateada = event?.event_date
+    ? new Date(event.event_date).toLocaleDateString("es", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  // 1. Notificar por Telegram a los 3 IDs configurados
+  await notificarTelegram({
+    orderNumber: order.order_number,
+    buyerName: `${order.buyer_name} ${order.buyer_lastname}`.trim(),
+    buyerDocument: order.buyer_document,
+    buyerWhatsapp: order.buyer_whatsapp,
+    buyerEmail: order.buyer_email,
+    sectionLabel: section?.label ?? "General",
+    tables: codigosMesa.length ? codigosMesa.join(", ") : null,
+    people: personas,
+    amountCents: order.amount_cents ?? 0,
+    // Lo que Asaas acredita después de su comisión, tal como lo informa el
+    // cobro. El número que cuadra con el banco al centavo es el del reporte
+    // semanal, que lee el extracto.
+    netCents: pago.netValueCents,
+    ticketsCount: emitidas.length,
+  }).catch((e) => console.error("asaas-webhook/telegram_error:", e));
+
+  // 2. Enviar entradas con código y QR por correo
+  if (order.buyer_email) {
+    const entradasEmail = entradas.map((t) => ({
+      code: t.code,
+      qrSignature: t.qr_signature,
+      tableCode: t.table_code,
+      guestIndex: t.guest_index,
+    }));
+
+    await enviarEntradasPorCorreo({
+      destinatario: order.buyer_email,
+      nombreComprador: `${order.buyer_name} ${order.buyer_lastname}`.trim(),
+      documento: order.buyer_document,
+      orderNumber: order.order_number,
+      eventoNombre: event?.name ?? "Pro Kart",
+      eventoFecha: fechaFormateada,
+      seccionNombre: section?.label ?? "General",
+      mesas: codigosMesa.length ? codigosMesa.join(", ") : null,
+      entradas: entradasEmail,
+    }).catch((e) => console.error("asaas-webhook/email_error:", e));
+  }
 
   await cerrar("processed");
   return json({ ok: true, tickets: emitidas.length });

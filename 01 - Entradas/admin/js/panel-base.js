@@ -17,75 +17,29 @@ window.PanelBase = (() => {
   let sesion = null;
   let perfil = null;
 
-  // La misma barra lateral que index.html, para que moverse entre páginas no se
-  // sienta como salir del panel.
-  const NAV = [
-    { grupo: "Evento", items: [{ href: "index.html", label: "Panel del evento" }] },
-    {
-      grupo: "Gestión",
-      items: [
-        { href: "reservas.html", label: "Reservas" },
-        { href: "operaciones.html", label: "Operaciones" },
-        { href: "solicitudes.html", label: "Solicitudes" },
-        { href: "publicidad.html", label: "Publicidad" },
-      ],
-    },
-    {
-      grupo: "Personal",
-      items: [
-        { href: "empleados.html", label: "Empleados" },
-        { href: "nomina.html", label: "Nómina" },
-        { href: "usuarios.html", label: "Usuarios" },
-      ],
-    },
-  ];
+  /* El modelo de la barra y su comportamiento viven en nav.js, que es el único
+     dueño. Acá vivía una segunda copia —sin roles, y que llamaba «Panel del
+     evento» a lo que admin.js llamaba «Resumen»— más un controlador del menú
+     de teléfono idéntico al de admin.js escrito de otra manera. */
 
   /* `developer` entra a todo lo que entra un admin: es la misma llave que abre
      las políticas de la base, donde `is_admin()` cuenta a los dos. Lo que los
      separa es a quién pueden gestionar, y eso lo decide la Edge Function. */
   const puedeEntrar = (rol) => rol === "admin" || rol === "developer";
 
-  function pintarNav(actual) {
-    const nav = document.getElementById("panelNav");
-    if (!nav) return;
-
-    nav.innerHTML = NAV.map((g) => `
-      <div class="sidebar__grupo">
-        <p class="sidebar__rotulo">${g.grupo}</p>
-        ${g.items.map((p) =>
-          `<a href="${p.href}" class="sidebar__item${p.href === actual ? " active" : ""}">${p.label}</a>`
-        ).join("")}
-      </div>
-    `).join("");
-
-    const titulo = document.getElementById("tituloModulo");
-    const item = NAV.flatMap((g) => g.items).find((p) => p.href === actual);
-    if (titulo && item) titulo.textContent = item.label;
-  }
-
-  // ---------- menú en teléfono ----------
-  function montarMenu() {
-    const barra = document.getElementById("sidebar");
-    const velo = document.getElementById("sidebarVelo");
-    const boton = document.getElementById("btnMenu");
-    if (!barra || !boton) return;
-
-    const cerrar = () => {
-      barra.classList.remove("abierta");
-      velo?.setAttribute("hidden", "");
-      boton.setAttribute("aria-expanded", "false");
-      document.body.classList.remove("menu-abierto");
-    };
-
-    boton.addEventListener("click", () => {
-      const abierta = barra.classList.toggle("abierta");
-      abierta ? velo?.removeAttribute("hidden") : velo?.setAttribute("hidden", "");
-      boton.setAttribute("aria-expanded", String(abierta));
-      document.body.classList.toggle("menu-abierto", abierta);
+  /* La página se identifica por su nombre de archivo, que es el `id` del ítem:
+     reservas.html → «reservas». Así quien llama sigue pasando lo mismo que
+     antes y no hay que tocar los siete archivos que lo invocan. */
+  function pintarNav(actual, rol) {
+    const id = String(actual ?? "").replace(/\.html$/, "");
+    const items = window.PanelNav.render(document.getElementById("panelNav"), {
+      activo: id, rol, spa: false,
     });
 
-    velo?.addEventListener("click", cerrar);
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
+    const titulo = document.getElementById("tituloModulo");
+    const nombre = window.PanelNav.titulo(id);
+    if (titulo && nombre) titulo.textContent = nombre;
+    return items;
   }
 
   // Pestañas dentro de un módulo, delegadas: sirve para cualquier página.
@@ -127,8 +81,8 @@ window.PanelBase = (() => {
       return null;
     }
 
-    pintarNav(paginaActual);
-    montarMenu();
+    pintarNav(paginaActual, fila.role);
+    window.PanelNav.montarBarra();
 
     const badge = document.getElementById("userBadge");
     if (badge) badge.textContent = fila.display_name || sesion.user.email;

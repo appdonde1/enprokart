@@ -4,14 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#090a09" />
-  <title>Anunciá con nosotros · Pro Kart</title>
+  <title>Anuncia con nosotros · Pro Kart</title>
   <meta name="description" content="Espacios publicitarios en Pro Kart: banner y pantalla de bienvenida." />
-  <link rel="icon" href="Logo Prokart.png" />
+  <link rel="icon" href="iconos/favicon-32.png" sizes="32x32" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&amp;family=Outfit:wght@300..800&amp;family=IBM+Plex+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/formulario.css" />
 </head>
@@ -33,7 +31,7 @@
   <main class="form-page">
     <a class="form-page__volver" href="index.html">← Volver al inicio</a>
 
-    <h1 class="form-page__titulo">Anunciá con nosotros</h1>
+    <h1 class="form-page__titulo">Anuncia con nosotros</h1>
     <p class="form-page__bajada">
       Cuéntanos qué necesitas y te pasamos las opciones y los precios. Hay dos
       espacios: el banner en medio del sitio y la pantalla de bienvenida.
@@ -132,12 +130,12 @@
           descripcion: $("descripcion").value.trim(),
         };
 
-        if (!datos.nombre || !datos.apellido) return S.mostrarError("Completá tu nombre y apellido");
-        if (!datos.documento) return S.mostrarError("Completá tu cédula");
+        if (!datos.nombre || !datos.apellido) return S.mostrarError("Completa tu nombre y apellido");
+        if (!datos.documento) return S.mostrarError("Completa tu cédula");
         if (datos.whatsapp.replace(/\D/g, "").length < 10) {
           return S.mostrarError("Ese WhatsApp no parece válido");
         }
-        if (!datos.comercio) return S.mostrarError("Completá el nombre del comercio");
+        if (!datos.comercio) return S.mostrarError("Completa el nombre del comercio");
         if (S.contarPalabras(datos.descripcion) < S.PALABRAS_MINIMAS) {
           return S.mostrarError(`Cuéntanos en al menos ${S.PALABRAS_MINIMAS} palabras qué necesitas`);
         }

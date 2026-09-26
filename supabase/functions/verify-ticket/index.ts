@@ -7,15 +7,121 @@ Deno.serve(async (req) => {
   if (cors) return cors;
   if (req.method !== "POST") return fail("Método no permitido", 405);
 
-  const staff = await requireStaff(req);
-  if (!staff) return fail("Necesitas iniciar sesión como personal del evento", 401);
-
-  let body: { code?: string; signature?: string; peek?: boolean };
+  let body: Record<string, any>;
   try {
     body = await req.json();
   } catch {
     return fail("Cuerpo inválido");
   }
+
+  const db = serviceClient();
+
+  /* ------------------------------------------------------------
+     1. CONSULTA PÚBLICA POR CÉDULA: El comprador busca sus entradas
+     ------------------------------------------------------------ */
+  if (body.action === "consultar_por_cedula" || body.action === "consultar_por_documento") {
+    const docBruto = String(body.documento ?? body.cpf ?? body.cedula ?? "").trim();
+    if (!docBruto || docBruto.length < 3) {
+      return fail("Ingresa un número de cédula o CPF válido");
+    }
+
+    const docDigitos = docBruto.replace(/\D/g, "");
+    const docAlfanum = docBruto.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    // Filtros de coincidencia flexible
+    const patrones = new Set<string>();
+    patrones.add(`%${docBruto}%`);
+    if (docDigitos.length >= 3) patrones.add(`%${docDigitos}%`);
+    if (docAlfanum.length >= 3) patrones.add(`%${docAlfanum}%`);
+
+    // Si es un CPF de 11 dígitos, probar con formato brasileño estándar 000.000.000-00
+    if (docDigitos.length === 11) {
+      const cpfFormateado = `${docDigitos.slice(0, 3)}.${docDigitos.slice(3, 6)}.${docDigitos.slice(6, 9)}-${docDigitos.slice(9, 11)}`;
+      patrones.add(`%${cpfFormateado}%`);
+    }
+
+    const orClauses = Array.from(patrones)
+      .map((p) => `buyer_document.ilike.${p}`)
+      .join(",");
+
+    const { data: tickets, error } = await db
+      .from("tickets")
+      .select(`
+        id, code, qr_signature, section_label, table_code, guest_index,
+        buyer_name, buyer_lastname, buyer_document, status, created_at,
+        events ( name, event_date, venue )
+      `)
+      .or(orClauses)
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    if (error) {
+      console.error("verify-ticket/consulta_error:", error);
+      return fail("No se pudieron consultar las entradas", 500);
+    }
+
+    const resultado = (tickets ?? []).map((t: any) => ({
+      code: t.code,
+      qr_signature: t.qr_signature,
+      section_label: t.section_label,
+      table_code: t.table_code,
+      guest_index: t.guest_index,
+      buyer_name: t.buyer_name,
+      buyer_lastname: t.buyer_lastname,
+      buyer_document: t.buyer_document,
+      status: t.status,
+      event_name: t.events?.name ?? "Pro Kart Evento",
+      event_date: t.events?.event_date ?? null,
+      event_venue: t.events?.venue ?? null,
+      created_at: t.created_at,
+    }));
+
+    return json({ ok: true, tickets: resultado });
+  }
+
+  /* ------------------------------------------------------------
+     2. CONSULTA PÚBLICA DE TICKET INDIVIDUAL POR CÓDIGO + FIRMA
+     ------------------------------------------------------------ */
+  if (body.action === "consultar_ticket") {
+    const code = String(body.code ?? "").trim().toUpperCase();
+    const signature = String(body.signature ?? "").trim().toLowerCase();
+    if (!code || !signature) return fail("Falta el código o la firma de la entrada");
+
+    const valid = await verifySignature(code, signature);
+    if (!valid) return fail("Firma de seguridad inválida", 403);
+
+    const { data: t } = await db
+      .from("tickets")
+      .select("id, code, qr_signature, section_label, table_code, guest_index, buyer_name, buyer_lastname, buyer_document, status, events(name, event_date, venue)")
+      .eq("code", code)
+      .maybeSingle();
+
+    if (!t) return fail("Entrada no encontrada", 404);
+
+    return json({
+      ok: true,
+      ticket: {
+        code: t.code,
+        qr_signature: t.qr_signature,
+        section_label: t.section_label,
+        table_code: t.table_code,
+        guest_index: t.guest_index,
+        buyer_name: t.buyer_name,
+        buyer_lastname: t.buyer_lastname,
+        buyer_document: t.buyer_document,
+        status: t.status,
+        event_name: (t as any).events?.name ?? "Pro Kart",
+        event_date: (t as any).events?.event_date ?? null,
+        event_venue: (t as any).events?.venue ?? null,
+      },
+    });
+  }
+
+  /* ------------------------------------------------------------
+     3. VALIDACIÓN EN PUERTA: Requiere autenticación de staff
+     ------------------------------------------------------------ */
+  const staff = await requireStaff(req);
+  if (!staff) return fail("Necesitas iniciar sesión como personal del evento", 401);
 
   const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
   if (!code) return fail("Falta el código de la entrada");
@@ -27,8 +133,9 @@ Deno.serve(async (req) => {
     if (!valid) return fail("El código QR fue alterado", 403, { tampered: true });
   }
 
-  const db = serviceClient();
-
+  // El cliente de servicio ya se creó arriba. Declararlo otra vez acá era un
+  // SyntaxError: la función no arrancaba y la puerta, «Mis entradas» y la
+  // consulta por QR respondían 503 (BOOT_ERROR).
   const { data: ticket } = await db
     .from("tickets")
     .select(

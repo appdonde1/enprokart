@@ -41,7 +41,16 @@ $mimeTypes = @{
   ".json" = "application/json; charset=utf-8"
   ".png"  = "image/png"
   ".jpg"  = "image/jpeg"
+  ".jpeg" = "image/jpeg"
+  ".webp" = "image/webp"
+  ".svg"  = "image/svg+xml"
   ".ico"  = "image/x-icon"
+  # Sin estos, un .mp4 salía como application/octet-stream y el navegador se
+  # negaba a reproducirlo: el vídeo del montaje no funcionaba en local aunque
+  # el archivo estuviera bien.
+  ".mp4"  = "video/mp4"
+  ".webm" = "video/webm"
+  ".woff2" = "font/woff2"
 }
 
 $ipsLocales = Get-NetIPAddress -AddressFamily IPv4 |

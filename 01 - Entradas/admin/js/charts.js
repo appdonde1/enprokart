@@ -8,12 +8,28 @@
 (function () {
   "use strict";
 
-  const INK = "#f2f2f5";
-  const MUTED = "#9aa0ab";
-  const GRID = "#2a2f3f";
-  const SURFACE = "#1e222f";
-  const SERIE = "#ffb703";
-  const TRACK = "rgba(255,183,3,0.16)";
+  /* Los colores salen de los tokens de la hoja, no de constantes propias.
+
+     Estaban escritos acá a mano y venían de una paleta anterior: la serie era
+     ámbar (#ffb703) mientras el acento del panel es naranja, y la rejilla y la
+     superficie eran azuladas (#2a2f3f, #1e222f) contra el verde-negro del resto.
+     El resultado era que en la misma pantalla convivían barras ámbar con
+     medidores naranjas —`.meter__fill` sí usa `--accent`—, y las gráficas
+     parecían de otro producto.
+
+     Se leen una sola vez, al cargar: son constantes de la hoja, no cambian
+     durante la sesión. El segundo argumento es el respaldo por si la hoja
+     todavía no resolvió. */
+  const token = (nombre, respaldo) =>
+    getComputedStyle(document.documentElement)
+      .getPropertyValue(nombre).trim() || respaldo;
+
+  const INK = token("--text", "#f1f0eb");
+  const MUTED = token("--muted", "#8d918b");
+  const GRID = token("--line", "#30332f");
+  const SURFACE = token("--surface-3", "#202220");
+  const SERIE = token("--accent", "#ff5936");
+  const TRACK = token("--accent-tint", "rgba(255,89,54,.12)");
 
   function esc(text) {
     return String(text).replace(/[&<>"]/g, (c) =>

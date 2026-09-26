@@ -99,7 +99,7 @@
 
       if (restante <= 0) {
         detener();
-        mostrarError("La reserva expiró", "Tu lugar volvió a quedar disponible. Elegilo de nuevo.");
+        mostrarError("La reserva expiró", "Tu lugar volvió a quedar disponible. Elígelo de nuevo.");
       }
     };
 
@@ -112,7 +112,7 @@
 
     const tickets = d.tickets || [];
     $("entradasIntro").textContent = tickets.length === 1
-      ? "Presentá este QR en la entrada del evento."
+      ? "Presenta este QR en la entrada del evento."
       : `Son ${tickets.length} entradas, una por invitado. Cada QR se valida una sola vez.`;
 
     const base = window.location.href.replace(/pagar\.html.*$/i, "");

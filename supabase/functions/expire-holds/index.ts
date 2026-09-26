@@ -1,5 +1,6 @@
 import { serviceClient } from "../_shared/supabase.ts";
 import { cancelarCobro } from "../_shared/asaas.ts";
+import { llamadaDeCronValida } from "../_shared/cron.ts";
 import { fail, json } from "../_shared/http.ts";
 
 /* Suelta las reservas vencidas y apaga sus cobranzas.
@@ -13,12 +14,8 @@ import { fail, json } from "../_shared/http.ts";
  * que cierra esa puerta.
  */
 Deno.serve(async (req) => {
-  const esperado = Deno.env.get("CRON_SECRET");
-  if (!esperado || req.headers.get("x-cron-secret") !== esperado) {
-    return fail("No autorizado", 401);
-  }
-
   const db = serviceClient();
+  if (!await llamadaDeCronValida(req, db)) return fail("No autorizado", 401);
 
   /* Las órdenes que están por perder su reserva se toman ANTES de liberar:
      después, `held_by` queda en null y ya no hay forma de saber cuáles eran. */

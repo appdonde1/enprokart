@@ -1,20 +1,50 @@
 <!DOCTYPE html>
-<html lang="es">
+<!-- `home` es lo que enciende la foto de fondo. Solo la lleva esta página: el
+     resto carga la misma hoja y no debe heredarla. -->
+<html lang="es" class="home con-barra">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#090a09" />
   <meta name="color-scheme" content="dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pro Kart" />
   <title>Pro Kart · Eventos y entradas</title>
-  <link rel="icon" href="Logo Prokart.png" />
+  <link rel="icon" href="iconos/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="iconos/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- El estado de partida de las animaciones de entrada se decide acá, antes
+       de la primera pintura. Lo ponía anim.js, que va al final del body: los
+       bloques se veían un instante en su sitio, desaparecían y volvían a
+       entrar, un parpadeo en cada carga.
+       Red de seguridad: si anim.js no llega en 2,5 s se quita la clase y la
+       página se ve entera sin animar, en vez de quedarse en blanco. -->
+  <script>
+    (function () {
+      var raiz = document.documentElement;
+      if (!("IntersectionObserver" in window)) return;
+      if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      raiz.classList.add("con-reveal");
+      window.PROKART_REVEAL = "esperando";
+      setTimeout(function () {
+        if (window.PROKART_REVEAL !== "listo") {
+          window.PROKART_REVEAL = "caducado";
+          raiz.classList.remove("con-reveal");
+        }
+      }, 2500);
+    })();
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&amp;family=Outfit:wght@300..800&amp;family=IBM+Plex+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/plano.css" />
   <link rel="stylesheet" href="css/reserva.css" />
+  <link rel="stylesheet" href="css/barra.css" />
 </head>
 
 <body>
@@ -33,11 +63,12 @@
         <a href="#eventos">Eventos</a>
         <a href="#menu">Menú</a>
         <a href="#experiencias">Experiencias</a>
+        <a href="verificar.html">Mis entradas</a>
       </nav>
 
       <div class="header-actions">
         <a class="header-staff" href="admin/index.html">Iniciar sesión</a>
-        <a class="header-book" href="#reservar" id="headerReservar">Comprar entradas <span>↗</span></a>
+        <a class="header-book" href="#reservar" id="headerReservar">Comprar entradas</a>
       </div>
     </div>
   </header>
@@ -49,57 +80,72 @@
          Los IDs heroTitulo/heroSubtitulo/btnComprar siguen vivos
          para que app.js pueda continuar cargando el evento desde DB.
          ===================================================== -->
+    <!-- La portada es el afiche y nada más. Antes era una foto encajonada en una
+         columna con una caja de texto al lado que repetía el nombre del sitio:
+         el afiche de un evento ya dice qué es, cuándo y cuánto — taparlo con
+         tipografía es discutirle a la pieza que se pagó por hacer.
+
+         Es panorámica y va de lado a lado: una fecha por pantalla, que se
+         desliza con el dedo. Las barras de arriba dicen cuántas fechas hay y
+         cuál está al frente. -->
     <section class="feature" id="hero">
-      <div class="feature__media">
-        <div class="feature__grid" aria-hidden="true"></div>
+      <h1 class="sr-only">Pro Kart · entradas para eventos</h1>
 
-        <!-- Carrusel de portada. Una diapositiva por fecha publicada; app.js lo
-             llena desde la base. Con una sola fecha no aparece ningún control:
-             un carrusel de uno es una foto. -->
-        <section class="portada" id="eventoPortada" aria-roledescription="carrusel"
-                 aria-label="Próximas fechas" hidden>
-          <div class="portada__pista" id="portadaPista"></div>
+      <section class="portada" id="eventoPortada" aria-roledescription="carrusel"
+               aria-label="Próximas fechas" hidden>
+        <div class="portada__pista" id="portadaPista"></div>
 
-          <div class="portada__mando" id="portadaMando" hidden>
-            <button type="button" class="portada__flecha" id="portadaAnterior"
-                    aria-label="Fecha anterior">‹</button>
-            <div class="portada__puntos" id="portadaPuntos" role="tablist"
-                 aria-label="Elegir fecha"></div>
-            <button type="button" class="portada__flecha" id="portadaSiguiente"
-                    aria-label="Fecha siguiente">›</button>
-          </div>
-        </section>
+        <!-- Progreso tipo historias: una barra por fecha, y la del frente se va
+             llenando mientras corre el reloj. Es el indicador y es el control:
+             tocar una barra lleva a esa fecha. -->
+        <div class="portada__progreso" id="portadaPuntos" role="tablist"
+             aria-label="Elegir fecha" hidden></div>
 
-        <div class="feature__art" aria-hidden="true">
-          <span class="feature__number">01</span>
-          <div class="feature__marker">PK / LIVE</div>
-        </div>
-      </div>
+        <!-- Las flechas solo se muestran con ratón: en el teléfono se desliza. -->
+        <button type="button" class="portada__flecha portada__flecha--anterior"
+                id="portadaAnterior" aria-label="Fecha anterior" hidden>‹</button>
+        <button type="button" class="portada__flecha portada__flecha--siguiente"
+                id="portadaSiguiente" aria-label="Fecha siguiente" hidden>›</button>
+      </section>
 
-      <div class="feature__info">
-        <div class="eyebrow"><span></span> Próximo evento</div>
-
-        <!-- La columna sigue a la diapositiva que esté al frente: los datos son
-             los de esa fecha, no los de un evento fijo. -->
-        <div class="feature__copy">
-          <p class="feature__kicker">Pro Kart · 2026</p>
+      <!-- La ficha de la fecha que está al frente, debajo del afiche y no
+           encima. Conserva los IDs que app.js escribe en cada cambio de
+           diapositiva. -->
+      <div class="feature__pie">
+        <div class="feature__ficha">
           <p id="heroSubtitulo" class="feature__sub">
             Experiencias, carreras y noches especiales en un solo lugar.
           </p>
           <dl class="feature__datos" id="heroDatos"></dl>
         </div>
 
-        <div class="feature__footer">
-          <div class="feature__meta">
+        <div class="feature__accion">
+          <span class="feature__meta">
             <span class="feature__meta-num" id="heroContador">01</span>
             <span id="heroContadorTexto">Evento destacado</span>
-          </div>
-          <button class="editorial-cta" id="btnComprar" type="button">
-            Comprar entradas <span>↗</span>
+          </span>
+          <button class="btn btn--primary" id="btnComprar" type="button">
+            Comprar entradas
           </button>
         </div>
       </div>
     </section>
+
+    <!-- =====================================================
+         PUBLICIDAD — espacio alquilable
+         Va justo debajo de la portada: es el sitio de más valor de la página y
+         es lo que se le vende al anunciante. La pieza la resuelve la base: si
+         hay campaña vigente sale la del anunciante, si no sale la de la casa
+         ofreciendo el espacio.
+         ===================================================== -->
+    <aside class="pieza-destacada" id="piezaDestacada" hidden>
+      <a class="pieza__link" id="piezaLink" href="anunciar.html">
+        <img class="pieza__img" id="piezaImg" src="" alt="Espacio publicitario" />
+      </a>
+      <p class="pieza__nota">Espacio publicitario</p>
+    </aside>
+
+
 
     <!-- =====================================================
          EVENTOS
@@ -125,7 +171,6 @@
       <div class="menu-intro">
         <h2>Menú destacado</h2>
         <p>Lo que se sirve en el paddock.</p>
-        <a href="#reservar" class="text-cta">Comprar entradas <span>↗</span></a>
       </div>
 
       <!-- Productos destacados: los edita el admin en el panel.
@@ -134,18 +179,6 @@
         <div class="menu-tile"><span>Cargando menú...</span></div>
       </div>
     </section>
-
-    <!-- =====================================================
-         PUBLICIDAD — espacio alquilable
-         La pieza la resuelve la base: si hay campaña vigente sale la del
-         anunciante, si no sale la de la casa ofreciendo el espacio.
-         ===================================================== -->
-    <aside class="pieza-destacada" id="piezaDestacada" hidden>
-      <a class="pieza__link" id="piezaLink" href="anunciar.html">
-        <img class="pieza__img" id="piezaImg" src="" alt="Espacio publicitario" />
-      </a>
-      <p class="pieza__nota">Espacio publicitario</p>
-    </aside>
 
     <!-- =====================================================
          EXPERIENCIAS
@@ -158,23 +191,25 @@
       </div>
 
       <div class="experience-grid">
+        <!-- Títulos en caja normal y no en mayúsculas, y una flecha que dice que la
+             tarjeta se toca: sin ella se leía como un bloque de texto. -->
         <a href="#reservar" class="experience-card experience-card--dark">
           <span>01</span>
-          <strong>GRUPOS</strong>
+          <strong>Grupos</strong>
           <p>Mesas para equipos y amigos, juntos en el mismo sector.</p>
-          <b>↗</b>
+          <b aria-hidden="true">↗</b>
         </a>
         <a href="#reservar" class="experience-card experience-card--light">
           <span>02</span>
-          <strong>CUMPLEAÑOS</strong>
-          <p>Festejá con tu mesa reservada y el show en vivo.</p>
-          <b>↗</b>
+          <strong>Cumpleaños</strong>
+          <p>Festeja con tu mesa reservada y el show en vivo.</p>
+          <b aria-hidden="true">↗</b>
         </a>
         <a href="#reservar" class="experience-card experience-card--accent">
           <span>03</span>
-          <strong>EMPRESAS</strong>
+          <strong>Empresas</strong>
           <p>Eventos corporativos con sector privado y catering.</p>
-          <b>↗</b>
+          <b aria-hidden="true">↗</b>
         </a>
       </div>
     </section>
@@ -205,6 +240,12 @@
           <span class="step-indicator__dot">3</span>
           <span class="step-indicator__label">Datos</span>
         </div>
+        <!-- El pago es un paso más y no una ventana que aparece de la nada:
+             desde el primer momento se ve que faltan cuatro, no tres. -->
+        <div class="step-indicator" data-step="4">
+          <span class="step-indicator__dot">4</span>
+          <span class="step-indicator__label">Pago</span>
+        </div>
       </div>
 
       <div class="booking-panels">
@@ -214,7 +255,7 @@
           <div class="areas-grid" id="areasGrid">
             <p class="hint">Cargando áreas disponibles...</p>
           </div>
-          <span class="error" data-for="area"></span>
+          <span class="error" role="alert" data-for="area"></span>
         </section>
 
         <!-- PASO 2 -->
@@ -254,12 +295,12 @@
             <p id="sinPlanoTexto"></p>
           </div>
 
-          <span class="error" data-for="lugar"></span>
+          <span class="error" role="alert" data-for="lugar"></span>
 
-          <div class="actions">
-            <button type="button" class="btn btn--ghost" id="btnVolverArea">← Cambiar área</button>
-            <button type="button" class="btn btn--primary" id="btnIrDatos" disabled>Continuar</button>
-          </div>
+          <!-- «Cambiar área» y «Continuar» de este paso no van acá: viven en el
+               pie del flujo (#pieLugar, debajo del total). Pegados con sticky
+               dentro de este panel, que es el que scrollea, nacían encima del
+               plano y tapaban mesas en el teléfono. -->
         </section>
 
         <!-- PASO 3 -->
@@ -272,12 +313,12 @@
               <div class="field">
                 <label for="nombre">Nombre</label>
                 <input type="text" id="nombre" name="nombre" required placeholder="Ej: Juan" />
-                <span class="error" data-for="nombre"></span>
+                <span class="error" role="alert" data-for="nombre"></span>
               </div>
               <div class="field">
                 <label for="apellido">Apellido</label>
                 <input type="text" id="apellido" name="apellido" required placeholder="Ej: Pérez" />
-                <span class="error" data-for="apellido"></span>
+                <span class="error" role="alert" data-for="apellido"></span>
               </div>
               <!-- El documento no se pide: lo aporta la pasarela con el pago,
                    y ése es el que sirve en la puerta porque está respaldado por
@@ -286,19 +327,23 @@
               <div class="field">
                 <label for="whatsapp">Número de WhatsApp</label>
                 <input type="tel" id="whatsapp" name="whatsapp" required placeholder="Ej: (11) 99999-9999" />
-                <span class="error" data-for="whatsapp"></span>
+                <span class="error" role="alert" data-for="whatsapp"></span>
               </div>
+              <!-- El correo dejó de ser opcional: es por donde llegan las
+                   entradas con su código. Sin él la compra queda sin forma de
+                   entregarse. -->
               <div class="field">
-                <label for="email">Correo <span class="field__opcional">(opcional)</span></label>
-                <input type="email" id="email" name="email" placeholder="Para recibir el comprobante" />
-                <span class="error" data-for="email"></span>
+                <label for="email">Correo</label>
+                <input type="email" id="email" name="email" required
+                       autocomplete="email" placeholder="Ahí te llegan las entradas" />
+                <span class="error" role="alert" data-for="email"></span>
               </div>
             </div>
 
-            <div class="actions">
-              <button type="button" class="btn btn--ghost" id="btnVolverLugar">← Volver</button>
-              <button type="submit" class="btn btn--primary" id="btnContinuar">Ir a pagar</button>
-            </div>
+            <!-- «Volver» e «Ir a pagar» viven en el pie del flujo (#pieDatos),
+                 igual que los del paso 2: pegados con sticky dentro del panel
+                 flotaban encima del campo del correo. «Ir a pagar» sigue siendo
+                 el botón de envío de este formulario por su atributo form. -->
           </form>
         </section>
       </div>
@@ -312,6 +357,22 @@
           <small>Total</small>
           <strong id="total">R$ 0,00</strong>
         </div>
+      </div>
+
+      <!-- Pie del paso 2: fila propia del flujo, debajo del total. No scrollea
+           con el plano, así que no tapa ninguna mesa. app.js lo muestra solo en
+           el paso 2 (irAPaso). Los ids son los mismos de antes. -->
+      <div class="actions booking-pie" id="pieLugar" hidden>
+        <button type="button" class="btn btn--ghost" id="btnVolverArea">← Cambiar área</button>
+        <button type="button" class="btn btn--primary" id="btnIrDatos" disabled>Continuar</button>
+      </div>
+
+      <!-- Pie del paso 3, mismo criterio que el del paso 2. «Ir a pagar» está
+           fuera del formulario pero sigue siendo su botón de envío gracias a
+           form="formRegistro": el submit y la tecla Enter funcionan igual. -->
+      <div class="actions booking-pie" id="pieDatos" hidden>
+        <button type="button" class="btn btn--ghost" id="btnVolverLugar">← Volver</button>
+        <button type="submit" class="btn btn--primary" id="btnContinuar" form="formRegistro">Ir a pagar</button>
       </div>
     </section>
 
@@ -331,26 +392,61 @@
     </div>
 
     <!-- =====================================================
-         VENTANA DE PAGO
+         PASO 4 — PAGO
          Lo último que se ve antes de que el cobro exista. Hasta que no se
          toca "Pagar" no se llama a create-order: no hay mesa tomada ni reloj
          corriendo, y por eso "Editar" alcanza con cerrar la ventana.
+
+         En el teléfono ocupa la pantalla entera: es la decisión de la compra,
+         y no hay nada detrás que valga la pena mirar. Lleva su propio riel de
+         pasos porque el de arriba queda tapado, y sin él el paso 4 no se
+         vería como paso.
          ===================================================== -->
     <div class="modal" id="modalPago" role="dialog" aria-modal="true"
          aria-labelledby="modalPagoTitulo" hidden>
       <div class="modal__caja modal__caja--pago">
-        <h3 id="modalPagoTitulo">Revisa tu compra</h3>
-        <p>Esto es lo que vas a pagar.</p>
 
-        <div class="resumen-compra" id="resumenPago"></div>
+        <header class="pago-cab">
+          <div class="booking-steps steps-rail" aria-label="Paso 4 de 4: pago">
+            <div class="step-indicator done" data-step="1">
+              <span class="step-indicator__dot">1</span>
+              <span class="step-indicator__label">Área</span>
+            </div>
+            <div class="step-indicator done" data-step="2">
+              <span class="step-indicator__dot">2</span>
+              <span class="step-indicator__label">Lugar</span>
+            </div>
+            <div class="step-indicator done" data-step="3">
+              <span class="step-indicator__dot">3</span>
+              <span class="step-indicator__label">Datos</span>
+            </div>
+            <div class="step-indicator active" data-step="4">
+              <span class="step-indicator__dot">4</span>
+              <span class="step-indicator__label">Pago</span>
+            </div>
+          </div>
+        </header>
 
-        <p class="pago-aviso">Al pagar, tu lugar queda reservado 5 minutos.</p>
+        <div class="pago-cuerpo">
+          <h3 id="modalPagoTitulo">Revisa tu compra</h3>
+          <p>Esto es lo que vas a pagar.</p>
 
-        <div class="modal__acciones">
-          <button type="button" class="btn btn--ghost" id="btnEditarCompra">Editar</button>
-          <button type="button" class="btn btn--primary" id="btnPagar">Pagar</button>
+          <div class="resumen-compra" id="resumenPago"></div>
+          <span class="error" role="alert" data-for="pago"></span>
         </div>
-        <span class="error" data-for="pago"></span>
+
+        <footer class="pago-pie">
+          <!-- El total vive en el pie y no en la lista: es el número que no se
+               puede perder de vista, y en una pantalla corta la última fila de
+               la lista queda debajo del doblez. Acá está siempre, al lado del
+               botón que lo cobra. -->
+          <p class="pago-total"><span>Total</span><strong id="pagoTotal">R$ 0,00</strong></p>
+          <p class="pago-aviso">Al pagar, tu lugar queda reservado 5 minutos.</p>
+          <div class="modal__acciones">
+            <button type="button" class="btn btn--ghost" id="btnEditarCompra">Editar</button>
+            <button type="button" class="btn btn--primary" id="btnPagar">Pagar</button>
+          </div>
+        </footer>
       </div>
     </div>
   </main>
@@ -362,6 +458,10 @@
     </div>
 
     <nav class="site-footer__enlaces" aria-label="Enlaces del pie">
+      <!-- «Mis Entradas» vive en la barra de arriba, que en el teléfono se
+           ocultaba entera: quien ya había comprado no tenía por dónde consultar
+           su entrada. Acá queda además del encabezado, no en vez de él. -->
+      <a href="verificar.html">Mis entradas</a>
       <a href="empleos.html">Empleos</a>
       <a href="anunciar.html">Publicidad</a>
       <!-- El acceso al panel se repite acá porque en el teléfono el del
@@ -403,6 +503,34 @@
   </footer>
 
   <!-- =====================================================
+       BARRA DE LA APP (solo en el teléfono, ver css/barra.css)
+       Inicio · Menú · Comprar · Reservar · Mis entradas.
+       «Reservar» lleva a Grupos y privados; «Comprar» abre la compra.
+       ===================================================== -->
+  <nav class="app-barra" aria-label="Navegación de la app">
+    <a class="app-barra__item" href="#inicio" data-seccion="inicio" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v10.5h13V9"/><path d="M10 19.5v-5h4v5"/></svg>
+      <span>Inicio</span>
+    </a>
+    <a class="app-barra__item" href="#menu" data-seccion="menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 3v5.5a2.5 2.5 0 0 0 5 0V3"/><path d="M9 3v18"/><path d="M17.5 21V3c-2 1.2-3 3.6-3 6.5V14h3"/></svg>
+      <span>Menú</span>
+    </a>
+    <a class="app-barra__item app-barra__item--comprar" href="#reservar">
+      <span class="app-barra__boton"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 8A1.5 1.5 0 0 1 5 6.5h14A1.5 1.5 0 0 1 20.5 8v2.2a1.8 1.8 0 0 0 0 3.6V16a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 16v-2.2a1.8 1.8 0 0 0 0-3.6z"/><path d="M14.5 6.5v2M14.5 11v2M14.5 15.5v2"/></svg></span>
+      <span>Comprar</span>
+    </a>
+    <a class="app-barra__item" href="#experiencias" data-seccion="experiencias">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8"/><path d="M17.5 14a6 6 0 0 1 3.5 5.5"/></svg>
+      <span>Reservar</span>
+    </a>
+    <a class="app-barra__item" href="verificar.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"/><path d="M13.5 13.5h2.5v2.5M20 13.5v2.5M13.5 20h2.5M18.5 18.5H20V20"/></svg>
+      <span>Mis entradas</span>
+    </a>
+  </nav>
+
+  <!-- =====================================================
        OVERLAY publicitario
        Se abre una vez por día. El botón que lo cierra muestra las visitas
        de hoy: es el mismo control, con el número encima.
@@ -421,10 +549,17 @@
   <script>
     (() => {
       const booking = document.getElementById("reservar");
-      const openers = [
+
+      /* Todo lo que apunta a #reservar abre el flujo. Esta lista tenía solo los
+         dos botones, y las tres tarjetas de experiencias más el enlace del menú
+         apuntaban por su cuenta a una sección `hidden` —o sea display:none—.
+         Un ancla a un elemento que no se muestra no lleva a ningún lado: eran
+         cuatro llamadas a la acción que no hacían absolutamente nada. */
+      const openers = [...new Set([
         document.getElementById("btnComprar"),
-        document.getElementById("headerReservar")
-      ].filter(Boolean);
+        ...document.querySelectorAll('a[href="#reservar"]')
+      ].filter(Boolean))];
+
       const closer = document.getElementById("closeBooking");
 
       function openBooking(event) {
@@ -442,7 +577,10 @@
 
         booking.hidden = false;
         document.body.classList.add("booking-open");
-        booking.scrollIntoView({ behavior: "smooth", block: "start" });
+        /* Ya no hace falta desplazarse hasta el flujo: abierto ocupa la ventana
+           entera. El `scrollIntoView` que había acá, con la caja en posición
+           fija, o no hacía nada o dejaba la página de debajo corrida. */
+        document.getElementById("closeBooking")?.focus({ preventScroll: true });
       }
 
       openers.forEach(el => el.addEventListener("click", openBooking));
@@ -452,11 +590,54 @@
         document.getElementById("inicio")?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
 
-      // Los eventos de la portada son enlaces internos; no necesitamos
-      // inventar contenido dinámico que la base de datos aún no provee.
+      /* Si se llega desde otra página con la barra de la app («Comprar» en Mis
+         entradas lleva a index.html#reservar), la compra se abre sola. El ancla
+         se limpia para que recargar la página no la vuelva a abrir. */
+      if (location.hash === "#reservar") {
+        history.replaceState(null, "", location.pathname + location.search);
+        openBooking();
+      }
+
+      /* La pestaña de la barra sigue a la sección que está a la vista: la última
+         cuyo borde de arriba ya pasó el 40% de la pantalla. Arriba de todo es
+         Inicio. Se mide en el cuadro siguiente, no en cada evento de scroll. */
+      const pestanas = [...document.querySelectorAll(".app-barra__item[data-seccion]")];
+      const secciones = pestanas
+        .map((p) => document.getElementById(p.dataset.seccion))
+        .filter((s) => s && s.id !== "inicio");
+      if (pestanas.length) {
+        const marcar = () => {
+          const linea = window.innerHeight * 0.4;
+          let actual = "inicio";
+          for (const s of secciones) {
+            if (s.getBoundingClientRect().top <= linea) actual = s.id;
+          }
+          pestanas.forEach((p) => {
+            if (p.dataset.seccion === actual) p.setAttribute("aria-current", "page");
+            else p.removeAttribute("aria-current");
+          });
+        };
+        let cuadro = 0;
+        const pedir = () => {
+          cancelAnimationFrame(cuadro);
+          cuadro = requestAnimationFrame(marcar);
+        };
+        window.addEventListener("scroll", pedir, { passive: true });
+        /* También cuando cambia el alto de la página. Al cargar, eventos y menú
+           todavía no llegaron, la página es corta y la sección del menú queda
+           cerca de arriba: sin esto «Menú» salía marcada con la página quieta
+           arriba de todo, porque nada volvía a medir cuando el contenido llegaba. */
+        if ("ResizeObserver" in window) new ResizeObserver(pedir).observe(document.body);
+        marcar();
+      }
     })();
   </script>
 
+  <!-- anim.js va antes que la librería de Supabase, que baja de un CDN y puede
+       tardar: los bloques ya nacen ocultos (lo decide el script del <head>) y
+       cuanto antes llegue quien los muestra, mejor. No depende de app.js: se
+       engancha a los contenedores que app.js rellena, que ya están en el HTML. -->
+  <script src="js/anim.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/supabaseClient.js"></script>

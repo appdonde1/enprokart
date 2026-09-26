@@ -1,5 +1,7 @@
 import { esAdmin, requireStaff, serviceClient } from "../_shared/supabase.ts";
 import { generateTicketCode, signTicket } from "../_shared/tickets.ts";
+import { notificarTelegram } from "../_shared/telegram.ts";
+import { enviarEntradasPorCorreo } from "../_shared/email.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
 
 /* Cortesías: reservas sin cobro autorizadas por un administrador.
@@ -58,8 +60,14 @@ Deno.serve(async (req) => {
 
   const nombre = limpio(body.nombre);
   const apellido = limpio(body.apellido);
-  const documento = limpio(body.documento, 40) || "CORTESIA";
-  const whatsapp = limpio(body.whatsapp, 40) || "-";
+  /* Vacío es vacío. Antes acá iban 'CORTESIA' y '-' porque la base exigía los
+     dos campos; ahora no los exige, y un dato inventado es peor que ninguno:
+     se imprime en la entrada y se puede buscar en Operaciones como si fuera
+     cierto. A un invitado de la casa no se le pide la cédula. */
+  const documento = limpio(body.documento, 40) || null;
+  const whatsapp = limpio(body.whatsapp, 40) || null;
+  const correoBruto = limpio(body.email, 120);
+  const email = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(correoBruto) ? correoBruto : null;
   const motivo = limpio(body.reason, 200);
 
   if (!nombre || !apellido) return fail("Falta el nombre del invitado");
@@ -139,6 +147,7 @@ Deno.serve(async (req) => {
       buyer_lastname: apellido,
       buyer_document: documento,
       buyer_whatsapp: whatsapp,
+      buyer_email: email,
       amount_cents: 0,
       people: personas,
       tables_count: mesasTomadas.length,
@@ -275,6 +284,53 @@ Deno.serve(async (req) => {
       reason: motivo || null,
     })),
   );
+
+  const fechaFormateada = event?.event_date
+    ? new Date(event.event_date).toLocaleDateString("es", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  // Notificar por Telegram a los 3 IDs configurados
+  await notificarTelegram({
+    orderNumber: order.order_number,
+    buyerName: `${nombre} ${apellido}`.trim(),
+    buyerDocument: documento,
+    buyerWhatsapp: whatsapp,
+    buyerEmail: email,
+    sectionLabel,
+    tables: codigosMesa.length ? codigosMesa.join(", ") : null,
+    people: personas,
+    amountCents: 0,
+    isCourtesy: true,
+    reason: motivo || null,
+    ticketsCount: emitidas.length,
+  }).catch((e) => console.error("courtesy-ticket/telegram_error:", e));
+
+  // Enviar por correo si se especificó email
+  if (email) {
+    const entradasEmail = emitidas.map((t: any) => ({
+      code: t.code,
+      qrSignature: t.qr_signature,
+      tableCode: t.table_code,
+      guestIndex: t.guest_index,
+    }));
+
+    await enviarEntradasPorCorreo({
+      destinatario: email,
+      nombreComprador: `${nombre} ${apellido}`.trim(),
+      documento,
+      orderNumber: order.order_number,
+      eventoNombre: event.name,
+      eventoFecha: fechaFormateada,
+      seccionNombre: sectionLabel,
+      mesas: codigosMesa.length ? codigosMesa.join(", ") : null,
+      entradas: entradasEmail,
+    }).catch((e) => console.error("courtesy-ticket/email_error:", e));
+  }
 
   return json({
     issued: true,

@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#090a09" />
   <title>Usuarios · Pro Kart</title>
-  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="icon" href="../iconos/favicon-32.png" sizes="32x32" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&amp;family=Outfit:wght@300..800&amp;family=IBM+Plex+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
 </head>
@@ -25,18 +23,18 @@
         </span>
       </div>
       <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
-      <div class="sidebar__pie">
+      <div class="sidebar__pie" id="sidebarPie">
         <span id="userBadge" class="badge badge--vip"></span>
         <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
       </div>
     </aside>
 
-    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+    <div class="sidebar__velo" id="sidebarVelo"></div>
 
     <div class="panel-cuerpo">
       <header class="panel-topbar">
         <button type="button" class="hamburguesa" id="btnMenu"
-                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+                aria-label="Ver nombres del menú" aria-expanded="false" aria-controls="sidebar">
           <span></span><span></span><span></span>
         </button>
         <h1 class="panel-topbar__titulo" id="tituloModulo"></h1>
@@ -101,6 +99,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="../js/config.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/panel-base.js"></script>
   <script src="js/usuarios.js"></script>
 </body>

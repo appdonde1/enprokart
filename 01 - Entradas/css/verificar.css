@@ -1,29 +1,61 @@
 /* =========================================================
-   Pantalla de validación (puerta del evento)
-   Se usa de noche, de pie y con apuro: el veredicto tiene que
-   leerse a un metro de distancia y sin interpretar matices.
+   Pantalla de verificación y consulta de entradas
    ========================================================= */
 
 .verify-body {
   display: flex;
   min-height: 100vh;
-  padding: 20px 16px 36px;
+  padding: 20px 16px 40px;
+  background: var(--bg);
 }
 
 /* `margin:auto` centra sin recortar cuando el contenido crece */
 .verify-container {
   width: 100%;
-  max-width: 460px;
+  max-width: 520px;
   margin: auto;
 }
 
-/* El resultado se muestra arriba del formulario: es lo que se mira */
-#scanCard {
+/* -------- Tabs superiores -------- */
+.verify-tabs {
+  display: flex;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  margin-bottom: 20px;
+  gap: 4px;
+}
+
+.verify-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: 700 var(--fs-label)/1.2 var(--sans);
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--t-move) ease;
+  text-align: center;
+}
+
+.verify-tab:hover {
+  color: var(--text);
+}
+
+.verify-tab.active {
+  background: var(--accent);
+  color: var(--black);
+  box-shadow: 0 4px 12px rgba(255, 89, 54, 0.4);
+}
+
+/* -------- Secciones y Tarjetas -------- */
+.verify-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
-#resultCard { order: -1; }
 
 .verify-card {
   position: relative;
@@ -34,6 +66,11 @@
   box-shadow: var(--shadow-lg);
   padding: 28px 22px 24px;
   text-align: center;
+}
+
+.brand-plate--auth {
+  display: inline-flex;
+  margin-bottom: 12px;
 }
 
 .verify-brand {
@@ -54,45 +91,119 @@
   padding: 6px 10px;
 }
 
+.verify-card__status {
+  font: 700 clamp(1.4rem, 6vw, 1.9rem)/1.1 var(--display);
+  letter-spacing: -.035em;
+  margin: 6px 0 10px;
+  color: var(--text);
+}
+
+.verify-card .hint {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+/* -------- Lista de Entradas Consultadas -------- */
+.entradas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.ticket-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-md);
+  border-top: 4px solid var(--oro, #d9b85d);
+}
+
+.ticket-item__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.ticket-item__num {
+  font: 700 0.8rem/1 var(--mono);
+  color: var(--oro, #d9b85d);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ticket-item__evento {
+  font: 700 1.2rem/1.2 var(--display);
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.ticket-item__lugar {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+
+.ticket-item__qr-caja {
+  background: #ffffff;
+  padding: 14px;
+  border-radius: var(--radius);
+  display: inline-block;
+  margin: 0 auto 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.ticket-item__qr-img {
+  display: block;
+  width: 200px;
+  height: 200px;
+  border: none;
+}
+
+.ticket-item__code {
+  font: 700 1.05rem/1.3 var(--mono);
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  background: var(--surface-2);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  margin: 0 auto 12px;
+  user-select: all;
+}
+
+.ticket-item__titular {
+  font-size: 0.82rem;
+  color: var(--dim);
+  margin: 0;
+}
+
+/* -------- Puerta y Resultados de Validación -------- */
+#scanCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+#resultCard { order: -1; }
+
 .verify-card__icon {
-  width: 82px;
-  height: 82px;
+  width: 80px;
+  height: 80px;
   margin: 4px auto 14px;
   display: grid;
   place-items: center;
-  font-size: 2.6rem;
+  font-size: 2.5rem;
   line-height: 1;
   border-radius: var(--radius-round);
   border: 3px solid currentColor;
   background: rgba(255, 255, 255, 0.04);
-}
-
-/* Es la palabra más grande de la pantalla y declaraba el peso sin la familia,
-   así que salía en la sans mientras todos los demás titulares del sitio son
-   display con el tracking cerrado. */
-.verify-card__status {
-  font: 700 clamp(1.5rem, 7vw, 2.1rem)/1.08 var(--display);
-  letter-spacing: -.04em;
-  margin: 6px 0 14px;
-  text-wrap: balance;
-}
-
-/* -------- Estados --------
-   Cada uno cambia color, patrón de la banda superior e icono, para que
-   no dependa solo del color. */
-.verify-card--valida,
-.verify-card--usada,
-.verify-card--invalida { padding-top: 34px; }
-
-.verify-card--valida::before,
-.verify-card--usada::before,
-.verify-card--invalida::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 10px;
 }
 
 .verify-card--valida {
@@ -103,7 +214,6 @@
     var(--surface);
   box-shadow: 0 0 0 1px rgba(99, 215, 140, .25), 0 26px 60px -28px rgba(99, 215, 140, .7);
 }
-.verify-card--valida::before { background: var(--success); }
 .verify-card--valida .verify-card__status { color: var(--success); }
 
 .verify-card--usada {
@@ -113,14 +223,6 @@
     radial-gradient(90% 60% at 50% 0%, var(--accent-tint), transparent 70%),
     var(--surface);
   box-shadow: 0 0 0 1px rgba(255, 89, 54, .25), 0 26px 60px -28px rgba(255, 89, 54, .7);
-}
-/* Banda a rayas suaves: distinta del verde incluso en blanco y negro */
-.verify-card--usada::before {
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--accent) 0 12px,
-    rgba(255, 89, 54, .32) 12px 24px
-  );
 }
 .verify-card--usada .verify-card__status { color: var(--accent); }
 
@@ -132,25 +234,8 @@
     var(--surface);
   box-shadow: 0 0 0 1px rgba(255, 102, 96, .3), 0 26px 60px -28px rgba(255, 102, 96, .7);
 }
-/* Banda de peligro */
-.verify-card--invalida::before {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--danger) 0 10px,
-    #2a1417 10px 20px
-  );
-}
 .verify-card--invalida .verify-card__status { color: var(--danger); }
 
-/* Aviso secundario (cuándo y quién validó) */
-.verify-card--usada .hint,
-.verify-card--invalida .hint {
-  font-weight: 600;
-  color: var(--text);
-  margin-top: 0;
-}
-
-/* -------- Detalle de la entrada -------- */
 .verify-card__details {
   text-align: left;
   background: var(--bg);
@@ -179,49 +264,34 @@
   flex: none;
 }
 .verify-card__details .row span:last-child { text-align: right; word-break: break-word; }
-.verify-card__details .row:last-child span:last-child {
-  font-family: var(--mono);
-  font-size: 0.84rem;
-  letter-spacing: 0.5px;
-}
 
-/* -------- Formulario de escaneo -------- */
-.verify-card--scan .field { text-align: left; }
-.verify-card--scan .field label {
-  font-size: 0.76rem;
-  text-transform: uppercase;
-  letter-spacing: 0.9px;
-}
-
-#codigo {
+#codigo, #inputCedula {
   font-family: var(--mono);
   font-size: 1.15rem;
   letter-spacing: 1.5px;
   text-align: center;
   text-transform: uppercase;
-  padding: 15px 12px;
+  padding: 14px 12px;
 }
 
-.verify-card--scan .error { text-align: left; }
-.verify-card--scan .btn--lg { margin-top: 14px; }
+/* El formulario de consulta con aire entre etiqueta, campo, error y botón.
+   Esta página no carga reserva.css, que es donde .field tiene su separación:
+   el botón «Buscar entradas» empezaba justo en el borde de abajo del campo
+   (0px) y, con el anillo del foco y la sombra del botón, se veía montado
+   encima. El error vacío no ocupa lugar; cuando tiene texto aparece entre el
+   campo y el botón con la misma separación. */
+#cedulaForm { display: grid; gap: var(--s-4); }
+#cedulaForm .field { display: grid; gap: 8px; }
+#cedulaForm .error:empty { display: none; }
 
 #staffInfo {
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--line-soft);
   font-size: 0.78rem;
 }
 
-/* -------- Login del personal -------- */
-#loginCard .field { text-align: left; margin-bottom: 14px; }
-#loginCard .btn--primary { width: 100%; margin-top: 8px; }
-#loginCard .verify-card__status { font-size: 1.3rem; }
-#loginCard .hint { margin-bottom: 20px; }
-
-@media (max-width: 400px) {
-  .verify-card { padding: 24px 16px 20px; border-radius: var(--radius); }
-  .verify-card--valida,
-  .verify-card--usada,
-  .verify-card--invalida { padding-top: 30px; }
-  .verify-card__icon { width: 70px; height: 70px; font-size: 2.2rem; }
+@media (max-width: 440px) {
+  .verify-card, .ticket-item { padding: 20px 16px; border-radius: var(--radius); }
+  .ticket-item__qr-img { width: 170px; height: 170px; }
 }

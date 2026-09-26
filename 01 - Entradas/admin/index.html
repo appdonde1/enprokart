@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#090a09" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pro Kart Admin" />
   <title>Panel · Pro Kart</title>
-  <link rel="icon" href="../Logo Prokart.png" />
+  <link rel="icon" href="../iconos/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="../iconos/apple-touch-icon.png" />
+  <link rel="manifest" href="../manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&amp;family=Outfit:wght@300..800&amp;family=IBM+Plex+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
 </head>
@@ -69,7 +72,7 @@
        clave temporal que alguien dictó por teléfono no puede quedar puesta. -->
   <div class="bloqueo" id="bloqueoClave" hidden>
     <form class="bloqueo__caja" id="cambioClaveForm">
-      <h2>Cambiá tu contraseña</h2>
+      <h2>Cambia tu contraseña</h2>
       <p class="hint">
         Estás usando la clave temporal que te entregaron. Para seguir, elige una
         propia: al menos 8 caracteres, con letras y números.
@@ -104,8 +107,8 @@
           <img src="../Logo Prokart blanco.png" alt="Pro Kart" class="brand-logo" />
         </span>
       </div>
-      <nav class="sidebar__nav" id="tabs" aria-label="Secciones del panel"></nav>
-      <div class="sidebar__pie">
+      <nav class="sidebar__nav" id="panelNav" aria-label="Secciones del panel"></nav>
+      <div class="sidebar__pie" id="sidebarPie">
         <span id="userBadge" class="badge badge--vip"></span>
         <button type="button" class="btn btn--link" id="btnLogout">Salir</button>
       </div>
@@ -113,12 +116,12 @@
 
     <!-- En el teléfono la barra se desliza sobre el contenido; el velo la cierra
          al tocar afuera, que es lo que uno intenta primero. -->
-    <div class="sidebar__velo" id="sidebarVelo" hidden></div>
+    <div class="sidebar__velo" id="sidebarVelo"></div>
 
     <div class="panel-cuerpo">
       <header class="panel-topbar">
         <button type="button" class="hamburguesa" id="btnMenu"
-                aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+                aria-label="Ver nombres del menú" aria-expanded="false" aria-controls="sidebar">
           <span></span><span></span><span></span>
         </button>
         <h1 class="panel-topbar__titulo" id="tituloModulo">Resumen</h1>
@@ -265,21 +268,37 @@
         <div class="panel-card">
           <h3>Evento en portada</h3>
           <p class="hint">
-            Estos datos son los que aparecen sobre la imagen del evento y en la
-            fila del calendario. El plano del salón no cambia.
+            Sobre el afiche solo aparecen dos cosas: el título y la fecha. El
+            cartel ya trae compuesto todo lo demás, así que cualquier texto de
+            más le compite en vez de ayudarlo.
           </p>
-          <form id="portadaForm" class="form-grid">
+
+          <!-- Los dos campos que se ven en la portada, solos y arriba. El resto
+               alimenta el calendario y las fichas, no el afiche: va plegado
+               para que no parezca que también sale encima de la imagen. -->
+          <form id="portadaForm" class="form-grid form-grid--destacada">
             <div class="field">
-              <label for="pNombre">Nombre del evento</label>
-              <input type="text" id="pNombre" placeholder="Ej: Jorge Guerrero en vivo" />
-            </div>
-            <div class="field">
-              <label for="pTagline">Bajada</label>
-              <input type="text" id="pTagline" placeholder="Ej: Noche de folklor venezolano" />
+              <label for="pNombre">Título del evento</label>
+              <input type="text" id="pNombre" placeholder="Ej: Jorge Guerrero en Vivo" />
+              <p class="hint">Se ve en el listón, sobre el afiche.</p>
             </div>
             <div class="field">
               <label for="pFecha">Fecha y hora</label>
               <input type="datetime-local" id="pFecha" />
+              <p class="hint">En el listón sale sin hora: «26 de septiembre».</p>
+            </div>
+          </form>
+
+          <details class="mas-campos">
+            <summary>Otros datos del evento</summary>
+            <p class="hint">
+              No salen en el afiche. Alimentan la fila del calendario, la ficha
+              bajo la portada y la entrada emitida.
+            </p>
+            <div class="form-grid">
+            <div class="field">
+              <label for="pTagline">Bajada</label>
+              <input type="text" id="pTagline" placeholder="Ej: Noche de folklor venezolano" />
             </div>
             <div class="field">
               <label for="pLugar">Lugar</label>
@@ -291,7 +310,7 @@
             </div>
             <div class="field">
               <label for="pDescripcion">Descripción corta</label>
-              <input type="text" id="pDescripcion" placeholder="Competición · Música · Paddock" />
+              <input type="text" id="pDescripcion" placeholder="Competición, música y paddock" />
             </div>
             <div class="field">
               <label for="pCiudad">Ciudad</label>
@@ -301,11 +320,15 @@
               <label for="pCiudadCorta">Sigla</label>
               <input type="text" id="pCiudadCorta" maxlength="4" placeholder="SP" />
             </div>
-            <!-- Antes esto era solo el campo de texto de abajo: había que subir
-                 la imagen por otro lado y escribir su nombre a mano. El botón
-                 sube el archivo al bucket `medios` y completa el campo solo. -->
+            </div>
+          </details>
+
+          <!-- El afiche va arriba con el título y la fecha, no plegado con lo
+               demás: es la portada. El botón sube el archivo al bucket `medios`
+               y completa el campo de texto solo. -->
+          <div class="form-grid">
             <div class="field field--imagen">
-              <label for="pImagenArchivo">Imagen de portada</label>
+              <label for="pImagenArchivo">Afiche del evento</label>
               <div class="subir-imagen">
                 <div class="subir-imagen__previa" id="pImagenPrevia"></div>
                 <div class="subir-imagen__control">
@@ -313,7 +336,11 @@
                   <label class="archivo__boton" for="pImagenArchivo" id="pImagenBoton">
                     Elegir imagen
                   </label>
-                  <p class="hint">1600 × 900 o más ancha. Se recorta a lo ancho.</p>
+                  <p class="hint">
+                    Panorámica, 16:9 (por ejemplo 1920 × 1080): la portada va de
+                    lado a lado con el título encima. Un afiche vertical también
+                    sirve: se muestra entero sobre un fondo desenfocado.
+                  </p>
                 </div>
               </div>
               <label class="subir-imagen__ruta" for="pImagen">
@@ -321,7 +348,8 @@
                 <input type="text" id="pImagen" placeholder="evento.jpg" />
               </label>
             </div>
-          </form>
+          </div>
+
           <span class="error" data-for="portada"></span>
           <button type="button" class="btn btn--primary" id="btnGuardarPortada">Guardar portada</button>
         </div>
@@ -417,6 +445,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="../js/config.js"></script>
   <script src="../js/supabaseClient.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/escaner.js"></script>
   <script src="js/admin.js"></script>

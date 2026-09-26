@@ -99,9 +99,14 @@ window.ProKartEscaner = (function () {
 
     try {
       const url = new URL(crudo);
-      const codigo = url.searchParams.get("codigo");
+      /* Hay dos formas de QR en circulación: el de la página de pago lleva
+         ?codigo=...&firma=... y el del correo y el de «Mis entradas» llevan
+         ?c=...&s=... Solo se leía la primera, así que el escáner rechazaba como
+         «no es una entrada» casi todos los QR que tiene la gente. */
+      const codigo = url.searchParams.get("codigo") || url.searchParams.get("c");
       if (codigo) {
-        return { code: codigo.trim().toUpperCase(), signature: url.searchParams.get("firma") || "" };
+        const firma = url.searchParams.get("firma") || url.searchParams.get("s") || "";
+        return { code: codigo.trim().toUpperCase(), signature: firma.trim().toLowerCase() };
       }
     } catch {
       // No era una URL: se sigue con el texto tal cual.

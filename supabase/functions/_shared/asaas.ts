@@ -171,6 +171,7 @@ export type EstadoCobro = {
   status: string;
   externalReference: string | null;
   valueCents: number;
+  netValueCents: number;
 };
 
 export async function obtenerCobro(paymentId: string): Promise<EstadoCobro | null> {
@@ -184,6 +185,12 @@ export async function obtenerCobro(paymentId: string): Promise<EstadoCobro | nul
     status: String(p.status ?? ""),
     externalReference: p.externalReference ?? null,
     valueCents: Math.round(Number(p.value ?? 0) * 100),
+    /* Lo que queda después de la comisión, según Asaas.
+       Ojo: `netValue` descuenta la tarifa del PIX pero no la de mensajería, que
+       Asaas cobra aparte y en otro movimiento. Para un aviso de compra alcanza;
+       cuando el número tiene que cuadrar con el banco —el reporte semanal— se
+       usa `recibidoNetoCents`, que lee el extracto de verdad. */
+    netValueCents: Math.round(Number(p.netValue ?? p.value ?? 0) * 100),
   };
 }
 
@@ -208,6 +215,54 @@ export async function reembolsar(paymentId: string, motivo: string): Promise<boo
     body: JSON.stringify({ description: motivo.slice(0, 255) }),
   });
   return res.ok;
+}
+
+/* ---------------------------------------------------------------- extracto */
+
+/* Cuánto entró de verdad en la cuenta entre dos fechas, ya sin comisiones.
+ *
+ * No es `sum(amount_cents)` menos una tarifa que supongamos: es el extracto de
+ * Asaas, el mismo que mira la administración. Por eso el número del reporte
+ * cuadra con el banco aunque Asaas cambie sus tarifas o cobre una que no
+ * conocíamos —como la de mensajería, que `netValue` no descuenta.
+ *
+ * Las transferencias al banco se excluyen: sacar la plata no es perderla, es
+ * moverla. Lo que sí resta son las tarifas y los reembolsos, que son plata que
+ * de verdad no quedó.
+ *
+ * Las fechas van en `YYYY-MM-DD` y son inclusivas de los dos lados. El huso lo
+ * resuelve quien llama: acá solo se pasan los días ya calculados. */
+export async function recibidoNetoCents(desde: string, hasta: string): Promise<number | null> {
+  const POR_PAGINA = 100;
+  let total = 0;
+  let offset = 0;
+
+  for (let pagina = 0; pagina < 50; pagina++) {
+    const res = await pedir(
+      `/financialTransactions?limit=${POR_PAGINA}&offset=${offset}` +
+        `&startDate=${encodeURIComponent(desde)}&finishDate=${encodeURIComponent(hasta)}`,
+      { method: "GET" },
+    );
+    if (!res.ok) return null;
+
+    const cuerpo = await leer(res);
+    const filas: any[] = cuerpo?.data ?? [];
+
+    for (const t of filas) {
+      // TRANSFER y sus reversos mueven plata entre cuentas propias: no son
+      // ingreso ni pérdida, y sumarlos daría siempre cerca de cero.
+      if (String(t.type ?? "").startsWith("TRANSFER")) continue;
+      total += Math.round(Number(t.value ?? 0) * 100);
+    }
+
+    if (filas.length < POR_PAGINA) return total;
+    offset += POR_PAGINA;
+  }
+
+  // Cincuenta páginas son 5.000 movimientos: si se llega acá, algo anda mal y
+  // es preferible avisar que informar un total recortado.
+  console.warn("asaas/recibidoNetoCents: demasiadas páginas, total incompleto");
+  return null;
 }
 
 /* ---------------------------------------------------------------- webhook */

@@ -55,7 +55,7 @@
 .campo { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
 
 .campo label {
-  color: var(--muted);
+  color: var(--campo-etiqueta);
   font: 600 0.72rem/1 var(--mono);
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -65,25 +65,34 @@
 .campo textarea {
   width: 100%;
   padding: 13px 14px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
   border-radius: var(--radius);
   color: var(--text);
   font-family: var(--sans);
   /* 16px como mínimo: por debajo de eso, iOS hace zoom al enfocar el campo y
      el formulario se desarma. */
   font-size: max(1rem, 16px);
-  transition: border-color var(--t-color) ease, background var(--t-color) ease;
+  min-height: 48px;
+  transition: border-color var(--t-color) ease, background-color var(--t-color) ease, box-shadow var(--t-color) ease;
 }
 
 .campo input:focus,
 .campo textarea:focus {
   outline: none;
   border-color: var(--accent);
-  background: var(--surface-2);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
 }
 
 .campo textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+
+/* Campos con los tokens --campo-* de style.css (2026-09-13): texto de ejemplo
+   legible y hover que confirma que el campo se toca. */
+.campo input::placeholder,
+.campo textarea::placeholder { color: var(--campo-placeholder); opacity: 1; }
+.campo input:hover,
+.campo textarea:hover { border-color: var(--campo-borde-hover); background-color: var(--campo-bg-hover); }
 
 .campo__ayuda { color: var(--dim); font-size: .74rem; }
 .campo__ayuda.cumple { color: var(--success); }
@@ -104,10 +113,10 @@
   gap: 10px;
   min-height: 52px;
   padding: 14px 18px;
-  background: var(--bg-2);
-  border: 1px dashed var(--line);
+  background: var(--campo-bg);
+  border: 1px dashed var(--campo-borde);
   border-radius: var(--radius);
-  color: var(--muted);
+  color: var(--campo-etiqueta);
   cursor: pointer;
   font-size: .88rem;
   text-align: center;

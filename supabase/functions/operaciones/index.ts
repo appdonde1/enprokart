@@ -38,11 +38,126 @@ Deno.serve(async (req) => {
     return json({ eventos: data ?? [] });
   }
 
-  /* Deshacer una cortesía mal emitida.
+  /* Liberar una reserva completa, indiferente del dinero.
+     Solo para admin y developer (garantizado por el check esAdmin al inicio).
+     Libera inmediatamente todas las mesas y sillas asociadas para que vuelvan a estar
+     disponibles en el plano, cancela los tickets emitidos y marca la orden como cancelada. */
+  if (body.action === "liberar_reserva") {
+    const orderId = String(body.order_id ?? "");
+    if (!orderId) return fail("Falta el identificador de la reserva/orden");
 
-     Se limita a cortesías a propósito: una compra pagada no se borra desde un
-     panel, se reembolsa. Si esto aceptara cualquier orden, un error de dedo
-     haría desaparecer el rastro de dinero que entró. */
+    const { data: orden } = await db
+      .from("orders")
+      .select("id, order_number, status, amount_cents, is_courtesy, buyer_name, buyer_lastname")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (!orden) return fail("Esa reserva no existe", 404);
+
+    const { data: entradas } = await db
+      .from("tickets")
+      .select("id")
+      .eq("order_id", orderId);
+    const ids = (entradas ?? []).map((t: any) => t.id);
+
+    // 1. Liberar todas las sillas (tanto en hold como ocupadas por ticket)
+    await db.from("seats")
+      .update({ status: "available", held_by: null, held_until: null, ticket_id: null })
+      .eq("held_by", orderId);
+
+    if (ids.length) {
+      await db.from("seats")
+        .update({ status: "available", held_by: null, held_until: null, ticket_id: null })
+        .in("ticket_id", ids);
+
+      // 2. Invalidad tickets
+      await db.from("tickets")
+        .update({ status: "canceled" })
+        .eq("order_id", orderId);
+
+      // 3. Limpiar registro de cortesía si aplica
+      await db.from("courtesy_log").delete().in("ticket_id", ids);
+    }
+
+    // 4. Marcar la orden como cancelada
+    await db.from("orders")
+      .update({ status: "canceled" })
+      .eq("id", orderId);
+
+    return json({
+      liberada: true,
+      order_id: orderId,
+      order_number: orden.order_number,
+      entradas_anuladas: ids.length,
+      mensaje: `Reserva #${orden.order_number} (${orden.buyer_name} ${orden.buyer_lastname}) liberada con éxito. Las mesas están disponibles nuevamente.`,
+    });
+  }
+
+  /* Liberar una mesa específica desde el plano o por código.
+     Permite forzar la disponibilidad de una mesa en particular. */
+  if (body.action === "liberar_mesa") {
+    const tableCode = typeof body.table_code === "string" ? body.table_code : null;
+    const eventId = typeof body.event_id === "string" ? body.event_id : null;
+    const tableId = typeof body.table_id === "string" ? body.table_id : null;
+
+    let query = db.from("tables").select("id, code, section_id, sections!inner(event_id)");
+    if (tableId) {
+      query = query.eq("id", tableId);
+    } else if (tableCode && eventId) {
+      query = query.eq("code", tableCode).eq("sections.event_id", eventId);
+    } else {
+      return fail("Falta especificar la mesa y el evento");
+    }
+
+    const { data: mesas, error: errMesa } = await query;
+    if (errMesa || !mesas || !mesas.length) return fail("Mesa no encontrada", 404);
+
+    const mesa = mesas[0];
+
+    // Buscar sillas de esta mesa
+    const { data: sillas } = await db
+      .from("seats")
+      .select("id, held_by, ticket_id")
+      .eq("table_id", mesa.id);
+
+    const heldOrderIds = new Set<string>();
+    const ticketIds: string[] = [];
+
+    for (const s of sillas ?? []) {
+      if (s.held_by) heldOrderIds.add(s.held_by);
+      if (s.ticket_id) ticketIds.push(s.ticket_id);
+    }
+
+    // Liberar las sillas
+    await db.from("seats")
+      .update({ status: "available", held_by: null, held_until: null, ticket_id: null })
+      .eq("table_id", mesa.id);
+
+    if (ticketIds.length) {
+      await db.from("tickets").update({ status: "canceled" }).in("id", ticketIds);
+      await db.from("courtesy_log").delete().in("ticket_id", ticketIds);
+    }
+
+    // Cancelar órdenes si ya no tienen más sillas activas
+    for (const oid of heldOrderIds) {
+      const { data: restantes } = await db
+        .from("seats")
+        .select("id")
+        .eq("held_by", oid)
+        .neq("status", "available");
+      if (!restantes || !restantes.length) {
+        await db.from("orders").update({ status: "canceled" }).eq("id", oid);
+      }
+    }
+
+    return json({
+      liberada: true,
+      mesa: mesa.code,
+      mensaje: `Mesa ${mesa.code} liberada con éxito. Ya figura disponible en el plano.`,
+    });
+  }
+
+  /* Deshacer una cortesía mal emitida. */
   if (body.action === "anular_cortesia") {
     const orderId = String(body.order_id ?? "");
     if (!orderId) return fail("Falta la compra");
@@ -59,9 +174,6 @@ Deno.serve(async (req) => {
       .from("tickets").select("id").eq("order_id", orderId);
     const ids = (entradas ?? []).map((t: any) => t.id);
 
-    // Las sillas se sueltan por dos vías porque quedan en dos estados distintos:
-    // `held_by` mientras la cortesía se estaba armando, y `ticket_id` una vez
-    // emitida, cuando pasaron a ocupadas y `held_by` volvió a nulo.
     await db.from("seats")
       .update({ status: "available", held_by: null, held_until: null, ticket_id: null })
       .eq("held_by", orderId);

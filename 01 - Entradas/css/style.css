@@ -4,12 +4,20 @@
    ========================================================= */
 
 :root {
-  --bg: #090a09;
-  --bg-2: #101110;
-  --surface: #141614;
-  --surface-2: #1a1c1a;
-  --line: #30332f;
-  --line-soft: #20231f;
+  /* Negro OLED. Un fondo casi-negro con tinte verde apagaba los orbes: el color
+     de la luz de fondo solo se lee si el fondo es realmente neutro y profundo. */
+  --bg: #050505;
+  --bg-2: #0b0b0c;
+  --surface: #121213;
+  --surface-2: #17171a;
+
+  /* Los filetes dejan de ser gris sólido y pasan a ser luz.
+     `#30332f` era un borde gris genérico de 1px, que es la marca de casa del
+     diseño por defecto. Un canto de cristal no es un color: es blanco a muy
+     baja opacidad, que toma el tono de lo que tiene detrás. */
+  --line: rgba(255, 255, 255, .09);
+  --line-soft: rgba(255, 255, 255, .05);
+  --line-fuerte: rgba(255, 255, 255, .16);
   --text: #f1f0eb;
   --muted: #8d918b;
   /* #5d625c daba 3,18:1 sobre el fondo y 2,92:1 sobre --surface: por debajo del
@@ -29,9 +37,18 @@
   --success: #63d78c;
   --danger: #ff6660;
   --oro: #d9b85d;
+  /* El tercer nivel era azul (--info), que no dice nada al lado de oro y plata.
+     Bronce cierra el podio: los tres se leen como una escala sin necesidad de
+     que nadie lea las etiquetas. */
+  --bronce: #c98a58;
+  --bronce-tint: rgba(201, 138, 88, .13);
 
-  --sans: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --display: "Space Grotesk", var(--sans);
+  --sans: "Outfit", "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Archivo en vez de Space Grotesk. Es variable en dos ejes —ancho y peso—, así
+     que el titular del evento puede abrirse a Expanded y pesar 800 de verdad. La
+     hoja pedía 800 en ocho sitios y el query solo cargaba hasta 700: el navegador
+     lo engordaba con un trazo sintético que a 2,4rem se veía sucio. */
+  --display: "Archivo", var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
 
   /* Complementos de la paleta: tonos que el flujo de reserva, la validación
@@ -51,18 +68,90 @@
   --plata-tint: rgba(185, 188, 182, .10);
   --info-tint: rgba(106, 169, 255, .13);
 
+  /* Tonos que estaban escritos a mano y repetidos. #ff6848 aparecía en tres
+     componentes, #5a5e57 en dos hojas distintas y #0d0e0d en tres sitios: un
+     color sin nombre no se puede cambiar de una vez. */
+  --accent-hover: #ff6848;
+  --line-hover: #5a5e57;
+  --bg-media: #0d0e0d;
+  --accent-ring: rgba(255, 89, 54, .18);
+  --danger-ring: rgba(255, 102, 96, .25);
+
   --max: 1180px;
 
-  /* Forma: tres radios y nada más. El sitio es de esquinas rectas; cuando
-     conviven nueve radios distintos, ninguno significa nada. --radius-lg queda
-     como alias de --radius para no romper las hojas que ya lo nombran. */
-  --radius-sm: 2px;   /* chips, insignias, rótulos */
-  --radius: 4px;      /* cajas, campos, botones */
-  --radius-lg: 4px;
+  /* Un solo canal para todo el sitio. Había dos —36px en index, 32px en pagar—,
+     así que las dos páginas no alineaban entre sí por 2px. */
+  --gutter: 18px;
+  --container: min(var(--max), calc(100% - var(--gutter) * 2));
+
+  /* Espaciado. No había ni un token: cada padding y cada gap era un número
+     suelto. Base 4px, que es la retícula que ya seguían la mayoría a ojo. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+  --s-24: 96px;
+
+  /* Separación entre secciones. Antes eran cinco valores distintos —92, 120, 90,
+     120, 120— para exactamente el mismo gesto. Fluido, así que no necesita
+     media query para encogerse en el teléfono. */
+  --rhythm: clamp(64px, 8vw, 112px);
+
+  /* Apilado. Los valores vivían repartidos entre tres hojas, así que nadie veía
+     la escala entera al añadir una capa nueva. */
+  --z-base: 0;
+  --z-sticky: 50;
+  --z-flujo: 55;    /* el flujo de compra, por encima del encabezado */
+  --z-modal: 60;
+  --z-overlay: 90;
+
+  /* Forma. Una escala documentada y sin excepciones, que es lo que impide que
+     el sitio se vea mezclado: botones redondos en una retícula cuadrada, o
+     tarjetas cuadradas en una página de botones píldora, se lee como roto.
+
+         Botones ....... píldora completa   (--radius-pill)
+         Tarjetas ...... 22px               (--radius-lg)
+         Contenedores .. 28px               (--radius-xl)
+         Campos ........ 14px               (--radius)
+         Chips .........  8px               (--radius-sm)
+
+     El cristal necesita radios grandes: un canto iluminado sobre una esquina de
+     4px no se ve, no hay recorrido donde la luz caiga. */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
   --radius-round: 50%; /* solo lo que es literalmente un círculo */
 
-  --shadow: 0 10px 25px rgba(0,0,0,.45);
-  --shadow-lg: 0 24px 60px -22px rgba(0,0,0,.9);
+  /* Sombras tintadas. Eran negro puro, y un negro puro sobre un fondo cálido no
+     se lee como sombra sino como agujero: la luz de la escena es naranja, así
+     que lo que esa luz no alcanza tiene que conservar algo de su tono.
+
+     --shadow-md lo nombraba verificar.css y no existía en ninguna hoja: una
+     custom property indefinida invalida la declaración entera, así que las
+     tarjetas de entrada del usuario salían planas. */
+  --shadow-sm: 0 2px 10px rgba(12, 4, 2, .45);
+  --shadow-md: 0 8px 24px rgba(12, 4, 2, .5);
+  --shadow: 0 16px 40px -12px rgba(12, 4, 2, .6);
+  --shadow-lg: 0 30px 70px -24px rgba(12, 4, 2, .75);
+
+  /* ---------- el material ----------
+     Aproximación web de cristal esmerilado. No es «Liquid Glass» de Apple: eso
+     es material de sus plataformas y no existe como CSS público, así que
+     llamarlo por ese nombre sería falso. Esto son capas, cantos y realces. */
+  --glass-bg: rgba(255, 255, 255, .045);
+  --glass-bg-fuerte: rgba(255, 255, 255, .075);
+  --glass-borde: rgba(255, 255, 255, .12);
+  --glass-realce: rgba(255, 255, 255, .30);
+  --glass-blur: 24px;
 
   /* Movimiento: dos duraciones, una curva y un solo levantamiento. Antes había
      once duraciones y cuatro gestos distintos de hover; el resultado es que
@@ -72,40 +161,146 @@
   --ease: cubic-bezier(.2,.7,.2,1);
   --lift: translateY(-2px);
 
+  /* ---------- muelles ----------
+     Una curva bézier llega hasta su destino y frena; un muelle se asienta. Es
+     la diferencia entre que algo "se mueva" y que algo "vaya a su sitio", y es
+     lo que separa una interfaz correcta de una que se siente física.
+
+     Estas dos son muelles de verdad, muestreados de la ecuación del oscilador
+     amortiguado y volcados a `linear()`, que es la única forma de tener forma
+     de muelle en CSS sin arrastrar una librería —este sitio no tiene build ni
+     empaquetador—.
+
+     `linear()` codifica la FORMA; el `response` —lo rápido que llega— es la
+     duración de la transición. Por eso hay dos curvas y tres duraciones, y no
+     seis curvas.
+
+     El reparto: por defecto va el crítico, que llega y se queda quieto. El
+     rebote se reserva para lo que el dedo empujó —soltar una tarjeta, una hoja
+     que sube—, porque un sobrepaso en algo que solo apareció se lee como un
+     defecto, no como física. */
+  --spring: linear(0, 0.0596, 0.186, 0.3294, 0.4656, 0.584, 0.6819, 0.7601, 0.821, 0.8677, 0.9029, 0.9292, 0.9487, 0.963, 0.9734, 0.9809, 0.9864, 0.9903, 0.9931, 0.9951, 0.9966, 0.9976, 0.9983, 0.9988, 1);
+  --spring-bounce: linear(0, 0.0946, 0.2887, 0.4951, 0.6727, 0.8075, 0.9005, 0.9591, 0.9924, 1.0087, 1.0146, 1.0148, 1.0124, 1.0093, 1.0063, 1.0039, 1.0022, 1.001, 1.0003, 1, 0.9998, 0.9998, 0.9998, 0.9998, 1);
+
+  --t-spring: .42s;   /* response .4 — reposicionar, revelar */
+  --t-sheet: .34s;    /* response .3 — hojas, ventanas, cajones */
+
   /* Escala tipográfica. El piso es duro: por debajo de --fs-label no va texto
-     que alguien tenga que leer. Los dos escalones del medio son nuevos y son
-     los que le faltaban a la página: entre el rótulo de 11px y el titular de
-     70px antes no había nada. */
-  --fs-label: .72rem;  /* 11.5px — piso */
-  --fs-meta: .8rem;
-  --fs-body: .95rem;
-  --fs-lead: 1.35rem;  /* precio, bajadas con peso */
-  --fs-sub: 2rem;      /* subtítulos de sección */
+     que alguien tenga que leer.
+
+     La escala existía a medias y se ignoraba: --fs-label estaba declarado y
+     luego escrito a mano como 0.72rem cuarenta y dos veces, --fs-sub tenía cero
+     usos, y entre medias había unos cuarenta tamaños literales sin ninguna razón
+     modular. Ahora son siete escalones y los cuatro de arriba son fluidos, así
+     que los titulares crecen con la ventana en vez de saltar por media query. */
+     Toda la escala sube un escalón. El piso pasa de 11,5px a 13: 11,5 es
+     tamaño de pie de página legal, y aquí lo llevaban los botones, la
+     navegación y los rótulos de las tarjetas. El cuerpo pasa de 15 a 17-19,
+     que es lo que hoy se lee cómodo en un teléfono sin acercar. */
+  --fs-label: .82rem;  /* 13px — piso, no fluido a propósito */
+  --fs-meta: .92rem;
+  --fs-body: clamp(1.06rem, 1rem + .3vw, 1.19rem);
+  --fs-lead: clamp(1.28rem, 1.1rem + .8vw, 1.6rem);
+  --fs-h3: clamp(1.4rem, 1.2rem + 1vw, 2rem);
+  --fs-h2: clamp(2.3rem, 1.6rem + 3.2vw, 4.2rem);
+  --fs-h1: clamp(3rem, 1.8rem + 5.4vw, 6.2rem);
+  --fs-display: clamp(3.6rem, 1.2rem + 10vw, 10rem);
+
+  --fs-sub: var(--fs-h2);  /* alias: lo nombran hojas que no conviene tocar */
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; background: var(--bg); }
+
+/* La foto de fondo, SOLO en la portada. La clase la lleva el <html> de
+   index.html y ninguna otra página: pagar, verificar, empleos, anunciar y las
+   nueve del panel cargan esta misma hoja, y en una pantalla de cobro o de
+   nómina una foto de ambiente estorba en vez de ayudar.
+
+   Va en un pseudo fijo y no como `background-attachment: fixed` del documento:
+   ese valor obliga a repintar el fondo en cada cuadro del scroll, y en iOS
+   directamente no funciona.
+
+   El velo por encima es casi opaco a propósito. La foto no está para verse:
+   está para que el negro tenga textura y para que los orbes tengan algo sobre
+   lo que caer. Si se leyera la escena, competiría con el afiche.
+
+   Y se desvanece hacia abajo: el fondo acompaña a la portada y termina donde
+   empieza el contenido, que es donde entra el kart. */
+/* La foto de la pista NO es un fondo de página. Va detrás de la portada y se
+   acaba ahí: es lo que evita que el afiche flote sobre un negro plano, nada
+   más. Estaba puesta como capa fija a pantalla completa, que es otra cosa —y
+   además con un velo tan alto que no se veía—.
+
+   Se sale a los lados hasta el ancho de la ventana, como la portada, y se
+   desvanece por abajo para entregarle la página al contenido sin un corte. */
+/* 2026-09-12: la foto de la pista (Fondo.jpg) se retiró de la portada. Tenía
+   sentido con el carrusel 80/10/10, que dejaba aire a los lados del afiche. Con
+   la portada panorámica, que ya va de lado a lado, la foto quedaba debajo del
+   banner y detrás de la ficha: se veía una imagen pegada sobre otra, con un
+   corte duro entre las dos. Ahora debajo del banner está el fondo de la página,
+   y el velo del banner termina en ese mismo color. El archivo sigue en la
+   carpeta por si se vuelve a usar. */
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
-  line-height: 1.5;
+  font-size: var(--fs-body);
+  /* 1.55 y no 1.5: es el valor que ganaba de hecho, porque más abajo había un
+     segundo bloque `body` que lo pisaba sin que se notara. */
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
+/* =========================================================
+   LA CAPA LUMINOSA
+
+   Es lo que hace posible todo el cristal del sitio, y por eso va antes que
+   nada. `backdrop-filter: blur()` desenfoca lo que hay detrás; sobre un negro
+   liso, desenfocar da el mismo negro liso. El cristal no se ve por el
+   desenfoque: se ve por LO QUE se desenfoca. Sin estas dos manchas de color
+   detrás, cualquier superficie translúcida es un rectángulo gris.
+
+   Dos orbes, los dos de la marca: el naranja del acento y el oro del nivel más
+   alto. Nada de azul ni violeta — ese par es la huella más reconocible del
+   diseño hecho por IA, y esta marca ya tiene color propio.
+
+   `inset` negativo para que el borde del degradado quede fuera de la pantalla:
+   si se ve dónde acaba el orbe, deja de leerse como luz y pasa a leerse como
+   una mancha.
+   ========================================================= */
 body::before {
+  content: "";
+  position: fixed;
+  inset: -25vmax;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 26% 14%, rgba(255, 89, 54, .22), transparent 62%),
+    radial-gradient(34vmax 34vmax at 80% 76%, rgba(217, 184, 93, .13), transparent 60%);
+}
+
+/* Grano. Rompe la planitud digital: una superficie perfectamente lisa se lee
+   como render, no como material. Va fijo y sin eventos de puntero — sobre un
+   contenedor que scrollea obligaría a repintar en cada cuadro, que en un
+   teléfono de gama media es justo lo que no se puede pagar.
+
+   Aquí vivía una cuadrícula decorativa de líneas de 1px. Se retira: líneas
+   dibujadas solo para que algo «se vea diseñado» son decoración vacía, y encima
+   competían con la retícula real del contenido. */
+body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: .25;
-  background-image:
-    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
-  background-size: 64px 64px;
+  opacity: .038;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-body.booking-open { background: #080908; }
+
+/* Con el flujo abierto los orbes se apagan a la mitad: detrás de una compra no
+   conviene que haya nada compitiendo por la atención. */
+body.booking-open::before { opacity: .55; }
 a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }
 img { max-width: 100%; }
@@ -139,23 +334,161 @@ textarea:focus-visible,
    las dos cosas aparecían de golpe. */
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 
-/* ---------------- Botones ---------------- */
+/* =========================================================
+   ACUSE AL PULSAR
+
+   El momento en que se pierde la sensación de que la interfaz responde no es
+   cuando una animación va lenta: es cuando el dedo toca y no pasa nada hasta
+   que se levanta. En un teléfono no hay hover que anticipe nada, así que el
+   `:active` es el único acuse que existe, y tiene que ser inmediato.
+
+   100ms y hacia dentro: es acuse, no animación. Va sobre `:active`, que el
+   navegador dispara al apretar y no al soltar.
+   ========================================================= */
+button:not(:disabled):active,
+.btn:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(.97);
+  transition: transform .1s ease-out;
+}
+
+/* Los que ya tienen su propio gesto al pulsar mandan sobre la regla general. */
+.stepper button:not(:disabled):active { transform: scale(.94); }
+.area-card:not(:disabled):active { transform: scale(.985); }
+
+/* =========================================================
+   EL MATERIAL — aproximación web de cristal esmerilado
+
+   Importante para no mentir en los comentarios: esto NO es «Liquid Glass» de
+   Apple. Aquello es material de sus plataformas y no existe como CSS público;
+   lo de aquí son capas, cantos y realces que se le parecen.
+
+   Cuatro capas, y ninguna sobra. Si se quita una, deja de leerse como material
+   y vuelve a leerse como un rectángulo semitransparente:
+
+     1. el fondo: un degradado diagonal de blanco muy tenue sobre un tinte base;
+     2. la triple sombra: canto superior recogiendo la luz, rebote inferior, y
+        la sombra proyectada tintada;
+     3. ::before — realce radial desde arriba a la izquierda, que es de donde
+        vienen los orbes. Fija la dirección de la luz en todo el sitio;
+     4. ::after a 1px — el bisel interior. Es lo que hace que el canto tenga
+        grosor en vez de ser una raya.
+
+   Las capas 3 y 4 son la «doble carcasa» resuelta con pseudo-elementos, sin
+   tener que anidar un div dentro de otro ni tocar las plantillas de app.js. */
+.cristal {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--glass-borde);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .015) 46%),
+    var(--glass-bg);
+  box-shadow:
+    inset 0 1px 0 var(--glass-realce),
+    inset 0 -1px 0 rgba(255, 255, 255, .05),
+    var(--shadow);
+}
+
+.cristal::before,
+.cristal::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* El brillo del hombro superior izquierdo. Detrás del contenido pero delante
+   del fondo de la caja. */
+.cristal::before {
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(120% 80% at 12% 0%, rgba(255, 255, 255, .10), transparent 46%);
+}
+
+/* El bisel. Un segundo canto a 1px del primero: es lo que da grosor. */
+.cristal::after {
+  inset: 1px;
+  border: 1px solid rgba(255, 255, 255, .05);
+}
+
+/* Variante densa para lo que decide la compra. Nunca para texto corrido. */
+.cristal--fuerte {
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, .02) 48%),
+    var(--glass-bg-fuerte);
+  border-color: var(--line-fuerte);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .38),
+    inset 0 -1px 0 rgba(255, 255, 255, .06),
+    var(--shadow-lg);
+}
+
+/* El desenfoque real va SOLO en lo que está fijo o pegado. Sobre un contenedor
+   que scrollea obliga al navegador a recalcular el desenfoque en cada cuadro, y
+   este sitio se usa casi siempre desde un teléfono. Las tarjetas consiguen el
+   cristal con las cuatro capas de arriba, que no cuestan nada. */
+.cristal--fijo {
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+}
+
+/* Quien pide menos transparencia suele pedirlo porque el desenfoque le dificulta
+   leer: la respuesta correcta es fondo sólido, no menos desenfoque. */
+@media (prefers-reduced-transparency: reduce) {
+  .cristal,
+  .cristal--fuerte {
+    background: var(--surface);
+    border-color: var(--line-fuerte);
+  }
+  .cristal--fijo {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--bg);
+  }
+  .cristal::before { background: none; }
+}
+
+/* =========================================================
+   BOTONES — tres niveles y nada más
+
+   Había ocho tratamientos distintos y tres de ellos eran relleno naranja
+   visibles en la misma pantalla. Cuando todo es naranja, nada es primario: eso
+   no es una cuestión de gusto, es que la jerarquía deja de existir.
+
+   La regla dura: UN solo botón de relleno por pantalla. El resto son cristal
+   (alternativa real) o texto (salida). Y ninguno se estira: un botón mide lo
+   que dice más su relleno.
+   ========================================================= */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
+  /* Nunca crece para rellenar la fila. Encoger sí, para no desbordar. */
+  flex: 0 1 auto;
   min-height: 46px;
-  padding: 14px 18px;
+  padding: 14px 22px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  /* Píldora: la escala de formas del proyecto dice botones redondos, tarjetas
+     de 22 y campos de 14. Una escala mezclada sin regla se lee como rota. */
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text);
-  font: 700 .72rem/1 var(--mono);
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  /* Sans en caja normal, no monoespaciada en versalitas.
+     Este era el motivo de que el sitio se viera antiguo: botones, navegación,
+     rótulos y pestañas iban todos en mayúsculas de monoespaciada con tracking
+     ancho. Eso es lenguaje de terminal, y aplicado a todo convierte cualquier
+     página en una interfaz técnica de hace veinte años.
+     La monoespaciada se reserva ahora para lo que de verdad es técnico: cifras,
+     códigos y el riel de pasos. */
+  font: 600 var(--fs-body)/1 var(--sans);
+  letter-spacing: -.005em;
   text-align: center;
   text-decoration: none;
+  /* La etiqueta no parte en dos líneas: un CTA partido es un botón roto. */
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color var(--t-color) var(--ease),
@@ -165,37 +498,50 @@ textarea:focus-visible,
     box-shadow var(--t-move) var(--ease);
 }
 
+/* ---------- 1. Principal: la acción que cobra ---------- */
 .btn--primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--black);
+  /* Sombra del color del botón, no negra: la luz de la escena es naranja. */
+  box-shadow: 0 10px 26px -12px rgba(255, 89, 54, .7);
 }
 .btn--primary:not(:disabled):hover {
-  background: #ff6848;
-  border-color: #ff6848;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   transform: var(--lift);
-  box-shadow: 0 12px 28px -12px rgba(255, 89, 54, .85);
+  box-shadow: 0 16px 34px -12px rgba(255, 89, 54, .9);
 }
-.btn--primary:not(:disabled):active { transform: none; }
+.btn--primary:not(:disabled):active { transform: scale(.97); }
 
+/* ---------- 2. Secundario: alternativa real, en cristal ---------- */
 .btn--ghost {
-  background: transparent;
-  border-color: var(--line);
-  color: var(--muted);
+  border-color: var(--glass-borde);
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .012) 50%),
+    var(--glass-bg);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16);
 }
 .btn--ghost:not(:disabled):hover {
-  background: var(--surface-2);
-  border-color: var(--muted);
+  border-color: var(--line-fuerte);
   color: var(--text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .24),
+    var(--shadow-sm);
 }
 
+/* ---------- 3. Terciario: salidas y acciones menores ---------- */
 .btn--link {
   min-height: 0;
   padding: 8px 2px;
   border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   color: var(--muted);
   text-decoration: underline;
-  text-decoration-color: var(--line);
+  text-decoration-color: var(--line-fuerte);
   text-underline-offset: 5px;
 }
 .btn--link:not(:disabled):hover {
@@ -203,6 +549,9 @@ textarea:focus-visible,
   text-decoration-color: var(--accent);
 }
 
+/* `--block` queda solo para donde de verdad hace falta un botón a lo ancho: el
+   pie de la ventana de pago y el buscador de entradas, que son pantallas de una
+   sola acción. No es el comportamiento por defecto de ningún botón. */
 .btn--block { display: flex; width: 100%; }
 .btn--lg {
   min-height: 54px;
@@ -244,7 +593,7 @@ textarea:focus-visible,
   border-color: var(--tier, var(--line));
   color: var(--tier, var(--muted));
   background: var(--tier-tint, transparent);
-  font: 800 .68rem/1 var(--mono);
+  font: 700 .68rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -253,19 +602,35 @@ textarea:focus-visible,
 .badge--general { border-color: var(--tier, var(--info)); color: var(--tier, var(--info)); }
 
 /* ---------------- Header ---------------- */
+/* La cabecera es cristal de verdad: está pegada, así que puede permitirse el
+   desenfoque sin coste de scroll. El fondo baja de .94 a .55 porque ahora hay
+   orbes detrás que merece la pena dejar ver: a .94 el desenfoque no tenía nada
+   que hacer. */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(9,10,9,.94);
-  border-bottom: 1px solid var(--line-soft);
-  backdrop-filter: blur(12px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .05), transparent 60%),
+    rgba(5, 5, 5, .55);
+  border-bottom: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .site-header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--bg);
+  }
 }
 /* Flex y no una grilla de 1fr auto 1fr: las páginas de formulario no llevan
    <nav>, y con la grilla el botón de comprar caía en la columna del medio y
    quedaba centrado en la pantalla en vez de a la derecha. */
 .site-header__inner {
-  width: min(var(--max), calc(100% - 36px));
+  width: var(--container);
   min-height: 68px;
   margin: auto;
   display: flex;
@@ -282,7 +647,10 @@ textarea:focus-visible,
   align-items: center;
   justify-content: center;
 }
-.brand-logo { display: block; height: 26px; width: auto; }
+/* El logo pasa de 26 a 44px. A 26 la marca no se leía: quedaba como una nota al
+   pie de su propio encabezado, y es lo primero que tiene que identificar de
+   quién es la página. */
+.brand-logo { display: block; height: 44px; width: auto; }
 
 /* El logo de las pantallas de acceso —puerta y panel— llevaba una clase
    `.hero__logo` que no existía en ninguna hoja, así que salía a tamaño natural:
@@ -291,10 +659,9 @@ textarea:focus-visible,
 .site-nav {
   display: flex;
   align-items: center;
-  gap: 28px;
-  font: 600 0.72rem/1 var(--mono);
-  letter-spacing: .12em;
-  text-transform: uppercase;
+  gap: 30px;
+  font: 500 var(--fs-meta)/1 var(--sans);
+  letter-spacing: -.005em;
 }
 .site-nav a {
   color: #999d97;
@@ -322,26 +689,44 @@ textarea:focus-visible,
   border-color: var(--muted);
   background: var(--surface-2);
 }
+/* El botón de comprar, naranja pleno. Lo había bajado a cristal por disciplina
+   de jerarquía —un solo relleno de acento por pantalla— pero es el botón que
+   cobra y está en la barra pegajosa, o sea el único que se ve desde cualquier
+   punto de la página. Ahí la regla se subordina al negocio: se quiere que se
+   toque, y para eso tiene que gritar.
+
+   El del hero dice lo mismo y hace lo mismo, así que no compiten: son el mismo
+   botón visto dos veces, no dos acciones peleándose. */
 .header-book {
   position: relative;
-  color: var(--black);
+  display: inline-flex;
+  align-items: center;
+  /* 44px de alto real. Era de 34px, y es el acceso a la compra: en un teléfono,
+     que es donde se usa el sitio, quedaba por debajo del mínimo con el que se
+     acierta sin mirar dos veces. */
+  min-height: 44px;
+  padding: 11px 20px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
   background: var(--accent);
-  padding: 11px 14px;
-  border-radius: var(--radius);
-  font: 700 0.72rem/1 var(--mono);
-  text-transform: uppercase;
-  letter-spacing: .07em;
-  box-shadow: 0 0 0 0 rgba(255,89,54,.5);
-  transition: transform var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
+  color: var(--black);
+  font: 600 var(--fs-body)/1 var(--sans);
+  letter-spacing: -.005em;
+  white-space: nowrap;
+  /* El halo del propio color: lo despega del cristal de la barra sin recurrir a
+     una sombra negra, que sobre un fondo cálido se lee como un agujero. */
+  box-shadow: 0 8px 24px -10px rgba(255, 89, 54, .85);
+  transition: transform var(--t-color) var(--ease), background-color var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease);
 }
 .header-book span { margin-left: 8px; display: inline-block; transition: transform var(--t-color) var(--ease); }
 .header-book:hover {
-  background: #ff6848;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   transform: var(--lift);
-  box-shadow: 0 8px 22px -8px rgba(255,89,54,.75);
+  box-shadow: 0 14px 32px -10px rgba(255, 89, 54, .95);
 }
 .header-book:hover span { transform: translate(2px, -2px); }
-.header-book:active { transform: translateY(0); }
+.header-book:active { transform: scale(.97); }
 
 @media (max-width: 620px) {
   .header-staff { display: none; }
@@ -349,262 +734,359 @@ textarea:focus-visible,
 
 /* ---------------- Page ---------------- */
 .editorial-page {
-  width: min(var(--max), calc(100% - 36px));
+  width: var(--container);
   margin: 0 auto;
 }
+
+/* La primera pantalla. `svh` y no `vh`: en Safari de iOS `100vh` cuenta la barra
+   de direcciones como si no existiera, así que el hero quedaba cortado por
+   abajo justo al cargar, que es cuando la barra sí está.
+
+   La columna de texto pasa de .8fr a 1fr: con 385px el titular de cartel no
+   tenía dónde caer y partía en tres líneas apretadas. */
+/* La portada dejó de ser una foto encajonada al lado de una columna de texto y
+   pasó a ser el afiche, que es lo que la gente vino a ver. Sin retícula de dos
+   columnas, sin bordes y sin caja. */
 .feature {
-  min-height: min(620px, calc(100vh - 68px));
-  display: grid;
-  grid-template-columns: 1.55fr .8fr;
-  border-left: 1px solid var(--line);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-.feature__media {
   position: relative;
-  min-height: 520px;
-  overflow: hidden;
-  background: #0d0e0d;
-}
-.feature__grid {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, transparent 0 49.5%, rgba(255,255,255,.025) 49.5% 50%, transparent 50%),
-    linear-gradient(0deg, transparent 0 49.5%, rgba(255,255,255,.025) 49.5% 50%, transparent 50%);
-  background-size: 92px 92px;
-}
-.feature__art {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-.feature__number {
-  position: absolute;
-  left: 30px;
-  top: 25px;
-  color: var(--accent);
-  font: 600 0.72rem/1 var(--mono);
-  letter-spacing: .12em;
-}
-.feature__marker {
-  position: absolute;
-  right: 25px;
-  top: 24px;
-  padding: 7px 9px;
-  border: 1px solid #3b3e39;
-  color: #898e87;
-  font: 600 0.72rem/1 var(--mono);
-  letter-spacing: .12em;
-}
-/* =========================================================
-   EL CARRUSEL DE PORTADA
-   Una diapositiva por fecha publicada. Las diapositivas se apilan en el mismo
-   hueco y se cruzan por opacidad: no hay pista que desplazar ni medidas que
-   recalcular al cambiar de ancho.
-   ========================================================= */
-
-.portada {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-}
-
-/* Las diapositivas van una al lado de la otra y la pista se corre a la
-   izquierda. Antes se cruzaban por opacidad, apiladas en el mismo lugar: se veía
-   prolijo pero no se leía como un carrusel, no se entendía que hubiera más
-   fechas al costado. El desplazamiento lo dice solo. */
-.portada__pista {
-  position: absolute;
-  inset: 0;
+  isolation: isolate;
   display: flex;
-  will-change: transform;
-  transition: transform .62s var(--ease);
+  flex-direction: column;
+  gap: var(--s-5);
+  padding-top: var(--s-6);
 }
+
+/* Solo para lectores de pantalla: la página necesita un h1 y el afiche no
+   puede darlo, porque es una imagen que además cambia con cada fecha. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Aquí vivían `.feature__media`, `.feature__grid`, `.feature__art`,
+   `.feature__number` y `.feature__marker`: el marco de la foto, una cuadrícula
+   decorativa y dos rótulos de encuadre. Con la portada convertida en afiche a
+   sangre, ninguno tiene sitio ni marcado que los emita. */
+
+/* ---------------- la ficha, debajo del afiche ---------------- */
+
+.feature__pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-5);
+  padding-top: var(--s-2);
+}
+.feature__ficha { min-width: 0; flex: 1 1 320px; }
+.feature__accion {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex: 0 0 auto;
+}
+
+/* =========================================================
+   EL CARRUSEL DE PORTADA — PANORÁMICO
+
+   La portada va de lado a lado, sin marco y sin que asomen las fechas vecinas.
+   El carrusel anterior (80/10/10) dejaba la imagen en el 88% de un teléfono con
+   dos franjas a los costados; se pidió una portada panorámica, que es como se
+   ve un evento en una app de entradas.
+
+   El desplazamiento es scroll nativo con `scroll-snap`, no un transform movido
+   desde JavaScript. Así el dedo arrastra con la inercia del sistema y el gesto
+   vertical sigue desplazando la página. El carrusel viejo esperaba un
+   `pointerup` que en el teléfono no llegaba —el navegador se quedaba con el
+   gesto— y deslizar no hacía nada.
+
+   --portada-alto:   16:9, con tope para que en un monitor no pase de la ventana.
+   --portada-pausa:  cuánto tarda en llenarse la barra; la pone app.js.
+   --portada-margen: margen lateral del título y de las barras.
+   ========================================================= */
+.portada {
+  --portada-alto: min(56.25vw, 78svh);
+  --portada-pausa: 6.5s;
+  --portada-margen: max(var(--s-5), calc((100vw - var(--max)) / 2));
+
+  position: relative;
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  overflow: hidden;
+  background: var(--bg-2);
+}
+
+.portada__pista {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.portada__pista::-webkit-scrollbar { display: none; }
 
 .portada__slide {
   position: relative;
   flex: 0 0 100%;
-  min-width: 0;
+  height: var(--portada-alto);
+  min-height: 220px;
+  overflow: hidden;
+  isolation: isolate;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+/* Dos capas para mover cada una por su lado: el marco hace el acercamiento
+   lento y la imagen, el paralaje mientras se desliza. Si las dos animaran el
+   mismo `transform`, una pisaría a la otra. */
+.portada__media {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
 }
 
-/* La foto llena el marco. El encuadre tira un poco hacia arriba porque en una
-   foto de escenario lo que importa está por encima del centro. */
 .portada__img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 32%;
-  display: block;
+  /* En una foto de escenario lo que importa está por encima del centro. */
+  object-position: center 35%;
 }
 
-/* Un acercamiento muy lento mientras la diapositiva está al frente. Es lo
-   único que se mueve solo, y es lo que evita que la portada se vea como una
-   foto pegada. */
-.portada__slide.es-activa .portada__img {
-  animation: portada-acerca 9s var(--ease) forwards;
+/* Un afiche vertical no se recorta para llenar un cuadro apaisado: se perdería
+   medio cartel. Va entero, sobre una copia desenfocada de sí mismo que llena
+   los costados con sus propios colores. app.js pone la clase cuando la imagen
+   llega y ya se conoce su proporción. */
+.portada__fondo {
+  display: none;
+  position: absolute;
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  filter: blur(28px) saturate(1.3) brightness(.62);
 }
-@keyframes portada-acerca {
-  from { transform: scale(1); }
-  to   { transform: scale(1.06); }
+.portada__slide--vertical .portada__fondo { display: block; }
+.portada__slide--vertical .portada__img {
+  object-fit: contain;
+  object-position: center;
 }
 
-/* Con la foto a sangre, el velo tiene que trabajar: el texto va sobre la
-   imagen y no sobre negro plano. */
+/* El velo oscurece solo donde va el texto: abajo y hacia la izquierda. Arriba,
+   un filo corto para que las barras de progreso se lean sobre un cielo claro. */
 .portada__velo {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(9, 10, 9, .45) 0%,
-    rgba(9, 10, 9, .12) 30%,
-    rgba(9, 10, 9, .72) 78%,
-    rgba(9, 10, 9, .94) 100%
-  );
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(5, 5, 5, .5) 0, transparent 70px),
+    /* Abajo termina exactamente en el color de la página: el banner se funde con
+       lo que sigue en vez de cortarse en una línea. */
+    linear-gradient(0deg, var(--bg) 0%, rgba(5, 5, 5, .55) 30%, transparent 62%),
+    linear-gradient(90deg, rgba(5, 5, 5, .4) 0%, transparent 55%);
 }
+/* El afiche vertical ya trae su título compuesto: sin velo de texto ni listón. */
+.portada__slide--vertical .portada__velo {
+  background: linear-gradient(180deg, rgba(5, 5, 5, .5) 0, transparent 70px);
+}
+.portada__slide--vertical .portada__liston { display: none; }
 
-.portada__texto {
+/* ---------------------------------------------- el título sobre la foto */
+
+.portada__liston {
   position: absolute;
-  left: 34px;
-  right: 34px;
-  bottom: 30px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  justify-items: start;
+  gap: var(--s-2);
+  padding: var(--s-8) var(--portada-margen) var(--s-6);
 }
 
-/* Con mando a la vista, el texto le deja el rincón libre: si no, un nombre de
-   lugar largo se mete por debajo de las flechas. Con una sola fecha no hay
-   mando y el texto usa todo el ancho. */
-.portada:has(#portadaMando:not([hidden])) .portada__texto { right: 240px; }
+.portada__titulo {
+  margin: 0;
+  max-width: 16ch;
+  font-family: var(--display);
+  font-size: clamp(1.75rem, 1rem + 4.4vw, 4.6rem);
+  font-weight: 800;
+  font-variation-settings: "wdth" 112, "wght" 800;
+  line-height: .96;
+  letter-spacing: -.035em;
+  color: var(--text);
+  text-wrap: balance;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, .5);
+}
 
-.portada__tipo {
-  display: inline-block;
-  margin: 0 0 10px;
-  padding: 5px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--black);
-  font: 700 var(--fs-label)/1 var(--mono);
-  letter-spacing: .12em;
+.portada__fecha {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text);
+  font: 700 clamp(.74rem, .66rem + .4vw, 1rem)/1.2 var(--mono);
+  letter-spacing: .14em;
   text-transform: uppercase;
 }
-
-.portada__nombre {
-  margin: 0 0 8px;
-  font: 700 clamp(2rem, 5vw, 4.4rem)/.95 var(--display);
-  letter-spacing: -.055em;
-  text-wrap: balance;
-  text-shadow: 0 3px 22px rgba(0, 0, 0, .85);
-}
-
-.portada__cuando {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 16px;
-  color: var(--text);
-  font: 600 var(--fs-label)/1.4 var(--mono);
-  letter-spacing: .06em;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, .9);
-}
-.portada__cuando:empty { display: none; }
-.portada__cuando span { display: inline-flex; align-items: center; gap: 8px; }
-.portada__cuando i {
-  width: 5px; height: 5px; flex: none;
-  border-radius: var(--radius-round);
+/* Un filete naranja delante de la fecha: el acento, del tamaño de un guion. */
+.portada__fecha::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
   background: var(--accent);
 }
 
-/* ---------------------------------------------- el mando */
+/* El texto entra cada vez que su fecha pasa al frente: el título y, un instante
+   después, la fecha. */
+.portada__slide.es-activa .portada__liston > * {
+  animation: portada-texto .8s var(--spring) both;
+}
+.portada__slide.es-activa .portada__liston > :nth-child(2) { animation-delay: .09s; }
 
-.portada__mando {
+@keyframes portada-texto {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Un acercamiento muy lento mientras la fecha está al frente: es lo que evita
+   que la portada se vea como una foto pegada. */
+.portada__slide.es-activa .portada__media {
+  animation: portada-acerca 9s var(--ease) forwards;
+}
+@keyframes portada-acerca {
+  from { transform: scale(1.001); }
+  to   { transform: scale(1.07); }
+}
+
+/* Paralaje al deslizar: la foto va un poco más lenta que su marco, y eso le da
+   profundidad al gesto. Lo mide el propio scroll de la pista, sin JavaScript,
+   y solo en los navegadores que lo saben hacer; en el resto no pasa nada. */
+@supports (animation-timeline: view()) {
+  .portada__slide:not(.portada__slide--vertical) .portada__img {
+    animation: portada-paralaje linear both;
+    animation-timeline: view(inline);
+  }
+  @keyframes portada-paralaje {
+    from { transform: translate3d(-8%, 0, 0) scale(1.17); }
+    to   { transform: translate3d(8%, 0, 0) scale(1.17); }
+  }
+}
+
+/* ---------------------------------------------- las barras de progreso
+
+   Una por fecha, arriba, como en las historias. La del frente se llena mientras
+   corre el reloj y al terminar pasa a la siguiente: la animación ES el reloj
+   (app.js escucha su final), así que lo que se ve y lo que pasa no pueden
+   desincronizarse. Cada barra es además el botón que lleva a su fecha. */
+.portada__progreso {
   position: absolute;
-  right: 22px;
-  bottom: 22px;
-  z-index: 3;
+  z-index: 2;
+  top: 0;
+  left: var(--portada-margen);
+  right: var(--portada-margen);
   display: flex;
-  align-items: center;
   gap: 6px;
-  padding: 5px;
-  border: 1px solid rgba(241, 240, 235, .16);
-  border-radius: var(--radius);
-  background: rgba(9, 10, 9, .55);
-  backdrop-filter: blur(8px);
 }
-
-.portada__flecha {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--muted);
-  font-size: 1.3rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: color var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
-}
-.portada__flecha:hover { color: var(--text); background: rgba(241, 240, 235, .1); }
-
-.portada__puntos { display: flex; align-items: center; gap: 5px; }
-
-/* El punto es el control, pero el área que se toca es más grande que la marca
-   que se ve: en un teléfono un punto de 6px no se acierta. */
-.portada__punto {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 32px;
+.portada__tab {
+  flex: 1;
+  min-width: 0;
+  /* 44px de alto para el dedo; la barra que se ve mide 3. */
+  height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
+  display: grid;
+  align-items: center;
 }
-.portada__punto span {
+.portada__tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -12px; }
+.portada__tab span {
   display: block;
-  width: 100%;
   height: 3px;
-  border-radius: 2px;
+  overflow: hidden;
+  border-radius: 3px;
   background: rgba(241, 240, 235, .3);
-  transition: background-color var(--t-color) var(--ease);
 }
-.portada__punto:hover span { background: rgba(241, 240, 235, .6); }
-.portada__punto[aria-selected=true] span { background: var(--accent); }
+.portada__tab i {
+  display: block;
+  height: 100%;
+  background: var(--text);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.portada__tab.es-vista i { transform: scaleX(1); }
+.portada__tab[aria-selected="true"] i {
+  animation: portada-progreso var(--portada-pausa) linear forwards;
+}
+.portada--pausa .portada__tab i { animation-play-state: paused; }
+.portada--quieta .portada__tab[aria-selected="true"] i {
+  animation: none;
+  transform: scaleX(1);
+}
+@keyframes portada-progreso {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Flechas: solo con ratón. En el teléfono se desliza, y dos botones encima de
+   la foto le quitarían justo los bordes. */
+.portada__flecha { display: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .portada__flecha {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border: 1px solid var(--glass-borde);
+    border-radius: var(--radius-round);
+    background: var(--glass-bg-fuerte);
+    color: var(--text);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(-50%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
+    transition: opacity var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
+  }
+  .portada__flecha--anterior { left: var(--s-5); }
+  .portada__flecha--siguiente { right: var(--s-5); }
+  .portada:hover .portada__flecha,
+  .portada__flecha:focus-visible { opacity: 1; }
+  .portada__flecha:hover { background: rgba(241, 240, 235, .16); }
+}
+.portada__flecha[hidden],
+.portada__progreso[hidden] { display: none; }
 
 @media (max-width: 640px) {
-  .portada__texto,
-  .portada:has(#portadaMando:not([hidden])) .portada__texto {
-    left: 18px; right: 18px; bottom: 74px;
-  }
-  .portada__mando { right: 14px; bottom: 14px; left: 14px; justify-content: center; }
+  /* En el teléfono la portada arranca pegada a la barra de arriba: aire encima
+     de una imagen de lado a lado se lee como un hueco. */
+  .feature { padding-top: 0; }
+  .portada__liston { padding-block: var(--s-6) var(--s-4); gap: 6px; }
 }
 
-/* Sin movimiento: el carrusel sigue funcionando con los controles, pero no se
-   mueve ni se acerca solo. El reloj tampoco arranca (lo decide app.js). */
+/* Sin movimiento: no hay acercamiento, ni paralaje, ni reloj. Las barras quedan
+   quietas y el carrusel se usa deslizando o tocando una barra. */
 @media (prefers-reduced-motion: reduce) {
-  .portada__pista { transition: none; }
-  .portada__slide.es-activa .portada__img { animation: none; }
+  .portada__slide.es-activa .portada__media,
+  .portada__slide.es-activa .portada__liston > *,
+  .portada__slide .portada__img { animation: none !important; transform: none; }
+  .portada__tab[aria-selected="true"] i { animation: none !important; transform: scaleX(1); }
 }
-
-/* La columna de datos del evento. Antes usaba `justify-content: space-between`
-   con tres hijos, así que todo el sobrante se repartía en dos huecos de 180px
-   y la columna quedaba mitad vacía. Ahora el aire va en un solo lugar —el que
-   empuja el pie hacia abajo— y arriba manda la ficha. */
-.feature__info {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 26px;
-  min-width: 0;
-  padding: 30px 28px 25px;
-  background: var(--surface);
-}
-.feature__copy { display: flex; flex-direction: column; }
-.feature__footer { margin-top: auto; }
 /* Los rótulos estaban en .56–.60rem contra titulares de 4.4rem: se saltaba de
    diminuto a gigante sin nada en medio. Suben de tamaño y de peso para que se
    lean como una capa de información, no como letra chica. */
@@ -633,53 +1115,18 @@ textarea:focus-visible,
   margin-right: 9px;
   background: var(--accent);
 }
-.feature__kicker {
-  margin: 0 0 10px;
-  color: var(--dim);
-  font: 600 var(--fs-label)/1 var(--mono);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-/* =========================================================
-   LA FICHA DEL EVENTO
-   La portada ya dice el nombre y la fecha en grande. Esta columna es la otra
-   mitad del programa: cuánto sale y qué hay que saber. Se compone como la hoja
-   de datos de una carrera —cifra grande arriba, filas rotuladas debajo— porque
-   es exactamente lo que es.
-
-   Antes acá no había nada: `.feature__price` y `.feature__datos` no existían en
-   ninguna hoja, así que el precio salía en Manrope 400 a 16px y la ficha de
-   datos conservaba la sangría de 40px que el navegador le pone a un <dd>.
-   ========================================================= */
-
-/* Rótulo arriba, cifra abajo: la cifra es lo que se vino a buscar y no tiene
-   que compartir renglón con su propia aclaración. */
-.feature__price {
-  margin: 0;
-  display: grid;
-  gap: 6px;
-  justify-items: start;
-}
-.feature__price-rotulo {
-  color: var(--muted);
-  font: 700 var(--fs-label)/1 var(--mono);
-  letter-spacing: .16em;
-  text-transform: uppercase;
-}
-.feature__price b {
-  font: 700 clamp(2.2rem, 4vw, 3.1rem)/1 var(--display);
-  letter-spacing: -.045em;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
+/* Aquí vivía el titular de cartel —`.feature__titulo` y sus dos líneas con
+   máscara— que decía «PRO KART» encima de la portada. Con el afiche a sangre
+   sobra: la pieza del evento ya lleva su propio nombre compuesto, y ponerle al
+   lado el nombre del sitio en 88px era discutirle a la portada. La marca sigue
+   en el encabezado y en el pie, que es donde se espera. */
 
 .feature__sub {
-  max-width: 34ch;
-  margin: 12px 0 0;
-  color: var(--muted);
-  font-size: var(--fs-body);
+  max-width: 52ch;
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-lead);
+  text-wrap: pretty;
 }
 
 /* Las filas de datos: rótulo mono a la izquierda, valor a la derecha,
@@ -713,14 +1160,6 @@ textarea:focus-visible,
   font-size: var(--fs-meta);
   line-height: 1.45;
 }
-.feature__footer {
-  border-top: 1px solid var(--line);
-  padding-top: 18px;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 18px;
-}
 .feature__meta {
   display: flex;
   align-items: center;
@@ -741,37 +1180,20 @@ textarea:focus-visible,
   color: var(--black);
   background: var(--accent);
   border-radius: var(--radius-sm);
-  font: 800 .82rem/1 var(--mono);
+  font: 700 .82rem/1 var(--mono);
   letter-spacing: 0;
 }
 
-.editorial-cta {
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--accent);
-  color: var(--black);
-  padding: 13px 14px;
-  cursor: pointer;
-  font: 800 0.72rem/1 var(--mono);
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-.editorial-cta span { margin-left: 9px; display: inline-block; transition: transform var(--t-color) var(--ease); }
-.editorial-cta {
-  box-shadow: 0 0 0 0 rgba(255,89,54,.5);
-  transition: transform var(--t-color) var(--ease), box-shadow var(--t-color) var(--ease), background-color var(--t-color) var(--ease);
-}
-.editorial-cta:hover {
-  background: #ff6848;
-  transform: var(--lift);
-  box-shadow: 0 12px 28px -10px rgba(255,89,54,.8);
-}
-.editorial-cta:hover span { transform: translate(3px, -3px); }
-.editorial-cta:active { transform: translateY(0); }
+/* `.editorial-cta` era un tercer botón naranja dibujado a mano, idéntico en
+   intención a `.btn--primary` y a `.header-book`: tres rellenos naranja
+   compitiendo en la misma pantalla, que es exactamente lo que hace que ninguno
+   se lea como el principal. El botón del hero usa ahora `.btn.btn--primary`. */
+.btn--primary span { display: inline-block; transition: transform var(--t-color) var(--ease); }
+.btn--primary:hover span { transform: translate(3px, -3px); }
 
 /* ---------------- Sections ---------------- */
 .content-section {
-  padding: 92px 0 0;
+  padding: var(--rhythm) 0 0;
 }
 .section-heading {
   display: grid;
@@ -871,11 +1293,15 @@ textarea:focus-visible,
 .event-row__arrow { color: var(--accent); font-size: 1.1rem; }
 
 /* ---------------- Menu ---------------- */
+/* La columna del texto sube de .7fr a .85fr: con .7 medía 385px a 1180 y el h2
+   —clampado a 4,1rem— nunca entraba, así que «Menú destacado» partía siempre en
+   dos líneas apretadas. El gap era un 80px mágico que no se relacionaba con
+   ningún otro espaciado del sitio y no encogía hasta los 850px. */
 .content-section--split {
   display: grid;
-  grid-template-columns: .7fr 1.3fr;
-  gap: 80px;
-  padding-top: 120px;
+  grid-template-columns: .85fr 1.3fr;
+  gap: clamp(var(--s-10), 5vw, var(--s-20));
+  padding-top: var(--rhythm);
 }
 .menu-intro > p:not(.section-index) {
   max-width: 32ch;
@@ -885,12 +1311,19 @@ textarea:focus-visible,
 }
 /* Collage del menú: una baldosa por producto, lista para recibir su foto.
    Sin precios: acá se muestra qué hay, no cuánto cuesta. */
+/* La línea que separa las baldosas no es un borde: es el fondo del padre
+   asomando por un hueco de 1px. Con esquinas redondeadas eso deja un rombo gris
+   en cada vértice, porque el hueco no sabe nada del radio. `overflow: hidden`
+   en el padre lo recorta, y es la razón por la que la rejilla necesita su
+   propio radio además del recorte. */
 .menu-collage {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 .menu-tile {
   position: relative;
@@ -901,9 +1334,19 @@ textarea:focus-visible,
   padding: 16px;
   overflow: hidden;
   background-color: var(--surface);
-  background-size: cover;
-  background-position: center;
   transition: background-color var(--t-move) var(--ease), transform var(--t-move) var(--ease);
+}
+
+/* La foto pasó de `background-image` a <img> para poder diferirla y describirla.
+   Va detrás de todo lo demás y llena la baldosa igual que antes. */
+.menu-tile__foto {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 /* Textura diagonal mientras no haya foto: se lee como marcador, no como error */
 .menu-tile:not(.menu-tile--foto)::before {
@@ -916,14 +1359,18 @@ textarea:focus-visible,
     transparent 10px 20px
   );
 }
+/* El velo va encima de la foto y debajo del texto. Un ::before es el primer hijo
+   generado del elemento, así que sin z-index la <img> —que es un hijo real y
+   pinta después— le pasaba por encima y el degradado no protegía nada. */
 .menu-tile--foto::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 35%, rgba(9,10,9,.88) 100%);
+  z-index: 1;
+  background: linear-gradient(180deg, transparent 30%, rgba(9,10,9,.92) 100%);
 }
 .menu-tile:hover { background-color: #1b1e1a; transform: var(--lift); }
-.menu-tile figcaption { position: relative; display: grid; gap: 4px; }
+.menu-tile figcaption { position: relative; z-index: 2; display: grid; gap: 4px; }
 .menu-tile b {
   color: var(--accent);
   font: 600 0.72rem/1 var(--mono);
@@ -935,8 +1382,15 @@ textarea:focus-visible,
 }
 .menu-tile em {
   color: var(--muted);
-  font: 400 .74rem/1.35 var(--sans);
+  font: 400 var(--fs-meta)/1.35 var(--sans);
   font-style: normal;
+}
+/* Sobre una foto el gris no tiene fondo garantizado: el degradado protege el
+   borde inferior, pero una descripción de dos líneas sube hasta la zona clara.
+   Mismo recurso que ya usa el texto de la portada. */
+.menu-tile--foto em {
+  color: var(--text);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, .9);
 }
 .menu-tile span { color: var(--muted); font-size: .8rem; }
 
@@ -946,12 +1400,15 @@ textarea:focus-visible,
 }
 
 /* ---------------- Experiences ---------------- */
+/* Mismo caso que `.menu-collage`: la línea es el fondo asomando. */
 .experience-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 .experience-card {
   position: relative;
@@ -969,9 +1426,15 @@ textarea:focus-visible,
 }
 .experience-card b { transition: transform var(--t-move) var(--ease); display: inline-block; }
 .experience-card:hover b { transform: translate(4px, -4px); }
+/* El número y la bajada bajaban su contraste con `opacity`, que apaga contra el
+   fondo que haya debajo. En la tarjeta naranja eso dejaba el «03» en 3,79:1 y la
+   bajada aún más abajo: por debajo del mínimo. Con `color` explícito por
+   variante, cada una controla su propio contraste y ninguna depende del azar.
+   `color-mix` mezcla contra el color de texto de la tarjeta, así que el mismo
+   par de reglas sirve para las tres. */
 .experience-card span {
-  font: 600 0.72rem/1 var(--mono);
-  opacity: .65;
+  font: 600 var(--fs-label)/1 var(--mono);
+  color: color-mix(in srgb, currentColor 78%, transparent);
 }
 .experience-card strong {
   font: 700 clamp(1.7rem, 4vw, 3rem)/.9 var(--display);
@@ -980,21 +1443,56 @@ textarea:focus-visible,
 .experience-card p {
   max-width: 24ch;
   margin: 0;
-  font-size: .74rem;
-  opacity: .75;
+  font-size: var(--fs-meta);
+  color: color-mix(in srgb, currentColor 85%, transparent);
 }
+
+/* Sin color-mix las dos reglas de arriba se descartan y el texto queda en el
+   color pleno de la tarjeta: más contraste del previsto, nunca menos. */
+
 .experience-card b { align-self: end; font-size: 1.1rem; }
-.experience-card--dark { background: #141614; }
+.experience-card--dark { background: var(--surface); }
 .experience-card--light { background: #d6d4ca; color: #111310; }
 .experience-card--accent { background: var(--accent); color: var(--black); }
 
 /* ---------------- Booking shell ---------------- */
+/* =========================================================
+   EL FLUJO DE COMPRA
+
+   Mientras está abierto es la pantalla entera, no una sección más de la página.
+   Antes vivía en medio del documento y para llegar al botón de pagar había que
+   bajar por el hero, los eventos y el menú; en un teléfono eso son varias
+   pantallas de scroll entre la decisión y el cobro.
+
+   Ahora la caja mide la ventana y se reparte en cuatro filas: encabezado,
+   pasos, contenido y total. La única que scrollea es la del contenido, y dentro
+   del paso 2 el que scrollea es el plano, en su propia caja. El total y el
+   botón no se mueven de donde están.
+   ========================================================= */
 .booking-shell {
   scroll-margin-top: 84px;
-  margin: 120px 0 60px;
+  margin: var(--rhythm) 0 var(--s-16);
   border: 1px solid var(--line);
-  background: #0d0e0d;
+  background: var(--bg-media);
 }
+
+body.booking-open { overflow: hidden; }
+
+body.booking-open .booking-shell {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-flujo);
+  margin: 0;
+  border: 0;
+  /* svh y no vh: con vh, la barra del navegador de iOS deja el total y el botón
+     de pagar por debajo del borde justo al abrir. */
+  height: 100svh;
+  display: grid;
+  /* Encabezado, pasos, contenido, total y el pie del paso 2 (#pieLugar). */
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  animation: hoja-entra var(--t-sheet) var(--spring) both;
+}
+
 .booking-shell__header {
   display: flex;
   align-items: end;
@@ -1002,6 +1500,17 @@ textarea:focus-visible,
   gap: 20px;
   padding: 30px;
   border-bottom: 1px solid var(--line);
+}
+
+/* Abierto, el encabezado es una barra de aplicación: el titular de 3,3rem se
+   comía un tercio de la pantalla del teléfono para decir algo que ya se sabe. */
+body.booking-open .booking-shell__header {
+  align-items: center;
+  padding: var(--s-4) var(--s-5);
+}
+body.booking-open .booking-shell__header h2 {
+  font-size: var(--fs-h3);
+  letter-spacing: -.03em;
 }
 .booking-shell__header h2 {
   margin: 0;
@@ -1012,56 +1521,232 @@ textarea:focus-visible,
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
-  padding: 10px 13px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 15px;
   border-radius: var(--radius);
   cursor: pointer;
-  font: 600 0.72rem/1 var(--mono);
+  font: 600 var(--fs-label)/1 var(--mono);
   text-transform: uppercase;
 }
 .close-booking:hover { color: var(--text); border-color: var(--text); }
 
+/* ---------------- el riel de pasos ----------------
+
+   Era una fila de cuatro etiquetas sueltas: se veía en qué paso estabas, pero
+   no cuánto faltaba ni que los cuatro fueran un camino. Ahora es un riel — los
+   puntos van unidos por una línea que se va llenando— y el progreso se lee de
+   un vistazo sin contar nada.
+
+   La línea la dibuja cada paso hacia su anterior, así no hace falta ningún
+   elemento extra en el HTML ni saber cuántos pasos hay. */
 .booking-steps {
-  padding: 16px 30px;
+  padding: 18px 30px 16px;
   display: flex;
-  gap: 25px;
+  gap: 0;
   border-bottom: 1px solid var(--line);
 }
 .step-indicator {
-  display: inline-flex;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   color: var(--dim);
-  font: 600 0.72rem/1 var(--mono);
+  font: 600 var(--fs-label)/1 var(--mono);
   letter-spacing: .08em;
   text-transform: uppercase;
+  text-align: center;
+  transition: color var(--t-color) var(--ease);
 }
+
+/* El tramo de riel que llega a este punto desde el anterior. */
+.step-indicator:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  margin: 0 20px;
+  border-radius: 2px;
+  background: var(--line);
+  transition: background-color var(--t-spring) var(--spring);
+}
+/* Un tramo se llena cuando el paso al que llega ya se pasó o es el actual. */
+.step-indicator.done::before,
+.step-indicator.active::before { background: var(--accent); }
+
 .step-indicator__dot {
-  width: 24px;
-  height: 24px;
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  flex: none;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: var(--radius-round);
+  background: var(--bg-media);
+  transition:
+    border-color var(--t-color) var(--ease),
+    background-color var(--t-color) var(--ease),
+    color var(--t-color) var(--ease),
+    transform var(--t-spring) var(--spring-bounce);
 }
+
+.step-indicator__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Actual: el punto crece con muelle y se enciende. El halo lo separa del riel
+   sin necesidad de un segundo color. */
 .step-indicator.active { color: var(--text); }
 .step-indicator.active .step-indicator__dot {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--black);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 4px var(--accent-ring);
 }
+
+/* Cumplido: el número se cambia por un tilde. Un paso terminado no necesita
+   decir cuál era, necesita decir que está hecho. */
 .step-indicator.done { color: var(--success); }
 .step-indicator.done .step-indicator__dot {
   border-color: var(--success);
+  background: var(--success-tint);
+  color: transparent;
+}
+.step-indicator.done .step-indicator__dot::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   color: var(--success);
+  font-size: .82rem;
+  line-height: 1;
 }
 .booking-panels { padding: 28px; }
+/* El panel del paso, en cristal. Sin desenfoque: es el contenedor que scrollea,
+   y desenfocar lo de detrás obligaría a recalcularlo en cada cuadro. */
 .step-panel {
+  position: relative;
   display: none;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .01) 50%),
+    var(--glass-bg);
+  border: 1px solid var(--glass-borde);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .18),
+    var(--shadow);
   padding: 28px;
 }
 .step-panel.active { display: block; }
+
+/* Abierto: el panel activo es la única zona que scrollea de toda la pantalla.
+   Los 28 de `.booking-panels` más los 28 del panel daban 56px de relleno
+   anidado antes de la primera palabra; en 390px de ancho eso es el 29% de la
+   pantalla gastado en aire. */
+body.booking-open .booking-panels {
+  min-height: 0;
+  padding: var(--s-4) var(--s-5) 0;
+  display: flex;
+}
+body.booking-open .step-panel {
+  width: 100%;
+  padding: var(--s-5) var(--s-5) 0;
+}
+body.booking-open .step-panel.active {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  /* Que el rebote del scroll no arrastre a la página de debajo. */
+  overscroll-behavior: contain;
+}
+
+/* Ni la caja ni el panel pueden crecer por lo que llevan adentro. Los hijos de
+   una grilla o de un flex arrancan con `min-width: auto` —«nunca más angosto que
+   mi contenido»— y la hoja del plano mide 760px a propósito, para arrastrarse.
+   Sin esto, en vez de arrastrarse dentro de su caja ensanchaba el panel a 826px
+   en un teléfono de 390: medio plano y el botón «Cerrar» quedaban fuera de la
+   pantalla, sin forma de salir. */
+body.booking-open .booking-shell > *,
+body.booking-open .step-panel.active { min-width: 0; }
+
+/* =========================================================
+   EL PASO DE UN PASO A OTRO
+
+   Antes el panel viejo desaparecía y el nuevo aparecía en el mismo cuadro: se
+   entendía que algo había cambiado, pero no si habías avanzado o retrocedido.
+
+   El paso entra desde el lado hacia el que vas: adelante viene desde la
+   derecha, atrás desde la izquierda. Es lo mismo que hace el dedo al pasar una
+   página, y convierte cuatro pantallas sueltas en un recorrido.
+
+   `both` mantiene el primer cuadro hasta que arranca, así no hay destello del
+   estado final antes de empezar. La dirección la marca app.js, que es quien
+   sabe de dónde vienes. */
+.step-panel.active {
+  animation: paso-entra var(--t-spring) var(--spring) both;
+}
+.booking-panels[data-dir="atras"] .step-panel.active {
+  animation-name: paso-entra-atras;
+}
+
+@keyframes paso-entra {
+  from { opacity: 0; transform: translate3d(26px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes paso-entra-atras {
+  from { opacity: 0; transform: translate3d(-26px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* El riel de arriba acompaña: el punto del paso al que llegas late una vez. */
+.step-indicator.active .step-indicator__dot {
+  animation: punto-llega var(--t-spring) var(--spring-bounce) both;
+}
+@keyframes punto-llega {
+  from { transform: scale(.7); }
+  to   { transform: scale(1.12); }
+}
+
+/* El paso 2 es la excepción, y es la que pidió el encargo: acá el que scrollea
+   es el plano y solo el plano, dentro de su caja. El panel se queda quieto, así
+   que el rótulo de arriba, la barra del grupo, «Continuar» y el total no se
+   mueven mientras se busca la mesa.
+
+   Solo en vertical: el arrastre horizontal ya lo hace `.plano__lienzo`, y dos
+   scrolls horizontales anidados se pelean por el mismo gesto del dedo. */
+body.booking-open #panel-2.active { overflow: hidden; }
+body.booking-open #planoWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+/* En el teléfono esa excepción no cabe. Debajo del encabezado, el riel, el
+   título, la barra del grupo, la cabecera del plano, los botones y el total, a
+   la caja del plano le quedaban unos 80px en un iPhone de 844 de alto: se veía
+   la tarima y ni una mesa. Ahí scrollea el panel entero, como en la versión
+   anterior; «Continuar» sigue a la vista porque la barra de acciones es sticky. */
+@media (max-width: 640px), (max-height: 760px) {
+  body.booking-open #panel-2.active { overflow-y: auto; }
+  body.booking-open #planoWrap { flex: none; overflow: visible; }
+}
 .step-panel h2 {
   margin: 0 0 25px;
   font: 700 1.45rem/1 var(--display);
@@ -1075,23 +1760,62 @@ textarea:focus-visible,
   box-shadow: none;
 }
 .area-card:hover { border-color: #5a5e57; }
+/* =========================================================
+   CAMPOS DE FORMULARIO — tokens compartidos (2026-09-13)
+
+   Revisado con la skill UI/UX Pro Max. Los campos iban con el negro de la
+   página (#050505) sobre tarjetas de #121213: un escalón MÁS OSCUROS que la
+   tarjeta y con un borde de 9% de opacidad. No se veía dónde se escribe.
+
+   Ahora el campo es un escalón más CLARO que la tarjeta, que es como se lee
+   algo que se toca. El borde llega a 3:1 contra la tarjeta (el mínimo de WCAG
+   para el contorno de un control), el texto de ejemplo a 5:1 y la etiqueta a
+   más de 9:1. El foco suma un anillo naranja de 3px además del borde.
+
+   Todas las hojas con campos (reserva, formulario, verificar, admin) usan estos
+   tokens: se cambian acá y cambian en todo el sitio.
+   ========================================================= */
+:root {
+  --campo-bg: #1c1d1f;
+  --campo-bg-hover: #212225;
+  --campo-bg-foco: #242528;
+  --campo-borde: #5f625c;
+  --campo-borde-hover: #7d8179;
+  --campo-placeholder: #8f948d;
+  --campo-etiqueta: #c3c6bf;
+  --campo-anillo: 0 0 0 3px rgba(255, 89, 54, .3);
+  --campo-anillo-error: 0 0 0 3px rgba(255, 102, 96, .32);
+}
 .field label {
-  font: 600 0.72rem/1 var(--mono);
+  font: 600 0.75rem/1 var(--mono);
   letter-spacing: .09em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--campo-etiqueta);
 }
-.field input {
+.field input,
+.field select,
+.field textarea {
   width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
   color: var(--text);
   border-radius: var(--radius);
 }
-.field input:focus {
+.field input::placeholder,
+.field textarea::placeholder { color: var(--campo-placeholder); opacity: 1; }
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+  border-color: var(--campo-borde-hover);
+  background-color: var(--campo-bg-hover);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
   outline: 0;
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
 }
 /* El bloque de compatibilidad que había acá —reescribía .floor, .mesa,
    .resumen, .modal y .modal__caja al lenguaje nuevo— no se aplicaba nunca:
@@ -1101,8 +1825,8 @@ textarea:focus-visible,
 
 /* ---------------- Footer ---------------- */
 .site-footer {
-  width: min(var(--max), calc(100% - 36px));
-  margin: 120px auto 0;
+  width: var(--container);
+  margin: var(--rhythm) auto 0;
   padding: 28px 0 35px;
   border-top: 1px solid var(--line);
   display: flex;
@@ -1135,33 +1859,63 @@ textarea:focus-visible,
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 850px) {
-  .site-header__inner { grid-template-columns: auto 1fr auto; }
   .site-nav { gap: 16px; }
-  .feature { grid-template-columns: 1fr; }
-  .feature__media { min-height: 480px; }
-  .feature__info { min-height: 420px; }
   .section-heading { grid-template-columns: 1fr; gap: 12px; }
-
-  .content-section--split { grid-template-columns: 1fr; gap: 40px; }
+  .content-section--split { grid-template-columns: 1fr; gap: var(--s-10); }
 }
 
 @media (max-width: 640px) {
   .editorial-page, .site-footer, .site-header__inner { width: min(100% - 24px, var(--max)); }
-  .site-header__inner { min-height: 60px; grid-template-columns: auto auto; }
-  .site-nav { display: none; }
-  .header-book { padding: 10px 11px; }
-  .feature__media { min-height: 390px; }
-  .feature__info { padding: 23px 18px; min-height: 360px; }
-  .feature__copy h1 { max-width: 10ch; }
-  .feature__footer { align-items: center; }
+  .site-header__inner { min-height: 60px; }
+
+  /* La navegación ya no desaparece. Estaba en `display: none` sin nada que la
+     reemplazara, y «Mis Entradas» tampoco estaba en el pie: en un teléfono no
+     había ninguna forma de llegar a consultar una entrada ya comprada. Ahora es
+     una tira que se arrastra, debajo de la marca y del botón de compra. */
+  .site-header__inner { flex-wrap: wrap; row-gap: var(--s-2); padding-bottom: var(--s-2); }
+  /* Grande, pero no tanto que empuje al botón de compra fuera de la fila. */
+  .brand-logo { height: 34px; }
+  /* `flex: 0 0 100%` y no solo `width: 100%`: arriba la tira lleva `flex: 1`,
+     cuya base es 0, y con base 0 cabía en la primera fila detrás del botón de
+     compra en vez de bajar a la suya. Se veía «xperie» cortado a la derecha. */
+  .site-nav {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    justify-content: flex-start;
+    justify-content: safe center;
+    display: flex;
+    gap: var(--s-5);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    border-top: 1px solid var(--line-soft);
+    padding-top: var(--s-1);
+  }
+  .site-nav::-webkit-scrollbar { display: none; }
+  .site-nav a { white-space: nowrap; min-height: 40px; display: inline-flex; align-items: center; }
+
+  .feature__pie { gap: var(--s-4); }
+  .feature__accion { width: 100%; justify-content: space-between; }
   .experience-grid { grid-template-columns: 1fr; }
+
+  /* La ciudad dejaba de mostrarse por completo en el teléfono, que es donde se
+     usa el sitio: con fechas en varias ciudades era justo el dato que hacía
+     falta para elegir. Ahora baja al bloque del título en vez de irse. */
   .event-row { grid-template-columns: 62px 1fr 25px; gap: 14px; padding: 16px 13px; }
-  .event-row__place { display: none; }
-  .booking-shell { margin-top: 85px; }
-  .booking-shell__header, .booking-panels { padding: 20px; }
-  .booking-steps { padding: 14px 20px; }
-  .step-panel { padding: 20px 16px; }
-  .site-footer { flex-direction: column; margin-top: 80px; }
+  .event-row__place {
+    grid-column: 2;
+    grid-row: 2;
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--s-2);
+    text-align: left;
+  }
+
+  .booking-shell__header, .booking-panels { padding: var(--s-5); }
+  .booking-steps { padding: 14px var(--s-5); }
+  .step-panel { padding: var(--s-5) var(--s-4); }
+  .site-footer { flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1170,7 +1924,100 @@ textarea:focus-visible,
     transition-duration: .001ms !important;
     animation-duration: .001ms !important;
   }
+
+  /* Este bloque neutralizaba la duración pero no el gesto: con el movimiento
+     reducido, ocho componentes seguían dando su salto de 2px, solo que ahora
+     instantáneo, que es peor que la animación. Anular el desplazamiento es lo
+     que la preferencia pide de verdad. Las hojas de reserva y del plano tenían
+     cada una su propio parche para lo mismo; esto los reemplaza. */
+  a:hover, button:hover, .btn:hover,
+  .area-card:hover, .event-row:hover, .menu-tile:hover,
+  .experience-card:hover, .header-book:hover,
+  .bienvenida__cerrar:hover, .mesa:hover {
+    transform: none !important;
+  }
+
+  /* El acuse al pulsar se queda: reducir movimiento no es quedarse sin
+     respuesta. Pasa de escala a un cambio de brillo, que informa lo mismo sin
+     desplazar nada. */
+  button:not(:disabled):active,
+  .btn:not(:disabled):active,
+  .stepper button:not(:disabled):active,
+  .area-card:not(:disabled):active {
+    transform: none !important;
+    filter: brightness(.88);
+  }
+
+  /* Las hojas y los velos dejan de escalar y solo se funden. */
+  .modal, .modal__caja, .bienvenida { animation: fadeIn .2s ease both !important; }
 }
+
+/* =========================================================
+   TRANSPARENCIA REDUCIDA
+
+   Es una preferencia distinta de la de movimiento y hasta ahora no se atendía
+   en ninguna hoja. Quien la activa suele hacerlo porque el desenfoque le
+   dificulta leer: la respuesta correcta es fondo sólido, no menos desenfoque.
+   ========================================================= */
+@media (prefers-reduced-transparency: reduce) {
+  .site-header,
+  .modal,
+  .bienvenida,
+  .portada__flecha,
+  .header-book {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--surface);
+  }
+  .modal { background: rgba(5, 5, 5, .97); }
+}
+
+/* Más contraste: superficies casi sólidas y borde definido. */
+@media (prefers-contrast: more) {
+  .area-card,
+  .modal__caja,
+  .panel-card { border-color: var(--text); }
+}
+
+/* =========================================================
+   ENTRADA POR SCROLL
+   Los estados de partida solo existen si anim.js llegó a ejecutarse: la clase
+   la pone él en <html>. Sin JS, con el script caído o con «reducir movimiento»
+   activado, nada de esto aplica y la página se ve entera desde el primer cuadro.
+   Es la diferencia entre una animación de entrada y un contenido que desaparece
+   cuando algo falla.
+   ========================================================= */
+
+.con-reveal .section-heading,
+.con-reveal .event-row,
+.con-reveal .menu-intro,
+.con-reveal .menu-tile,
+.con-reveal .experience-card,
+.con-reveal .area-card,
+.con-reveal .areas-tarima,
+.con-reveal .pieza-destacada,
+.con-reveal .feature__pie {
+  opacity: 0;
+  /* Solo transform y opacity: las dos las resuelve el compositor sin volver a
+     medir la página, que es lo que importa en un teléfono de gama media.
+
+     La escala parte de .985 y no de 1. Un elemento que solo sube se lee como
+     una lista que se desplaza; uno que sube creciendo un pelo se lee como algo
+     que llega desde atrás y se coloca. Es un 1,5% —no se ve, se nota—. */
+  transform: translate3d(0, 16px, 0) scale(.985);
+  transition:
+    opacity var(--t-spring) var(--spring),
+    transform var(--t-spring) var(--spring);
+  transition-delay: calc(var(--i, 0) * 55ms);
+}
+
+.con-reveal .esta-a-la-vista {
+  opacity: 1;
+  transform: none;
+}
+
+/* El revelado por líneas del titular de cartel se fue con el titular: la
+   portada es ahora el afiche y no hay tipografía que armar sobre él. */
 
 /* =========================================================
    14. PUBLICIDAD, PIE AMPLIADO Y CONTADOR
@@ -1181,7 +2028,7 @@ textarea:focus-visible,
 /* ---------------------------------------------- banner en medio de la página */
 
 .pieza-destacada {
-  margin: 90px 0 0;
+  margin: var(--rhythm) 0 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1238,7 +2085,12 @@ textarea:focus-visible,
   font: 600 0.72rem/1 var(--mono);
   letter-spacing: .08em;
   text-transform: uppercase;
-  /* 44px de alto real: es el mínimo para tocar sin errar en un teléfono. */
+  /* 44px de alto real: es el mínimo para tocar sin errar en un teléfono.
+     El comentario ya decía 44 pero las cuentas daban 41,5 —11,5px de texto más
+     15+15 de padding—, así que se declara el mínimo en vez de deducirlo. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 15px 0;
   border-bottom: 1px solid transparent;
   transition: color var(--t-color) ease, border-color var(--t-color) ease;
@@ -1425,14 +2277,12 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
    detalle que más delata a un titular sin trabajar. */
 .section-heading h2,
 .menu-intro h2,
-.booking-shell__header h2,
-.portada__nombre {
+.booking-shell__header h2 {
   letter-spacing: -.035em;
   /* Reparte las líneas en vez de dejar una palabra huérfana abajo. */
   text-wrap: balance;
 }
 
-.feature__copy--secundaria h1,
 .step-panel h2,
 .event-row__main h3 {
   letter-spacing: -.02em;
@@ -1443,7 +2293,6 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
    etiqueta, no para un párrafo que alguien va a leer entero. */
 .section-heading > p,
 .menu-intro p,
-.feature__copy p,
 .experience-card p {
   line-height: 1.62;
   /* Evita que la última línea quede con una sola palabra. */
@@ -1453,14 +2302,19 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
 }
 
 /* Las cifras tienen que ocupar siempre el mismo ancho. Sin esto, un total que
-   pasa de R$ 300,00 a R$ 250,00 mueve todo lo que tiene al lado. */
+   pasa de R$ 300,00 a R$ 250,00 mueve todo lo que tiene al lado.
+
+   De los siete selectores que había, cuatro no existían en el sitio público:
+   .kpi__value y .num son del panel, que no carga esta hoja, y .ticket__code y
+   .event-row__day nunca se emitieron con ese nombre. Estos apuntan a las cifras
+   reales. */
 #total,
+#pagoTotal,
 .resumen__total strong,
 .area-card__precio,
-.kpi__value,
-.ticket__code,
-.num,
-.event-row__day {
+.price,
+.event-row time strong,
+.pago-total strong {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
@@ -1475,18 +2329,16 @@ body:has(#bienvenidaCaja:not([hidden])) { overflow: hidden; }
   padding-right: .12em;
 }
 
-/* Manrope tiene ejes ópticos; pedirlos explícitamente mejora el dibujo en
-   tamaños grandes en los navegadores que lo soportan. */
-body {
-  font-optical-sizing: auto;
-  text-rendering: optimizeLegibility;
-  line-height: 1.55;
-}
+/* Acá vivían tres declaraciones que sobraban. `text-rendering: optimizeLegibility`
+   fuerza kerning y ligaduras en todo el documento y provoca jank de layout medible
+   en Android de gama baja. `font-optical-sizing` no hacía nada: ninguna de las
+   familias que cargamos tiene eje óptico. Y `line-height: 1.55` contradecía en
+   silencio al 1.5 que body ya declara ochenta líneas más arriba: ahora hay un
+   solo valor y está donde se define el resto del cuerpo. */
 
 /* En pantalla chica el titular gigante deja de ser expresivo y pasa a ser un
    estorbo: ocupa la pantalla entera antes de decir nada. */
 @media (max-width: 560px) {
-  .feature__copy h1,
   .section-heading h2,
   .menu-intro h2 {
     letter-spacing: -.028em;
@@ -1494,6 +2346,153 @@ body {
   }
 
   .section-heading > p,
-  .menu-intro p,
-  .feature__copy p { max-width: none; }
+  .menu-intro p { max-width: none; }
+}
+
+/* =========================================================
+   16. LA PORTADA EN EL TELÉFONO — ESCALA COMPACTA
+
+   Medido en un iPhone de 390px: los dos «Comprar entradas» medían 185 y 189px
+   de ancho con letra de 17px —casi media pantalla cada uno— y aparecían juntos
+   en la primera vista. La bajada iba a 20,7px, las tres tarjetas de
+   experiencias sumaban 863px de alto con aire vacío y el menú, apilado, 742px.
+
+   Solo cambia index (`.home`) y solo en el teléfono: el escritorio, el panel y
+   las demás páginas quedan como estaban.
+   ========================================================= */
+@media (max-width: 640px) {
+  /* Cuerpo a 16px y no menos: por debajo, Safari de iOS agranda la página al
+     tocar un campo del formulario de compra. La bajada, a 18px. */
+  .home {
+    --fs-body: 1rem;
+    --fs-lead: 1.125rem;
+  }
+
+  /* ---------- botones: la misma forma, menos masa ----------
+     44px de alto se mantiene porque es el mínimo para acertar con el dedo; lo
+     que baja es la letra y el relleno lateral, que era lo que los hacía anchos. */
+  .home .btn {
+    min-height: 44px;
+    padding: 11px 18px;
+    gap: 7px;
+    font-size: .9375rem;
+  }
+  .home .btn--primary { box-shadow: 0 8px 20px -12px rgba(255, 89, 54, .65); }
+
+  /* ---------- el encabezado ----------
+     Con la barra de la app (css/barra.css) la navegación vive abajo, al alcance
+     del pulgar. Arriba quedan la marca y un «Comprar» chico: una píldora de
+     34px con letra de 13px, no el botón de 185px de antes. El área que se toca
+     se agranda con un ::after para no bajar del mínimo táctil. */
+  .con-barra .site-nav { display: none; }
+  .home .brand-logo { height: 30px; }
+  .home .site-header__inner { min-height: 54px; padding-bottom: 0; }
+  .home .header-book {
+    min-height: 34px;
+    padding: 7px 14px;
+    font-size: .8125rem;
+    box-shadow: 0 6px 14px -10px rgba(255, 89, 54, .9);
+  }
+  .home .header-book::after {
+    content: "";
+    position: absolute;
+    inset: -6px -4px;
+  }
+  /* Más opaco en el teléfono: con .55 los orbes naranjas del fondo teñían la
+     barra de arriba al pasar sobre el contenido oscuro. */
+  .con-barra .site-header {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .04), transparent 60%),
+      rgba(9, 10, 9, .9);
+  }
+
+  /* ---------- la ficha ----------
+     Sin su «Comprar entradas»: con el de arriba y el del centro de la barra eran
+     tres botones para lo mismo en la primera pantalla. Se oculta la fila entera
+     —el «01 Evento destacado» no dice nada sin el botón al lado—, pero el botón
+     sigue en la página: app.js lo usa para abrir la compra desde las filas de
+     eventos. */
+  .home .feature__accion { display: none; }
+  .home .feature__pie { gap: var(--s-3); padding-top: 0; }
+
+  /* ---------- el pie ----------
+     Enlaces en letra normal y no en versalitas monoespaciadas (lenguaje de
+     terminal, no de app), y más compacto: con la barra abajo el pie es una
+     salida secundaria. */
+  .home .site-footer {
+    gap: var(--s-3);
+    margin-top: var(--s-12);
+    padding: var(--s-6) 0 var(--s-8);
+  }
+  .home .site-footer__marca span {
+    font: 800 1rem/1 var(--display);
+    letter-spacing: -.01em;
+  }
+  .home .site-footer__enlaces { gap: 0 var(--s-5); }
+  .home .site-footer__enlaces a {
+    min-height: 40px;
+    padding: 10px 0;
+    font: 500 .875rem/1 var(--sans);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .home .pieza__nota {
+    font: 500 .75rem/1 var(--sans);
+    letter-spacing: .01em;
+    text-transform: none;
+    text-align: left;
+  }
+  .home .feature__datos { margin-top: var(--s-4); }
+  .home .feature__datos > div {
+    grid-template-columns: 56px minmax(0, 1fr);
+    padding: 9px 0;
+  }
+
+  /* ---------- ritmo entre secciones ---------- */
+  .home .content-section,
+  .home .content-section--split { padding-top: var(--s-12); }
+  .home .content-section--split { gap: var(--s-5); }
+  .home .pieza-destacada { margin-top: var(--s-10); }
+  .home .section-heading { gap: var(--s-2); padding-bottom: var(--s-4); }
+  .home .section-heading h2,
+  .home .menu-intro h2 { font-size: 1.875rem; }
+  .home .menu-intro > p:not(.section-index) { margin: var(--s-2) 0 0; }
+
+  /* ---------- menú: dos columnas ----------
+     Cuatro fotos a lo ancho, una debajo de otra, eran 742px de scroll para
+     cuatro nombres. En dos columnas se ven las cuatro de un vistazo. */
+  .home .menu-collage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home .menu-tile { min-height: 150px; padding: var(--s-3); }
+  .home .menu-tile strong { font-size: .95rem; line-height: 1.15; }
+
+  /* ---------- experiencias: una fila que se desliza ----------
+     Tres tarjetas apiladas de 241px con aire vacío. En fila se ve la primera
+     entera y el borde de la siguiente, que es la señal de que hay más. Se sale
+     del margen de la página lo justo para que la tarjeta asome hasta el borde. */
+  .home .experience-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 78%;
+    gap: var(--s-3);
+    margin-inline: -12px;
+    padding: 0 12px 4px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 12px;
+    scrollbar-width: none;
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+  .home .experience-grid::-webkit-scrollbar { display: none; }
+  .home .experience-card {
+    min-height: 184px;
+    padding: var(--s-5);
+    border-radius: var(--radius-lg);
+    scroll-snap-align: start;
+  }
+  .home .experience-card strong { font-size: 1.6rem; }
+  /* Levantar la tarjeta al pasar el dedo la saca de la fila que se desliza. */
+  .home .experience-card:hover { transform: none; box-shadow: none; }
 }

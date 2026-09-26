@@ -404,6 +404,12 @@ verify_jwt = true
 [functions.expire-holds]
 verify_jwt = false
 
+# La llama pg_cron con el mismo secreto compartido que expire-holds, no una
+# persona con sesión: sin esto el gateway devuelve 401 antes de que la función
+# llegue a revisar `x-cron-secret`, y el reporte de los lunes nunca sale.
+[functions.reporte-semanal]
+verify_jwt = false
+
 # Gestión de personal y cortesías: exigen sesión, y además la función comprueba
 # que el rol sea admin.
 [functions.staff-admin]

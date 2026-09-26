@@ -1,0 +1,189 @@
+/* =========================================================
+   LA BARRA DE LA APP
+
+   En el teléfono la web se usa como una app: la navegación va abajo, donde
+   llega el pulgar, y no arriba en una tira que obliga a estirar la mano.
+
+   Cinco destinos, en el orden que pidió el dueño:
+     Inicio · Menú · COMPRAR · Reservar · Mis entradas
+   «Comprar» es la acción que cobra y va al centro, elevada y en naranja: es el
+   único relleno de acento de la barra. «Reservar» lleva a Grupos y privados.
+
+   Solo existe en el teléfono (hasta 640px). En pantallas anchas la navegación
+   de arriba sigue siendo la de siempre.
+
+   Capas: la barra está en --z-sticky (50), igual que el encabezado. El flujo de
+   compra (55), las ventanas (60) y el anuncio de bienvenida (90) le pasan por
+   encima, así que nunca tapa una compra a medias.
+   ========================================================= */
+
+.app-barra { display: none; }
+
+@media (max-width: 640px) {
+  .con-barra {
+    --barra-alto: 64px;
+  }
+
+  /* El contenido termina antes de la barra: sin este relleno, el pie y el
+     último botón de la página quedarían debajo de ella. */
+  .con-barra body {
+    padding-bottom: calc(var(--barra-alto) + env(safe-area-inset-bottom));
+  }
+
+  /* Abierta como app instalada, la página llega hasta arriba de todo
+     (viewport-fit=cover): el encabezado deja libre la franja de la hora. */
+  .con-barra .site-header {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .app-barra {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-sticky);
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    height: calc(var(--barra-alto) + env(safe-area-inset-bottom));
+    /* Abajo, la franja del gesto de inicio del iPhone queda libre. */
+    padding: 0 4px env(safe-area-inset-bottom);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, .05), transparent 70%),
+      rgba(9, 10, 9, .8);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -14px 32px -20px rgba(0, 0, 0, .95);
+    -webkit-backdrop-filter: blur(18px) saturate(170%);
+    backdrop-filter: blur(18px) saturate(170%);
+  }
+
+  /* Con la compra abierta la barra no tiene nada que hacer: la tapa el flujo,
+     pero además se saca para que no deje su relleno debajo. */
+  body.booking-open .app-barra { display: none; }
+
+  /* ---------------------------------------------- cada destino */
+
+  .app-barra__item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Íconos y rótulos alineados por abajo: el botón del centro, que es más
+       alto, crece hacia arriba y asoma sobre el borde de la barra. */
+    justify-content: flex-end;
+    gap: 5px;
+    height: var(--barra-alto);
+    padding-bottom: 10px;
+    color: var(--muted);
+    font: 600 .6875rem/1 var(--sans);
+    letter-spacing: .005em;
+    text-decoration: none;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--t-color) var(--ease);
+  }
+
+  /* `flex: none` en el ícono, el rótulo y el botón del centro: la columna mide
+     64px y, sin esto, flexbox los encogía para que entraran. El botón de Comprar
+     quedaba aplastado —ni círculo ni asomando— en vez de salirse por arriba. */
+  .app-barra__item > *,
+  .app-barra__boton > svg { flex: none; }
+
+  .app-barra__item svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform .2s var(--spring);
+  }
+
+  /* El filete de la pestaña actual: una línea corta de acento en el borde de
+     arriba, que entra con muelle. El color del rótulo acompaña. */
+  .app-barra__item::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    width: 22px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    transform: translateX(-50%) scaleX(0);
+    transition: transform .28s var(--spring);
+  }
+  .app-barra__item[aria-current] { color: var(--text); }
+  .app-barra__item[aria-current]::before { transform: translateX(-50%) scaleX(1); }
+
+  /* Respuesta al toque: el ícono se hunde un instante, como un botón físico. */
+  .app-barra__item:active svg { transform: scale(.86); }
+
+  .app-barra__item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -6px;
+    border-radius: var(--radius);
+  }
+
+  /* ---------------------------------------------- «Comprar», al centro */
+
+  .app-barra__item--comprar { color: var(--text); }
+  .app-barra__item--comprar::before { display: none; }
+
+  .app-barra__boton {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-round);
+    background: var(--accent);
+    color: var(--black);
+    /* El anillo del color de la página recorta el círculo sobre la barra, y la
+       sombra lleva el naranja del botón, no negro. */
+    box-shadow:
+      0 0 0 5px var(--bg),
+      0 12px 26px -8px rgba(255, 89, 54, .75);
+    transition: transform .2s var(--spring), background-color var(--t-color) var(--ease);
+  }
+  .app-barra__item--comprar svg { stroke-width: 2; }
+  .app-barra__item--comprar:active svg { transform: none; }
+  .app-barra__item--comprar:active .app-barra__boton {
+    transform: scale(.92);
+    background: var(--accent-hover);
+  }
+}
+
+/* ---------------------------------------------- Mis entradas como pantalla de app
+
+   verificar.html centraba la tarjeta en vertical (`margin: auto` dentro de una
+   página de alto completo): en el teléfono quedaba flotando a media pantalla con
+   un vacío enorme arriba. En una app el contenido empieza arriba. Y el botón
+   grande iba en versalitas espaciadas de 12px, distinto de todos los demás. */
+@media (max-width: 640px) {
+  .con-barra .verify-body {
+    min-height: 100dvh;
+    padding-top: calc(env(safe-area-inset-top) + var(--s-6));
+  }
+  .con-barra .verify-container { margin: 0 auto auto; }
+
+  .con-barra .btn--lg {
+    min-height: 48px;
+    padding: 13px 20px;
+    font-size: .9375rem;
+    letter-spacing: -.005em;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-transparency: reduce) {
+  .app-barra {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--bg-2);
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+  .app-barra__item svg,
+  .app-barra__item::before,
+  .app-barra__boton { transition: none; }
+}

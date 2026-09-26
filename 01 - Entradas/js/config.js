@@ -6,8 +6,7 @@
 window.PROKART_CONFIG = {
   SUPABASE_URL: "https://tgilgfwxtghcqskfyzif.supabase.co",
 
-  SUPABASE_ANON_KEY:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaWxnZnd4dGdoY3Fza2Z5emlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0ODk5NjYsImV4cCI6MjEwMjA2NTk2Nn0.yzxMEEw8QezoKrJnNltue5bpcueTJUL2jB1T9Kvz2Kw",
+  SUPABASE_ANON_KEY: "sb_publishable_2qZJfoQJi-R3UxVPvtO6zw_ztu8Z2_N",
 
   EVENT_SLUG: "noche-vip-fest",
 };

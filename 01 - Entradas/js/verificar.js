@@ -1,165 +1,163 @@
-/* Validación de entradas.
-   La decisión la toma siempre el servidor (Edge Function verify-ticket): acá no
-   se valida ninguna firma ni se marca nada localmente. */
+/* Consulta pública de entradas Pro Kart por Cédula / CPF. */
 
 (function () {
   "use strict";
 
-  const db = window.supabaseClient;
+  // Elementos de consulta por cédula / CPF
+  const cedulaForm = document.getElementById("cedulaForm");
+  const inputCedula = document.getElementById("inputCedula");
+  const btnBuscarCedula = document.getElementById("btnBuscarCedula");
+  const contenedorEntradas = document.getElementById("contenedorEntradas");
 
-  const loginCard = document.getElementById("loginCard");
-  const scanCard = document.getElementById("scanCard");
-  const resultCard = document.getElementById("resultCard");
-  const loginForm = document.getElementById("loginForm");
-  const codeForm = document.getElementById("codeForm");
-  const codigoInput = document.getElementById("codigo");
-  const btnLogin = document.getElementById("btnLogin");
-  const btnValidar = document.getElementById("btnValidar");
-  const btnLogout = document.getElementById("btnLogout");
-  const staffInfo = document.getElementById("staffInfo");
-
+  // Parámetros de URL
   const params = new URLSearchParams(window.location.search);
-  const codigoEscaneado = params.get("codigo");
-  const firmaEscaneada = params.get("firma");
+  const cedulaParam = params.get("cedula") || params.get("cpf") || params.get("ci") || params.get("dni") || params.get("doc");
 
   function setError(campo, mensaje) {
     const el = document.querySelector(`.error[data-for="${campo}"]`);
     if (el) el.textContent = mensaje || "";
   }
 
-  async function sesionActual() {
-    const { data } = await db.auth.getSession();
-    return data.session || null;
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
-  async function mostrarVista() {
-    const session = await sesionActual();
+  cedulaForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const doc = inputCedula.value.trim();
+    if (!doc) return setError("cedula", "Por favor ingresa tu Cédula / CPF.");
+    await buscarPorCedula(doc);
+  });
 
-    loginCard.classList.toggle("hidden", Boolean(session));
-    scanCard.classList.toggle("hidden", !session);
+  async function buscarPorCedula(doc) {
+    setError("cedula", "");
+    btnBuscarCedula.disabled = true;
+    btnBuscarCedula.textContent = "Buscando...";
+    contenedorEntradas.innerHTML = `<div class="verify-card"><p class="hint">Consultando entradas...</p></div>`;
+    contenedorEntradas.classList.remove("hidden");
 
-    if (!session) return;
+    try {
+      const resp = await window.callFunction("verify-ticket", {
+        action: "consultar_por_cedula",
+        documento: doc,
+      });
 
-    staffInfo.textContent = `Sesión: ${session.user.email}`;
+      if (!resp.ok) {
+        throw new Error(resp.data?.error || "No se pudo realizar la consulta.");
+      }
 
-    if (codigoEscaneado) {
-      codigoInput.value = codigoEscaneado;
-      await validar(codigoEscaneado, firmaEscaneada);
+      const tickets = resp.data?.tickets || [];
+      renderizarEntradasComprador(tickets, doc);
+    } catch (err) {
+      setError("cedula", err.message);
+      contenedorEntradas.classList.add("hidden");
+    } finally {
+      btnBuscarCedula.disabled = false;
+      btnBuscarCedula.textContent = "Buscar entradas";
     }
   }
 
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    setError("login", "");
-    btnLogin.disabled = true;
-
-    const { error } = await db.auth.signInWithPassword({
-      email: document.getElementById("email").value.trim(),
-      password: document.getElementById("password").value,
-    });
-
-    btnLogin.disabled = false;
-
-    if (error) {
-      setError("login", "Correo o contraseña incorrectos.");
-      return;
-    }
-    loginForm.reset();
-    await mostrarVista();
-  });
-
-  btnLogout.addEventListener("click", async () => {
-    await db.auth.signOut();
-    resultCard.classList.add("hidden");
-    // Quita el código de la URL para que al recargar no se revalide solo.
-    window.history.replaceState({}, "", window.location.pathname);
-    await mostrarVista();
-  });
-
-  codeForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const codigo = codigoInput.value.trim();
-    if (!codigo) {
-      setError("codigo", "Ingresa o escanea un código.");
-      return;
-    }
-    await validar(codigo, null);
-  });
-
-  async function validar(codigo, firma) {
-    setError("codigo", "");
-    btnValidar.disabled = true;
-    btnValidar.textContent = "Validando...";
-
-    const session = await sesionActual();
-    const payload = { code: codigo };
-    if (firma) payload.signature = firma;
-
-    const { data } = await window.callFunction("verify-ticket", payload, session?.access_token);
-
-    btnValidar.disabled = false;
-    btnValidar.textContent = "Validar";
-    renderResultado(data);
-  }
-
-  function renderResultado(data) {
-    resultCard.classList.remove("hidden", "verify-card--valida", "verify-card--invalida", "verify-card--usada");
-    resultCard.classList.add("verify-card");
-
-    const ticket = data.ticket;
-
-    if (data.result === "valid") {
-      resultCard.classList.add("verify-card--valida");
-      resultCard.innerHTML = `
-        <div class="verify-card__icon">✅</div>
-        <p class="verify-card__status">Entrada válida</p>
-        ${detalles(ticket)}
+  function renderizarEntradasComprador(tickets, doc) {
+    if (!tickets.length) {
+      contenedorEntradas.innerHTML = `
+        <div class="verify-card">
+          <div class="verify-card__icon">🔍</div>
+          <h3 class="verify-card__status">Sin entradas activas</h3>
+          <p class="hint">No encontramos entradas asociadas al documento <b>${esc(doc)}</b>.</p>
+          <p class="hint" style="font-size: 0.8rem; color: var(--dim);">Verifica que esté escrito correctamente como se ingresó al momento de la compra.</p>
+        </div>
       `;
+      contenedorEntradas.classList.remove("hidden");
       return;
     }
 
-    if (data.result === "already_used") {
-      const cuando = data.used_at ? new Date(data.used_at).toLocaleString("es") : "antes";
-      const quien = data.used_by_name ? ` por ${data.used_by_name}` : "";
-      resultCard.classList.add("verify-card--usada");
-      resultCard.innerHTML = `
-        <div class="verify-card__icon">⚠️</div>
-        <p class="verify-card__status">Entrada ya utilizada</p>
-        <p class="hint">Se validó ${cuando}${quien}.</p>
-        ${detalles(ticket)}
+    const html = tickets.map((t, idx) => {
+      const qrUrl = `https://enprokart.com/verificar.html?c=${encodeURIComponent(t.code)}&s=${encodeURIComponent(t.qr_signature || "")}`;
+      const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(qrUrl)}`;
+      
+      const fecha = t.event_date ? new Date(t.event_date).toLocaleDateString("es", {
+        weekday: "short", day: "numeric", month: "short", year: "numeric"
+      }) : "";
+
+      const estadoBadge = t.status === "used"
+        ? `<span class="estado estado--gris">Utilizada</span>`
+        : t.status === "canceled"
+        ? `<span class="estado estado--mal">Cancelada</span>`
+        : `<span class="estado estado--ok">Válida</span>`;
+
+      return `
+        <div class="ticket-item">
+          <div class="ticket-item__header">
+            <span class="ticket-item__num">Entrada ${t.guest_index || (idx + 1)}${doc === null ? "" : " de " + tickets.length}</span>
+            ${estadoBadge}
+          </div>
+
+          <h3 class="ticket-item__evento">${esc(t.event_name)}</h3>
+          <p class="ticket-item__lugar">
+            ${fecha ? `${fecha} · ` : ""}<b>${esc(t.section_label)}</b>${t.table_code ? ` · Mesa <b>${esc(t.table_code)}</b>` : ""}
+          </p>
+
+          <div class="ticket-item__qr-caja">
+            <img src="${qrImg}" alt="QR Entrada" class="ticket-item__qr-img" />
+          </div>
+
+          <div>
+            <span class="ticket-item__code">${esc(t.code)}</span>
+          </div>
+
+          <p class="ticket-item__titular">
+            Titular: ${esc(t.buyer_name)} ${esc(t.buyer_lastname)}${t.buyer_document ? ` · Doc. ${esc(t.buyer_document)}` : ""}
+          </p>
+        </div>
       `;
+    }).join("");
+
+    contenedorEntradas.innerHTML = html;
+    contenedorEntradas.classList.remove("hidden");
+    contenedorEntradas.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /* Una entrada suelta, abierta desde su QR: verificar.html?c=CODIGO&s=FIRMA
+     (o ?codigo=...&firma=...). Es lo que pasa cuando alguien apunta la cámara
+     del teléfono al QR del correo en vez de usar el escáner del panel: antes la
+     página abría vacía, con el buscador de cédula. Consultar no marca la
+     entrada como usada; eso solo lo hace el panel del personal. */
+  async function mostrarEntradaDelQr(code, signature) {
+    contenedorEntradas.innerHTML = '<div class="verify-card"><p class="hint">Consultando entrada...</p></div>';
+    contenedorEntradas.classList.remove("hidden");
+    try {
+      const resp = await window.callFunction("verify-ticket", {
+        action: "consultar_ticket",
+        code,
+        signature,
+      });
+      if (!resp.ok || !resp.data?.ticket) {
+        throw new Error(resp.data?.error || "No se pudo leer esta entrada.");
+      }
+      renderizarEntradasComprador([resp.data.ticket], null);
+    } catch (err) {
+      contenedorEntradas.innerHTML =
+        '<div class="verify-card"><div class="verify-card__icon">⚠️</div>' +
+        '<h3 class="verify-card__status">Entrada no válida</h3>' +
+        '<p class="hint">' + esc(err.message) + '</p></div>';
+    }
+  }
+
+  // Arranque inicial si viene por URL
+  (async function arranque() {
+    const codigoQr = params.get("c") || params.get("codigo");
+    const firmaQr = params.get("s") || params.get("firma");
+    if (codigoQr && firmaQr) {
+      await mostrarEntradaDelQr(codigoQr.trim().toUpperCase(), firmaQr.trim().toLowerCase());
       return;
     }
-
-    resultCard.classList.add("verify-card--invalida");
-    const mensaje = data.result === "canceled"
-      ? "Entrada cancelada"
-      : data.tampered
-      ? "El código QR fue alterado"
-      : data.error || "Entrada inexistente";
-
-    resultCard.innerHTML = `
-      <div class="verify-card__icon">❌</div>
-      <p class="verify-card__status">${mensaje}</p>
-      ${ticket ? detalles(ticket) : ""}
-    `;
-  }
-
-  function detalles(ticket) {
-    if (!ticket) return "";
-    const ubicacion = ticket.seat_number
-      ? `Mesa ${ticket.table_number} · Silla ${ticket.seat_number}`
-      : "Acceso general (de pie)";
-
-    return `
-      <div class="verify-card__details">
-        <div class="row"><span>Sección</span><span><strong>${ticket.section_label}</strong></span></div>
-        <div class="row"><span>Ubicación</span><span>${ubicacion}</span></div>
-        <div class="row"><span>Invitado</span><span>${ticket.buyer_name} ${ticket.buyer_lastname}</span></div>
-        <div class="row"><span>Código</span><span>${ticket.code}</span></div>
-      </div>
-    `;
-  }
-
-  mostrarVista();
+    if (cedulaParam) {
+      inputCedula.value = cedulaParam;
+      await buscarPorCedula(cedulaParam);
+    }
+  })();
 })();

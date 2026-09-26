@@ -4,7 +4,14 @@
    tablas que se leen rápido. Reutiliza los tokens de ../css/style.css
    ========================================================= */
 
-.container--wide { max-width: 1220px; }
+/* Era solo max-width, y .container no existe en ninguna hoja que cargue el
+   panel: sin margen automatico ni relleno, todo el contenido salia pegado al
+   borde izquierdo y arrancaba a 0px de la barra superior. */
+.container--wide {
+  width: min(1220px, 100%);
+  margin-inline: auto;
+  padding: 24px 24px 64px;
+}
 .topbar__inner--wide { max-width: 1220px; }
 
 /* =========================================================
@@ -44,7 +51,7 @@
 .login-card .field label {
   display: block;
   margin-bottom: 7px;
-  color: var(--dim);
+  color: var(--campo-etiqueta);
   font: 600 0.72rem/1 var(--mono);
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -53,19 +60,21 @@
 .login-card .field input {
   width: 100%;
   padding: 13px 14px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
   border-radius: var(--radius);
   color: var(--text);
   font-family: var(--sans);
   font-size: max(1rem, 16px);
-  transition: border-color var(--t-color) ease, background var(--t-color) ease;
+  min-height: 48px;
+  transition: border-color var(--t-color) ease, background-color var(--t-color) ease, box-shadow var(--t-color) ease;
 }
 
 .login-card .field input:focus {
   outline: none;
   border-color: var(--accent);
-  background: var(--surface-2);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
 }
 
 .login-card .btn--primary {
@@ -89,7 +98,7 @@
 .select-inline {
   appearance: none;
   font-family: inherit;
-  background: var(--surface-2);
+  background-color: var(--campo-bg);
   /* La flecha se dibuja acá: el desplegable nativo trae la caja clara y la
      flecha del sistema, que en un panel oscuro se ven pegadas de otro lado. */
   background-image:
@@ -98,7 +107,7 @@
   background-position: right 15px center, right 10px center;
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  border: 1px solid var(--line);
+  border: 1px solid var(--campo-borde);
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 9px 32px 9px 12px;
@@ -184,6 +193,17 @@
 
 .btn--sm { padding: 6px 12px; font-size: 0.78rem; border-radius: var(--radius); }
 
+.btn--danger {
+  background: rgba(255, 102, 96, .12);
+  color: var(--danger);
+  border: 1px solid rgba(255, 102, 96, .35);
+}
+.btn--danger:not(:disabled):hover {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
 /* =========================================================
    KPIs
    ========================================================= */
@@ -235,7 +255,15 @@
 }
 /* Sin borde propio —lo da la rejilla—, el filete superior es lo que distingue
    al número que importa. */
-.kpi--hero::before { background: var(--accent); width: 100%; }
+/* Sin content un pseudo-elemento no existe: este filete estaba descrito en
+   dos comentarios y no se renderizo nunca. */
+.kpi--hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--accent);
+}
 .kpi--hero .kpi__value {
   font-size: clamp(1.9rem, 6vw, 2.5rem);
   color: var(--accent);
@@ -373,38 +401,231 @@
 
 /* La tarima marca de qué lado está el escenario. Sin esto, "Sección A" no dice
    si está adelante o al fondo, que es lo primero que alguien quiere saber. */
+/* =========================================================
+   EL PLANO DEL ADMIN, CON LA PIEL DEL PÚBLICO
+
+   Hasta ahora el editor dibujaba el salón en oscuro sobre la superficie del
+   panel, mientras el cliente lo veía como una hoja de papel clara. Eran dos
+   dibujos del mismo salón con aspecto distinto, así que para saber si un cambio
+   había quedado bien había que abrir el sitio en otra pestaña y comparar de
+   memoria.
+
+   Ahora el mapa es la misma hoja: papel claro, cuadrícula roja tenue, mesas
+   blancas con su borde. Lo que NO cambia son los controles —interruptor de
+   venta, editor de precio, contador de ocupación, barra de guardado—, que
+   siguen en el idioma oscuro del panel. La piel es del plano; la función es del
+   editor.
+
+   Los tokens se copian de css/plano.css en vez de importarse porque esa hoja no
+   la carga el panel. Si allá cambian, aquí hay que seguirlos: el comentario está
+   para que quien los toque lo sepa.
+   ========================================================= */
+.salon-mapa,
 .salon-tarima {
-  margin: 0 0 20px;
-  padding: 11px 0;
-  background: linear-gradient(180deg, var(--surface-3), var(--surface));
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  --papel: #f4f1ea;
+  --cuadricula: rgba(210, 40, 40, .11);
+  --tinta: #2c2c2c;
+  --tinta-suave: #8a857c;
+  --mesa: #ffffff;
+  --mesa-borde: #ddd8cf;
+}
+
+/* La tarima, como en el sitio: barra oscura sobre el papel y no un rótulo más
+   del panel. Marca el frente del salón, que es lo que ordena la lectura. */
+.salon-tarima {
+  margin: 0 0 2px;
+  padding: 13px 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(135deg, #1f211d, #0c0d0b);
   text-align: center;
 }
 
 .salon-tarima span {
-  font: 700 0.68rem/1 var(--mono);
-  letter-spacing: .34em;
+  font: 800 .82rem/1 var(--display);
+  letter-spacing: .38em;
   text-transform: uppercase;
-  color: var(--muted);
+  text-indent: .38em;
+  color: #f6f5ef;
 }
 
+/* La hoja de papel. Envuelve todas las secciones, igual que en el sitio: el
+   salón es uno solo, no una tarjeta por sección. */
 .salon-mapa {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-  gap: 18px;
+  gap: 16px;
   align-items: start;
   margin-bottom: 26px;
+  padding: 18px 16px 20px;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background-color: var(--papel);
+  background-image:
+    linear-gradient(var(--cuadricula) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px);
+  background-size: 20px 20px;
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, .9);
 }
 
-/* Una sección de una sola mesa —las únicas— no necesita media pantalla. */
-.salon-seccion--unica { max-width: 260px; }
+/* Las secciones grandes por un lado y las mesas únicas por otro. */
+.salon-zonas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 16px;
+  align-items: start;
+}
 
+/* Una sección de cinco columnas o más se queda con la fila entera. Con nueve
+   mesas por fila —la Sección C— dentro de una columna compartida, cada mesa
+   caía por debajo de los 58px y la rejilla acababa con barra de scroll y los
+   botones de sillas encimados. */
+.salon-seccion--ancha { grid-column: 1 / -1; }
+
+/* Las secciones del fondo —diez columnas o más, hoy VIP Plata— ocupan la fila
+   entera de la hoja, debajo de las secciones y de la columna de únicas. Metidas
+   en la columna de la izquierda se cortaban en la décima mesa. */
+.salon-fondo {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Quince mesas por fila: la casilla se aprieta y los botones bajan a 20px para
+   que la fila entera entre sin scroll en una pantalla de escritorio. */
+.salon-seccion--densa { --mesa-min: 50px; }
+.salon-seccion--densa .salon-mesa { padding: 6px 2px 5px; }
+.salon-seccion--densa .stepper { gap: 3px; }
+.salon-seccion--densa .stepper button { width: 20px; height: 20px; }
+
+/* =========================================================
+   EL PLANO DEL PANEL EN EL TELÉFONO
+
+   Un plano no se pliega: se arrastra. Encogerlo a una columna haría que el
+   panel mintiera sobre dónde está cada mesa, que es justo el dato por el que
+   alguien abre esta pantalla. Así que la hoja conserva su forma y se mueve
+   dentro de su caja, igual que en el sitio público.
+
+   El desvanecido del borde derecho es la señal de que hay más salón a la
+   derecha; sin él, el corte se lee como que la hoja termina ahí.
+   ========================================================= */
+@media (max-width: 900px) {
+  .salon-mapa {
+    grid-template-columns: 1fr;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 12px 16px;
+  }
+
+  /* Las secciones anchas mantienen su ancho real y la hoja se arrastra. El
+     ancho sale de cuántas columnas tiene la sección: con un fijo de 680px las
+     quince de Plata no entraban y la rejilla abría su propio scroll adentro del
+     de la hoja, dos arrastres horizontales peleándose por el mismo dedo. */
+  .salon-seccion:not(.salon-seccion--unica) {
+    min-width: calc(var(--columnas) * (var(--mesa-min, 58px) + 6px) + 24px);
+  }
+  .salon-seccion--ancha:not(.salon-seccion--unica) {
+    min-width: max(680px, calc(var(--columnas) * (var(--mesa-min, 58px) + 6px) + 24px));
+  }
+  .salon-grid { overflow-x: visible; }
+
+  /* Las únicas dejan de ser una columna aparte y pasan a fila corrida: en
+     vertical, una columna de 280px al lado no cabe. */
+  .salon-unicas {
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  /* Los botones de sillas suben de 22 a 34px. A 22 no se aciertan con el dedo,
+     y esta pantalla se usa de pie en el salón, no sentado con un ratón. */
+  .salon-mesa .stepper button {
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+  }
+  /* El ancho de la casilla va por la variable de la rejilla. Como `min-width`
+     de `.salon-mesa` no llegaba nunca: la regla base, más abajo en la hoja, lo
+     pisaba y la casilla se quedaba en 60px con botones de 34. */
+  .salon-mapa,
+  .salon-mapa .salon-seccion--densa { --mesa-min: 96px; }
+  .salon-mesa { padding: 9px 6px 8px; }
+  .salon-seccion--densa .stepper { gap: 6px; }
+  .salon-mesa__num { font-size: .9rem; }
+
+  /* Una única por fila: dos en 390px dejan el nombre en tres renglones.
+     La estructura interna no cambia —título arriba, mesa y precio abajo—, solo
+     se ensancha la celda de la mesa para que quepa el botón de 34px. */
+  .salon-unicas { grid-template-columns: 1fr; }
+  .salon-seccion--unica .salon-grid { grid-template-columns: 108px; }
+}
+
+/* La columna de las únicas: una debajo de otra y en orden, que es como están
+   en el salón. Sueltas dentro de la retícula general caían donde hubiera hueco
+   y el plano del panel sugería un orden que no existe. */
+.salon-unicas {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+/* 320 y no 280: con 280 el título de una mesa única —«Mesa Única U1»— se
+   partía en tres renglones y la fila crecía hasta descuadrar la columna. */
+@media (min-width: 1100px) {
+  .salon-mapa { grid-template-columns: minmax(0, 1fr) 320px; }
+}
+
+/* Una mesa única es una fila, no una tarjeta: nombre y datos a la izquierda, la
+   mesa y su precio a la derecha, todo en el mismo renglón. Antes ocupaba una
+   tarjeta del tamaño de una Sección de doce mesas para dibujar una sola, con
+   una barra de scroll horizontal debajo que no llevaba a ninguna parte. */
+.salon-seccion--unica {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+}
+
+/* `display: contents` disuelve la cabecera y deja que sus tres hijos —título,
+   dato y editor de precio— se coloquen directamente en la retícula de la
+   sección. Sin esto, el precio quedaba encerrado dentro de la cabecera y no
+   había forma de ponerlo al lado de la mesa: yo lo mandaba a ocupar la fila
+   entera y la cabecera, con el título envuelto en tres renglones, crecía por
+   encima hasta montarse con la mesa. Eso es lo que se veía solapado. */
+.salon-seccion--unica .salon-seccion__head { display: contents; }
+
+/* Título y dato, cada uno en su renglón y a lo ancho. */
+.salon-seccion--unica .salon-seccion__head h3 {
+  grid-column: 1 / -1;
+  font-size: .92rem;
+  line-height: 1.2;
+}
+.salon-seccion--unica .salon-seccion__dato {
+  grid-column: 1 / -1;
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+/* Y abajo, la mesa a la izquierda con su ajustador de precio al lado. */
+.salon-seccion--unica .salon-grid {
+  grid-column: 1;
+  grid-template-columns: 78px;
+  overflow: visible;
+}
+.salon-seccion--unica .precio-editor {
+  grid-column: 2;
+  margin-left: 0;
+  padding: 4px 5px 4px 11px;
+}
+
+/* Sobre el papel, la sección deja de ser una tarjeta oscura y pasa a ser una
+   zona delimitada del salón, como en el sitio. */
 .salon-seccion {
-  padding: 16px 16px 18px;
-  background: var(--surface);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
+  padding: 12px 12px 14px;
+  background: rgba(255, 255, 255, .5);
+  border: 1px dashed rgba(44, 44, 44, .22);
+  border-radius: var(--radius-sm);
+  color: var(--tinta);
 }
 
 .salon-seccion__head {
@@ -415,18 +636,21 @@
   margin-bottom: 14px;
 }
 
+/* Sobre el papel, los textos van en tinta. `--text` y `--muted` son colores
+   pensados para fondo oscuro: sobre claro, el primero desaparece y el segundo
+   queda por debajo del mínimo legible. */
 .salon-seccion__head h3 {
   margin: 0;
   text-transform: none;
   letter-spacing: -0.01em;
-  color: var(--text);
+  color: var(--tinta);
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .salon-seccion__dato {
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--tinta-suave);
 }
 
 .salon-rotulo {
@@ -436,6 +660,121 @@
   text-transform: uppercase;
   color: var(--dim);
 }
+
+/* ---------------------------------------------- Oro a la venta
+
+   Los interruptores van arriba del plano, antes de la tarima: es la decisión
+   que manda sobre todo lo que viene abajo. Una sección cerrada se sigue
+   dibujando, atenuada, porque el salón no cambió —solo dejó de venderse—, y
+   sus mesas y sus sillas se siguen pudiendo editar. */
+
+.salon-venta {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 16px 18px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--oro, #c8a24a);
+  border-radius: var(--radius);
+}
+
+.salon-venta--oro     { border-left-color: var(--oro, #c8a24a); }
+.salon-venta--plata   { border-left-color: var(--plata, #b9bcb6); }
+.salon-venta--general { border-left-color: var(--info, #6aa9ff); }
+
+.salon-venta__texto .hint { margin: 0; max-width: 62ch; }
+
+.salon-venta__mando {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.salon-venta__cuenta {
+  margin-right: auto;
+  font: 700 0.72rem/1.4 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.salon-venta__mando .btn { padding: 9px 14px; font-size: 0.72rem; }
+
+.salon-venta__lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Un interruptor y no una casilla: el estado se lee de un vistazo en una fila
+   de seis, y la palabra al costado lo dice sin depender del color. */
+.interruptor {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font: inherit;
+  transition: border-color var(--t-color, .16s) ease, color var(--t-color, .16s) ease;
+}
+.interruptor:hover { border-color: var(--line); }
+.interruptor:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.interruptor__pista {
+  flex: none;
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  border: 1px solid var(--line);
+  transition: background-color .16s ease;
+}
+.interruptor__pista i {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: transform .16s ease, background-color .16s ease;
+}
+
+.interruptor__nombre {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.interruptor__estado {
+  flex: none;
+  font: 700 0.62rem/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.interruptor--si { color: var(--text); border-color: var(--line); }
+.interruptor--si .interruptor__pista { background: var(--success); border-color: var(--success); }
+.interruptor--si .interruptor__pista i { transform: translateX(14px); background: var(--black, #000); }
+.interruptor--si .interruptor__estado { color: var(--success); }
+
+/* Lo tocado y sin guardar se marca, igual que un precio editado. */
+.interruptor--tocado { border-color: var(--accent); }
+
+.salon-seccion--cerrada { opacity: .55; }
+.salon-seccion--cerrada:hover,
+.salon-seccion--cerrada:focus-within { opacity: 1; }
 
 /* Las secciones sin plano: una fila cada una, no cien mesas dibujadas. */
 .salon-bolsas { display: grid; gap: 10px; }
@@ -452,6 +791,10 @@
   border-left: 3px solid var(--line);
   border-radius: var(--radius);
 }
+
+.salon-bolsa--cerrada { opacity: .55; }
+.salon-bolsa--cerrada:hover,
+.salon-bolsa--cerrada:focus-within { opacity: 1; }
 
 .salon-bolsa h4 {
   margin: 0 0 2px;
@@ -554,55 +897,99 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* El editor de precio, dentro de la sección, queda ahora sobre papel claro. Sin
+   esto conservaba el fondo oscuro del panel y se leía como un parche pegado
+   encima del plano. Sigue siendo un control —campo con borde y foco naranja—,
+   solo que compuesto para el papel.
+
+   El acento y el naranja de «editado sin guardar» no se tocan: son la señal que
+   conecta este campo con la barra de guardado de abajo. */
+.salon-mapa .precio-editor {
+  background: rgba(255, 255, 255, .82);
+  border-color: rgba(44, 44, 44, .18);
+}
+.salon-mapa .precio-editor__moneda { color: var(--tinta-suave); }
+.salon-mapa .precio-editor input {
+  background: #fff;
+  border-color: rgba(44, 44, 44, .22);
+  color: var(--tinta);
+}
+.salon-mapa .precio-lectura { color: #b8431f; }
+
+/* Una sección cerrada se atenúa. Sobre papel eso se lee mejor quitándole
+   saturación que bajándole la opacidad, que la volvía translúcida y dejaba
+   entrever la cuadrícula a través de las mesas. */
+.salon-mapa .salon-seccion--cerrada {
+  opacity: 1;
+  filter: grayscale(.75) contrast(.92);
+}
+.salon-mapa .salon-seccion--cerrada:hover,
+.salon-mapa .salon-seccion--cerrada:focus-within { filter: none; }
+
 /* Las columnas salen de `pos_x`, que es lo que guarda la base: si mañana se
    agrega una fila, la grilla se reacomoda sola sin tocar el CSS. */
+/* La rejilla ya no dibuja su propia caja: las mesas se apoyan directamente
+   sobre el papel de la sección, igual que en el sitio. */
 .salon-grid {
   display: grid;
-  grid-template-columns: repeat(var(--columnas, 3), minmax(58px, 1fr));
-  gap: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%),
-    var(--surface-2);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius);
-  padding: 14px;
+  grid-template-columns: repeat(var(--columnas, 3), minmax(var(--mesa-min, 58px), 1fr));
+  gap: 6px;
+  padding: 0;
   overflow-x: auto;
 }
+
+/* La mesa, idéntica a la del cliente: blanca, borde suave y radio de 5px.
+   El borde dorado de antes le daba a TODAS las mesas el color del nivel Oro,
+   también a las de Plata y General. */
 .salon-mesa {
-  background: linear-gradient(180deg, var(--surface-3), var(--surface));
-  border: 2px solid rgba(217, 184, 93, .7);
-  border-radius: var(--radius);
-  padding: 9px 6px 7px;
+  background: var(--mesa);
+  border: 1px solid var(--mesa-borde);
+  border-radius: 5px;
+  padding: 7px 5px 6px;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: 64px;
-  transition: border-color var(--t-color) ease;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 44px;
+  color: var(--tinta);
+  transition: border-color var(--t-color) ease, box-shadow var(--t-color) ease;
 }
 /* Llena: color + trama, no solo color */
+/* Llena: la misma trama gris que usa el sitio para una mesa tomada. El estado
+   no se comunica solo por color — la trama lo dice también sin depender de que
+   se distingan dos tonos. */
 .salon-mesa--llena {
-  border-color: rgba(255, 102, 96, .7);
+  border-color: #d3cec2;
+  background-color: #eae6de;
   background-image: repeating-linear-gradient(
     45deg,
-    var(--danger-tint) 0 4px,
+    rgba(211, 206, 194, .9) 0 4px,
     transparent 4px 8px
   );
 }
-/* Tocada y sin guardar: se marca con el mismo naranja que el precio editado. */
+/* Tocada y sin guardar: el mismo naranja que marca un precio editado. */
 .salon-mesa--tocada {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 89, 54, .14);
+  box-shadow: 0 0 0 3px rgba(255, 89, 54, .2);
 }
 
-.salon-mesa__num { font-weight: 800; font-size: 0.92rem; line-height: 1.1; }
+.salon-mesa__num {
+  font-weight: 800;
+  font-size: .82rem;
+  line-height: 1.1;
+  color: var(--tinta);
+}
 .salon-mesa__ocup {
-  font-size: 0.72rem;
-  color: var(--muted);
+  font-size: .68rem;
+  /* Sobre papel claro, --muted es un gris pensado para fondo oscuro: aquí
+     desaparece. El tono suave de la hoja es el que corresponde. */
+  color: var(--tinta-suave);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
-.salon-mesa--llena .salon-mesa__ocup { color: var(--danger); }
+.salon-mesa--llena .salon-mesa__ocup { color: #8a5c58; }
 
 .stepper {
   display: flex;
@@ -636,6 +1023,26 @@
   font-size: 0.82rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+/* En la casilla de la mesa, el número entre − y + se oculta a la vista. Repetía
+   el total que ya dice «ocupadas/sillas» justo encima, y con él los dos botones
+   no entraban en una casilla de 58px: se salían y se montaban con la mesa de al
+   lado. Queda para lectores de pantalla, que lo necesitan junto a los botones.
+   `anotarSillas` repinta la casilla entera, así que el total de arriba cambia
+   con cada toque. */
+/* `position: relative` en la casilla: sin eso el número oculto se ubicaba
+   respecto de un contenedor fuera de la hoja arrastrable y, en el teléfono,
+   ensanchaba la página entera a 1.582px. */
+.salon-mesa { position: relative; }
+.salon-mesa .stepper { gap: 4px; }
+.salon-mesa .stepper span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .salon-aviso {
@@ -802,20 +1209,22 @@
 .table-toolbar input,
 .table-toolbar select {
   font-family: inherit;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
   border-radius: var(--radius-sm);
   padding: 10px 13px;
   color: var(--text);
   /* 16px: por debajo de eso iOS hace zoom al enfocar */
   font-size: 1rem;
+  min-height: 44px;
 }
-.table-toolbar input::placeholder { color: var(--dim); }
+.table-toolbar input::placeholder { color: var(--campo-placeholder); opacity: 1; }
 .table-toolbar input:focus,
 .table-toolbar select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 89, 54, .18);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
 }
 .table-toolbar input { flex: 1; min-width: 180px; }
 
@@ -949,8 +1358,8 @@
 .campo-dominio {
   display: flex;
   align-items: stretch;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
   border-radius: var(--radius);
   overflow: hidden;
   transition: border-color var(--t-color) ease;
@@ -970,6 +1379,25 @@
 }
 
 .campo-dominio input:focus { outline: none; }
+
+/* Dentro del marco compartido, el input no dibuja su propia caja. La regla
+   general de campos del panel (.field input[type="text"], con más
+   especificidad) le ponía borde, fondo y alto, y en el login se veía una caja
+   dentro de otra. El marco es el que lleva el hover y el anillo del foco. */
+.field .campo-dominio input,
+.field .campo-dominio input:hover,
+.field .campo-dominio input:focus {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.campo-dominio:hover { border-color: var(--campo-borde-hover); }
+.campo-dominio:focus-within {
+  border-color: var(--accent);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
+}
 
 .campo-dominio__fijo {
   display: flex;
@@ -1068,11 +1496,18 @@
    PANEL: barra lateral, hamburguesa y pestañas de módulo
    ========================================================= */
 
+/* El ancho es un token porque es lo que hace posible plegar la barra: con el
+   232 escrito a mano no había nada que animar. */
 .admin-shell {
+  --sidebar-w: 232px;
   display: grid;
-  grid-template-columns: 232px 1fr;
-  min-height: 100vh;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100svh;
+  transition: grid-template-columns var(--t-move) var(--ease);
 }
+
+/* Plegada: solo los iconos, 68px. El nombre de cada módulo pasa al globito. */
+.admin-shell--compacta { --sidebar-w: 68px; }
 
 .sidebar {
   display: flex;
@@ -1083,13 +1518,27 @@
   border-right: 1px solid var(--line);
   position: sticky;
   top: 0;
-  height: 100vh;
+  /* svh y no vh: en el móvil la barra del navegador se cuenta o no según el
+     momento, y con vh el pie de la barra quedaba debajo del doblez. */
+  height: 100svh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  transition: padding var(--t-move) var(--ease);
 }
 
 .sidebar__marca { padding: 4px 8px 18px; }
 
-.sidebar__nav { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+/* El nav es lo que scrollea, no la barra entera: así el pie —el usuario, salir
+   y el botón de plegar— queda siempre a la vista aunque la lista crezca. */
+.sidebar__nav {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 
 .sidebar__grupo { display: flex; flex-direction: column; gap: 2px; }
 
@@ -1102,10 +1551,17 @@
   text-transform: uppercase;
 }
 
+/* De `block` a flex para que entre el icono. 44px de alto: la barra se usa con
+   el dedo tanto como con el ratón, y en el modo plegado el icono es lo único
+   que hay para acertar. */
 .sidebar__item {
-  display: block;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
   width: 100%;
-  padding: 11px 10px;
+  min-height: 44px;
+  padding: 10px;
   background: none;
   border: 0;
   border-left: 2px solid transparent;
@@ -1118,13 +1574,37 @@
   transition: color var(--t-color) ease, background var(--t-color) ease, border-color var(--t-color) ease;
 }
 
+/* Un solo bloque para los trece iconos. Al heredar el color con `currentColor`
+   siguen al ítem entre apagado, hover y activo sin ninguna regla más. Es el
+   mismo lenguaje que ya usaban el pie del sitio público y el ojo de la clave. */
+.sidebar__icono {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar__texto {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .sidebar__item:hover { color: var(--text); background: var(--surface-2); }
+/* En el teléfono no hay hover que anticipe el toque: el acuse es al tocar. */
+.sidebar__item:active { background: var(--surface-3); }
 
 .sidebar__item.active {
   color: var(--text);
   background: var(--surface-2);
   border-left-color: var(--accent);
 }
+.sidebar__item.active .sidebar__icono { color: var(--accent); }
 
 .sidebar__pie {
   display: flex;
@@ -1134,6 +1614,95 @@
   padding: 14px 10px 4px;
   border-top: 1px solid var(--line-soft);
 }
+
+/* ---------- el botón de plegar ---------- */
+/* Lo inyecta nav.js, no está en los ocho HTML: el marcado del armazón ya estaba
+   copiado ocho veces y no hacía falta una novena cosa que copiar. */
+.sidebar__plegar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  font: 600 var(--fs-label)/1 var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--t-color) ease, background var(--t-color) ease;
+}
+.sidebar__plegar:hover { color: var(--text); background: var(--surface-2); }
+.sidebar__plegar svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--t-move) var(--ease);
+}
+
+/* ---------- modo plegado ---------- */
+.admin-shell--compacta .sidebar { padding: 18px 10px; }
+.admin-shell--compacta .sidebar__texto,
+.admin-shell--compacta .sidebar__rotulo,
+.admin-shell--compacta .sidebar__plegar span,
+.admin-shell--compacta #userBadge { display: none; }
+
+.admin-shell--compacta .sidebar__item,
+.admin-shell--compacta .sidebar__plegar {
+  justify-content: center;
+  gap: 0;
+  padding: 10px 0;
+}
+/* La flecha apunta al otro lado: es el mismo botón y ahora despliega. */
+.admin-shell--compacta .sidebar__plegar svg { transform: rotate(180deg); }
+
+/* Los grupos se separan con un filete en vez de con su rótulo, que en 68px no
+   entra. Sin esto los trece iconos quedan en una tira sin ninguna estructura. */
+.admin-shell--compacta .sidebar__grupo + .sidebar__grupo {
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+.admin-shell--compacta .sidebar__marca { padding: 4px 0 18px; }
+.admin-shell--compacta .brand-plate { margin: 0 auto; }
+
+/* El nombre, en un globito. `title` nativo no sirve: tarda casi un segundo en
+   aparecer y no responde al foco del teclado, así que quien tabula por la barra
+   plegada no tendría forma de saber en qué ítem está. */
+.admin-shell--compacta .sidebar__item::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  z-index: 60;
+  transform: translateY(-50%) translateX(-4px);
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font: 600 var(--fs-label)/1 var(--sans);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-color) ease, transform var(--t-color) ease;
+}
+.admin-shell--compacta .sidebar__item:hover::after,
+.admin-shell--compacta .sidebar__item:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+/* La barra recorta lo que se sale de ella, y el globito vive fuera. */
+.admin-shell--compacta .sidebar,
+.admin-shell--compacta .sidebar__nav { overflow: visible; }
 
 .panel-cuerpo { min-width: 0; }
 
@@ -1145,9 +1714,19 @@
   align-items: center;
   gap: 14px;
   padding: 14px 20px;
+  /* El rgba va primero como respaldo: `color-mix` sin soporte descarta la
+     declaración entera y la barra quedaba transparente, con el contenido
+     pasando por debajo al hacer scroll. */
+  background: rgba(9, 10, 9, .92);
   background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
+}
+
+/* Sin desenfoque el fondo tiene que ser opaco del todo, o se lee a través. */
+@supports not (backdrop-filter: blur(1px)) {
+  .panel-topbar { background: var(--bg); }
 }
 
 .panel-topbar__titulo {
@@ -1184,11 +1763,22 @@
 .hamburguesa[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
 .hamburguesa[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
+/* El velo se desvanece con la barra. Antes se mostraba y se escondía con el
+   atributo `hidden`, o sea `display: none`: aparecía de golpe mientras la barra
+   tardaba 220ms en deslizarse, y era la transición más brusca del panel. */
 .sidebar__velo {
   position: fixed;
   inset: 0;
   z-index: 40;
   background: rgba(9, 10, 9, .6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--t-color) ease, visibility 0s linear var(--t-color);
+}
+.sidebar__velo.se-ve {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--t-color) ease;
 }
 
 /* ---------------------------------------------- pestañas dentro del módulo */
@@ -1224,28 +1814,97 @@
 
 /* ---------------------------------------------- teléfonos */
 
-@media (max-width: 900px) {
-  .admin-shell { grid-template-columns: 1fr; }
+/* Por debajo de 600px la barra es un cajón que se desliza sobre el contenido.
+   El corte estaba en 900, o sea que entre 600 y 900 —tablet y teléfono
+   apaisado— había que abrir un cajón para cambiar de módulo pudiendo tener el
+   riel de iconos permanente. Y entre 900 y 1200 la barra fija de 232px se comía
+   la cuarta parte de un portátil chico, que es justo donde el riel más aporta. */
+/* =========================================================
+   EL TELÉFONO — riel permanente, no cajón
+
+   Antes la barra se escondía del todo y había que abrirla para cambiar de
+   módulo: dos toques para cada salto, en el aparato desde el que se usa casi
+   todo el panel. Ahora el riel de iconos está siempre puesto y un toque basta.
+
+   El botón de menú deja de abrir y cerrar algo invisible y pasa a ensanchar el
+   riel cuando hace falta leer los nombres. Al elegir un módulo se vuelve solo
+   al riel, que es el estado normal.
+   ========================================================= */
+@media (max-width: 599px) {
+  /* 56 y no 68: en 390px de ancho cada píxel cuenta, y el panel es sobre todo
+     tablas. Con 56 el icono sigue teniendo su área de 44 de alto. */
+  .admin-shell,
+  .admin-shell--compacta { --sidebar-w: 56px; }
 
   .hamburguesa { display: flex; }
 
   .sidebar {
-    position: fixed;
     z-index: 50;
-    top: 0;
-    left: 0;
-    width: min(276px, 82vw);
-    transform: translateX(-100%);
-    transition: transform var(--t-move) var(--ease);
+    padding: 14px 6px;
+    transition:
+      width var(--t-move) var(--ease),
+      box-shadow var(--t-move) var(--ease);
   }
 
-  .sidebar.abierta { transform: translateX(0); }
+  /* Estado normal: solo iconos. Se fuerza aquí en vez de depender de la clase
+     de plegado porque en el teléfono no es una preferencia, es el diseño. */
+  .sidebar__texto,
+  .sidebar__rotulo,
+  .sidebar__plegar,
+  #userBadge { display: none; }
+
+  .sidebar__item {
+    justify-content: center;
+    gap: 0;
+    padding: 10px 0;
+  }
+  .sidebar__grupo + .sidebar__grupo {
+    padding-top: 12px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .sidebar__marca { padding: 2px 0 14px; }
+  .sidebar__marca .brand-plate { margin: 0 auto; }
+  .sidebar__pie { padding: 12px 0 4px; align-items: center; }
+
+  /* Sin ratón no hay globito que valga: en el riel el icono va solo, y para
+     leer los nombres se ensancha con el botón de menú. */
+  .sidebar__item::after { content: none; }
+
+  /* Ensanchado: se monta sobre el contenido en vez de empujarlo, así el ancho
+     de la tabla que hay debajo no salta mientras se elige. */
+  .sidebar.abierta {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(268px, 78vw);
+    padding: 14px 12px;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.abierta .sidebar__texto,
+  .sidebar.abierta .sidebar__rotulo,
+  .sidebar.abierta #userBadge { display: revert; }
+  .sidebar.abierta .sidebar__item {
+    justify-content: flex-start;
+    gap: 11px;
+    padding: 10px;
+  }
+  .sidebar.abierta .sidebar__marca { padding: 4px 8px 18px; }
+  .sidebar.abierta .sidebar__marca .brand-plate { margin: 0; }
+  .sidebar.abierta .sidebar__pie { padding: 14px 10px 4px; align-items: flex-start; }
 
   body.menu-abierto { overflow: hidden; }
 
-  .panel-topbar { padding: 12px 14px; }
+  .panel-topbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+    padding: 12px 14px;
+  }
   .panel-topbar__titulo { font-size: .95rem; }
-  .panel-topbar .select-inline { max-width: 42vw; }
+
+  /* El selector de evento competía con el título: hamburguesa de 42px más
+     título más selector no entra en 360px. Baja a su propia línea, donde
+     además se toca sin apuntar. */
+  .panel-topbar .select-inline { order: 3; width: 100%; max-width: none; min-height: 44px; }
 
   .modulo-tab { padding: 11px 13px; font-size: .78rem; }
 }
@@ -1613,52 +2272,80 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
 /* =========================================================
    ELEGIR MESAS PARA UNA CORTESÍA
 
-   Es la mesa del editor sin el control de sillas: acá no se cambia el salón, se
-   marca qué mesas se regalan. Comparte la grilla `.salon-grid`, así que si el
-   salón cambia de forma las dos pantallas se reacomodan igual.
+   Panel → Reservas dibuja la misma hoja que la web (../css/plano.css): tarima,
+   pasarela, secciones y Plata. Acá va solo lo propio del panel. Antes usaba las
+   clases del editor del Salón (`salon-*`, `mesa-pick`), y un ajuste de ese
+   editor para el teléfono sacaba la Sección C y Plata fuera de la tarjeta.
    ========================================================= */
 
-.mesa-pick {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-height: 52px;
-  padding: 8px 4px;
-  background: linear-gradient(180deg, var(--surface-3), var(--surface));
+/* Una tomada se puede tocar: el admin la libera desde acá. plano.css le pone
+   `not-allowed` porque en la web no se toca; con `.hoja` delante esta regla le
+   gana también en el hover. */
+.hoja .mesa.mesa--liberable { cursor: pointer; }
+.hoja .mesa.mesa--liberable:hover {
+  border-color: #d9534f;
+  box-shadow: 0 0 0 3px rgba(217, 83, 79, .18);
+}
+
+/* En el teléfono la hoja llega al borde de la tarjeta, como en la web llega al
+   borde del panel: con el relleno de la tarjeta, el lienzo que se arrastra
+   perdía casi 30px de ancho útil. */
+@media (max-width: 620px) {
+  .panel-card .plano {
+    margin-inline: -14px;
+    border-inline: 0;
+    border-radius: 0;
+  }
+}
+
+/* Zoom del plano de Reservas (reservas.js → aplicarZoom). La hoja conserva su
+   ancho real y se escala con transform; el marco toma el tamaño ya escalado,
+   que es lo que ocupa en la página y lo que se arrastra en el lienzo. Sin el
+   recorte, la caja sin escalar de la hoja seguiría ensanchando el arrastre.
+
+   touch-action deja al navegador el arrastre con un dedo y le quita el
+   pellizco: ese gesto lo maneja la página para escalar solo el plano. */
+#planoReservas { touch-action: pan-x pan-y; }
+.hoja-marco--zoom { overflow: hidden; }
+.hoja-marco--zoom > .hoja { transform-origin: 0 0; }
+/* Con la hoja entera a la vista no hay más salón a la derecha: sin desvanecido. */
+.plano__lienzo.plano__lienzo--entero { -webkit-mask-image: none; mask-image: none; }
+
+.plano__zoom { display: inline-flex; gap: 6px; }
+.plano__zoom[hidden] { display: none; }
+.plano__zoom button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--text);
-  font-family: inherit;
+  font: 700 1.25rem/1 var(--sans);
   cursor: pointer;
-  transition: border-color var(--t-color) ease, background-color var(--t-color) ease;
+  touch-action: manipulation;
+  transition: border-color var(--t-color, .15s) ease, background-color var(--t-color, .15s) ease;
 }
-
-.mesa-pick__nombre { font-weight: 800; font-size: 0.88rem; line-height: 1.1; }
-.mesa-pick__sillas { font-size: 0.68rem; color: var(--muted); }
-
-.mesa-pick:hover:not(:disabled) { border-color: var(--accent); }
-.mesa-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.mesa-pick--elegida {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--black);
+.plano__zoom .plano__zoom-entero {
+  /* Ancho fijo: «Ver todo» ⇄ «Tamaño real» no empuja el botón +. */
+  min-width: 11.5em;
+  padding: 0 12px;
+  font: 700 var(--fs-label, .72rem)/1 var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
-.mesa-pick--elegida .mesa-pick__sillas { color: rgba(9, 10, 9, .72); }
+.plano__zoom button:hover:not(:disabled) { border-color: var(--accent); }
+.plano__zoom button:active:not(:disabled) { transform: translateY(1px); }
+.plano__zoom button:focus-visible { outline: 3px solid rgba(255, 89, 54, .55); outline-offset: 2px; }
+.plano__zoom button:disabled { opacity: .4; cursor: default; }
 
-/* Tomada: trama además del color, para que se distinga sin depender del tono. */
-.mesa-pick--tomada,
-.mesa-pick--tomada:hover {
-  cursor: not-allowed;
-  color: var(--dim);
-  border-color: var(--line-soft);
-  background:
-    repeating-linear-gradient(45deg, var(--danger-tint) 0 4px, transparent 4px 8px),
-    var(--surface-2);
+/* Panel → Salón: las mesas únicas con el mismo dorado que en el plano, para
+   ubicarlas de un vistazo. La clase la pone celdaMesa() en admin.js. */
+.salon-mesa--unica {
+  background-color: #f6ecd0;
+  border: 2px solid var(--oro);
 }
-.mesa-pick--tomada .mesa-pick__sillas { color: var(--dim); }
+.salon-mesa--unica .salon-mesa__num { color: #7a5c14; }
 
 /* =========================================================
    SUBIR LA IMAGEN DE PORTADA
@@ -1668,6 +2355,46 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
    ========================================================= */
 
 .field--imagen { grid-column: 1 / -1; }
+
+/* Los dos campos que sí salen en el afiche, destacados sobre el resto: sin esto
+   «Título» y «Fecha» se veían igual que «Sigla», y no se entendía cuáles son
+   los que el visitante llega a leer. */
+.form-grid--destacada {
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+/* El resto de campos, plegados. Estaban todos al mismo nivel y parecía que los
+   ocho salían encima de la imagen. */
+.mas-campos {
+  margin-bottom: 18px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+}
+.mas-campos > summary {
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  font: 600 0.78rem/1 var(--sans);
+  list-style: none;
+}
+.mas-campos > summary::-webkit-details-marker { display: none; }
+.mas-campos > summary::before {
+  content: "+";
+  display: inline-block;
+  width: 16px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.mas-campos[open] > summary::before { content: "−"; }
+.mas-campos[open] > summary { border-bottom: 1px solid var(--line-soft); }
+.mas-campos > .hint,
+.mas-campos > .form-grid { padding: 14px; padding-top: 12px; }
 
 .subir-imagen {
   display: flex;
@@ -1721,8 +2448,8 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
   width: 100%;
   margin-top: 5px;
   padding: 9px 11px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
   border-radius: var(--radius);
   color: var(--muted);
   font: 500 .82rem/1.2 var(--mono);
@@ -1767,26 +2494,63 @@ tr.fila-alerta { background: rgba(255, 102, 96, .06); }
 
 .field { display: flex; flex-direction: column; }
 
+/* Campos del panel con los tokens --campo-* de style.css (2026-09-13). Iban con
+   un negro casi igual al de la tarjeta y no se distinguía dónde escribir.
+   Además: letra de 16px y 44px de alto, porque el panel se usa desde el
+   teléfono y con menos de 16px Safari de iOS agranda la página al tocar un
+   campo. Las áreas de texto quedan incluidas: antes no tenían regla. */
 .field select,
+.field textarea,
 .field input[type="text"],
 .field input[type="date"],
 .field input[type="number"],
 .field input[type="email"],
 .field input[type="tel"],
 .field input[type="password"],
-.field input[type="search"] {
+.field input[type="search"],
+.field input[type="url"],
+.field input[type="datetime-local"] {
+  min-height: 44px;
   padding: 10px 12px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
   border-radius: var(--radius);
   color: var(--text);
-  font: 500 .9rem/1.2 var(--sans);
+  font: 500 max(1rem, 16px)/1.25 var(--sans);
+  transition: border-color var(--t-color) ease, background-color var(--t-color) ease, box-shadow var(--t-color) ease;
+}
+
+/* El desplegable dibuja su propia flecha: la del sistema viene clara y se ve
+   pegada de otro lado sobre el panel oscuro. */
+.field select {
+  appearance: none;
+  padding-right: 34px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: right 16px center, right 11px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.field input::placeholder,
+.field textarea::placeholder { color: var(--campo-placeholder); opacity: 1; }
+
+.field select:hover,
+.field textarea:hover,
+.field input:hover {
+  border-color: var(--campo-borde-hover);
+  background-color: var(--campo-bg-hover);
 }
 
 .field select:focus,
+.field textarea:focus,
 .field input:focus {
   outline: none;
   border-color: var(--accent);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
 }
 
 .field small { margin-top: 5px; }

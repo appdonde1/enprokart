@@ -55,7 +55,9 @@
 
     const visibles = busca
       ? filas.filter((f) =>
-        `${f.comprador} ${f.documento} ${f.order_number} ${f.mesas}`.toLowerCase().includes(busca))
+        // El documento puede faltar —una cortesía no lo pide—, y sin el `?? ""`
+        // la fila se buscaría por la palabra "null".
+        `${f.comprador} ${f.documento ?? ""} ${f.order_number} ${f.mesas}`.toLowerCase().includes(busca))
       : filas;
 
     if (!visibles.length) {
@@ -77,6 +79,7 @@
           <th>Transacción</th>
           <th>Entradas</th>
           <th>Validaciones</th>
+          <th>Acción</th>
         </tr>
       </thead>
       <tbody>
@@ -90,9 +93,18 @@
                 </span>`).join("")
             : `<span class="validacion validacion--nadie">Sin validar</span>`;
 
-          // Los data-label son los que se ven como rótulo cuando la tabla se
-          // apila en un teléfono: sin ellos, las celdas quedan sueltas sin
-          // decir de qué son.
+          // Acción de liberación: para cualquier reserva que no esté ya cancelada
+          const accionHtml = f.estado === "canceled"
+            ? `<span class="etiqueta etiqueta--gris">liberada</span>`
+            : `<button type="button" class="btn btn--sm btn--danger btn-liberar"
+                       data-id="${P.esc(f.order_id)}"
+                       data-num="${P.esc(f.order_number)}"
+                       data-comprador="${P.esc(f.comprador)}"
+                       data-mesas="${P.esc(f.mesas || f.seccion)}"
+                       title="Liberar mesas/sillas y cancelar reserva">
+                 Liberar
+               </button>`;
+
           return `
             <tr${f.sin_entregar ? ' class="fila-alerta"' : ""}>
               <td class="num" data-label="N.º">#${P.esc(f.order_number)}</td>
@@ -114,9 +126,41 @@
               </td>
               <td class="num" data-label="Entradas">${P.esc(f.entradas_usadas)}/${P.esc(f.entradas_emitidas)}</td>
               <td class="col-validaciones" data-label="Validaciones">${validaciones}</td>
+              <td class="col-acciones" data-label="Acción">${accionHtml}</td>
             </tr>`;
         }).join("")}
       </tbody>`;
+
+    // Enganchar botones de liberación
+    $("tablaOperaciones").querySelectorAll(".btn-liberar").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const { id, num, comprador, mesas } = btn.dataset;
+        const seguro = confirm(
+          `⚠️ ¿LIBERAR RESERVA #${num}?\n\n` +
+          `Comprador: ${comprador}\n` +
+          `Lugar: ${mesas}\n\n` +
+          `Esta acción liberará de inmediato las mesas/sillas en el plano para volver a venderse, ` +
+          `invalidará los tickets emitidos y cancelará la reserva, sin importar el estado del dinero.\n\n` +
+          `¿Deseas continuar?`
+        );
+        if (!seguro) return;
+
+        btn.disabled = true;
+        btn.textContent = "Liberando...";
+        try {
+          const res = await P.fn("operaciones", {
+            action: "liberar_reserva",
+            order_id: id,
+          });
+          alert(res.mensaje || `Reserva #${num} liberada exitosamente.`);
+          await cargar();
+        } catch (err) {
+          alert(`Error al liberar reserva: ${err.message}`);
+          btn.disabled = false;
+          btn.textContent = "Liberar";
+        }
+      });
+    });
 
     $("pieTabla").textContent =
       `${visibles.length} operación(es)${busca ? ` de ${filas.length}` : ""}.`;

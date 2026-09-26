@@ -14,7 +14,9 @@
   --acento: #ff5936;
 
   --sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: "Space Grotesk", var(--sans);
+  /* Sigue al resto del sitio: la página ya carga Archivo, y dejar aquí el nombre
+     de la familia anterior significaba imprimir la ficha con la sustituta. */
+  --display: "Archivo", var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
 }
 

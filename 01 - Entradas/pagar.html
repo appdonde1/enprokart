@@ -6,15 +6,13 @@
   <meta name="theme-color" content="#090a09" />
   <meta name="color-scheme" content="dark" />
   <title>Pagar · Pro Kart</title>
-  <link rel="icon" href="Logo Prokart.png" />
+  <link rel="icon" href="iconos/favicon-32.png" sizes="32x32" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Las mismas tres familias que usa style.css (--sans / --display / --mono).
        Antes se pedía Barlow, que ninguna hoja de estilos referencia: la página
        de pago quedaba en tipografías del sistema y no coincidía con el sitio. -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&amp;family=Outfit:wght@300..800&amp;family=IBM+Plex+Mono:wght@500;600;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/plano.css" />
   <link rel="stylesheet" href="css/reserva.css" />
@@ -53,7 +51,7 @@
 
     <!-- Pago pendiente -->
     <section class="step-panel" id="panelPago">
-      <h2>Pagá con PIX</h2>
+      <h2>Paga con PIX</h2>
 
       <div class="pay-layout">
         <div class="pay-card">
@@ -62,7 +60,7 @@
         </div>
 
         <div class="pix-box">
-          <p class="pix-box__title">Escaneá el código con la app de tu banco</p>
+          <p class="pix-box__title">Escanea el código con la app de tu banco</p>
           <p class="pix-box__sub">El pago se acredita en segundos</p>
 
           <div class="qr-frame">
@@ -71,7 +69,7 @@
 
           <p class="pix-box__timer">Tu lugar queda reservado <span id="timer">5:00</span></p>
 
-          <label class="pix-copy-label">O copiá el código PIX</label>
+          <label class="pix-copy-label">O copia el código PIX</label>
           <button type="button" class="pix-copy" id="btnCopyPix">
             <span class="pix-copy__code" id="pixCodePreview">------</span>
             <span class="pix-copy__icon" aria-hidden="true">📋</span>

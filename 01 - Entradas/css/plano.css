@@ -19,25 +19,54 @@
 .grupo__editar {
   margin-left: auto; border: 1px solid var(--line); background: var(--surface);
   color: var(--muted); font-family: inherit; font-size: 0.78rem; font-weight: 700;
-  padding: 7px 13px; border-radius: var(--radius); cursor: pointer;
+  min-height: 44px; padding: 7px 15px; border-radius: var(--radius); cursor: pointer;
   transition: border-color var(--t-color) var(--ease), color var(--t-color) var(--ease);
 }
 .grupo__editar:hover { border-color: var(--accent); color: var(--accent); }
 
-/* ---------------- Modal de cantidad ---------------- */
+/* ---------------- Modal de cantidad ----------------
+
+   El velo no aparece: se materializa. El desenfoque y la opacidad crecen
+   juntos, así que el fondo parece cubrirse por un cristal que llega, y no por
+   un rectángulo negro que sube de opacidad. Es la diferencia entre una capa y
+   un material.
+
+   La caja entra con muelle desde un 96% de escala: llega, se pasa un 1,5% y se
+   asienta. Es el mismo gesto con el que se abre una hoja en iOS. */
 .modal {
   position: fixed; inset: 0; z-index: 60;
   display: flex; align-items: center; justify-content: center; padding: 20px;
   /* Era rgba(8,10,14): azulado. */
-  background: rgba(9,10,9,0.78); backdrop-filter: blur(8px);
-  animation: fadeIn var(--t-color) var(--ease);
+  background: rgba(9,10,9,0.78);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+  animation: velo-materializa var(--t-sheet) var(--spring) both;
 }
 .modal[hidden] { display: none; }
+
+@keyframes velo-materializa {
+  from {
+    opacity: 0;
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
+    backdrop-filter: blur(0px) saturate(100%);
+  }
+  to { opacity: 1; }
+}
+
 .modal__caja {
   width: 100%; max-width: 360px; text-align: center;
   background: var(--surface); border: 1px solid var(--line);
+  /* El filete claro de arriba es la luz dando en el canto del material. Sin él
+     una superficie translúcida se lee como un rectángulo gris. */
+  border-top-color: rgba(241, 240, 235, .16);
   border-radius: var(--radius); padding: 26px 22px 22px;
   box-shadow: 0 30px 70px -26px #000;
+  animation: hoja-entra var(--t-sheet) var(--spring-bounce) both;
+}
+
+@keyframes hoja-entra {
+  from { opacity: 0; transform: scale(.96) translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 .modal__caja h3 {
   margin: 0 0 4px;
@@ -81,10 +110,10 @@
    naranja se reserva para lo único que significa en este sitio, "esto es tuyo".
    ========================================================= */
 
-/* La barra de total es sticky al pie de la ventana, así que se apoya sobre lo
-   último que haya debajo. Sin este colchón tapaba la última fila de mesas, que
-   es justo la que hay que poder tocar. */
-#panel-2 { padding-bottom: 92px; }
+/* Tenía 92px de colchón para que la barra pegajosa no tapara la última fila de
+   mesas. Desde que el total y los botones del paso 2 son filas propias del
+   flujo (#resumen, #pieLugar), no tapan nada y alcanza con aire normal. */
+#panel-2 { padding-bottom: var(--s-5); }
 
 .plano {
   margin: 0 0 4px;
@@ -383,13 +412,41 @@
 
 .mesa--tomada .mesa__sillas { color: rgba(44, 44, 44, .45); }
 
-/* Única: ocho lugares y precio propio. El dorado la separa sin gritar. */
+/* Única: ocho lugares y precio propio. Iba solo con borde dorado y se perdía
+   entre las blancas: el admin pidió ubicarlas de un vistazo. Ahora llevan fondo
+   dorado claro además del borde, en la web, en Panel → Reservas y (con su
+   propia clase) en Panel → Salón. */
 .mesa--unica {
   border: 2px solid var(--oro);
+  background: #f6ecd0;
 }
 
-.mesa--unica .mesa__nombre { color: #8a6d1f; }
-.mesa--unica.mesa--elegida .mesa__nombre { color: var(--white); }
+.mesa--unica .mesa__nombre { color: #7a5c14; }
+.mesa--unica .mesa__sillas { color: #8f7a4a; }
+
+/* Elegida manda sobre única: el naranja es «esto es tuyo». Sin esta regla, el
+   fondo dorado —que va más abajo en la hoja— le ganaba al de elegida. */
+.mesa--unica.mesa--elegida,
+.mesa--unica.mesa--elegida:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.mesa--unica.mesa--elegida .mesa__nombre,
+.mesa--unica.mesa--elegida .mesa__sillas { color: var(--white); }
+
+/* Tomada sigue con trama, pero dorada: se sigue sabiendo que es una única. */
+.mesa--unica.mesa--tomada,
+.mesa--unica.mesa--tomada:hover {
+  border-color: #d6c28e;
+  background: repeating-linear-gradient(45deg, #efe3c4 0 4px, #dccb9d 4px 8px);
+}
+
+/* La marca de la leyenda, igual que la mesa. Con `.hoja__leyenda` delante para
+   ganarle a la regla de la marca, que está más abajo. */
+.hoja__leyenda .hoja__marca--unica {
+  border: 2px solid var(--oro);
+  background: #f6ecd0;
+}
 
 /* ---------------------------------------------- entrada */
 
