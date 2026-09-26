@@ -51,13 +51,17 @@
      Se muestra desplegado porque el detalle de validación es justamente el
      dato que se busca cuando alguien reclama en la puerta. */
   function pintarTabla() {
-    const busca = $("buscar").value.trim().toLowerCase();
+    const rawBusca = $("buscar").value.trim().toLowerCase();
+    const compactBusca = rawBusca.replace(/\bmesa\s*/g, "").replace(/[-_ ]/g, "");
 
-    const visibles = busca
-      ? filas.filter((f) =>
-        // El documento puede faltar —una cortesía no lo pide—, y sin el `?? ""`
-        // la fila se buscaría por la palabra "null".
-        `${f.comprador} ${f.documento ?? ""} ${f.order_number} ${f.mesas}`.toLowerCase().includes(busca))
+    const visibles = rawBusca
+      ? filas.filter((f) => {
+        const texto = `${f.comprador} ${f.documento ?? ""} ${f.order_number} ${f.mesas} ${f.seccion}`.toLowerCase();
+        const mesasCompact = (f.mesas || "").toLowerCase().replace(/[-_ ]/g, "");
+        const coincideTexto = texto.includes(rawBusca);
+        const coincideMesa = compactBusca && mesasCompact && (mesasCompact === compactBusca || mesasCompact.includes(compactBusca));
+        return coincideTexto || coincideMesa;
+      })
       : filas;
 
     if (!visibles.length) {

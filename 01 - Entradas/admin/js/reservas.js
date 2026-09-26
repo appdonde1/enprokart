@@ -22,6 +22,7 @@
     eventos: [],
     secciones: [],
     mesas: [],
+    mesasInfo: {},
     elegidas: new Set(),
   };
 
@@ -55,6 +56,7 @@
     if (!evento) return;
 
     estado.elegidas.clear();
+    ocultarPopover();
 
     const { data: secciones } = await P.db
       .from("sections")
@@ -80,24 +82,32 @@
         .in("section_id", conPlano.map((s) => s.id))
         .order("code");
       estado.mesas = mesas ?? [];
+
+      // Cargar información contextual de reservas (comprador, motivo, orden)
+      try {
+        const infoRes = await P.fn("operaciones", {
+          action: "info_mesas",
+          event_id: evento.id,
+        });
+        estado.mesasInfo = infoRes?.info_mesas ?? {};
+      } catch (err) {
+        console.warn("operaciones/info_mesas:", err);
+        estado.mesasInfo = {};
+      }
     } else {
       estado.mesas = [];
+      estado.mesasInfo = {};
     }
 
     pintarPlano();
+    ejecutarBusquedaMesa();
   }
 
   // ---------- plano ----------
 
   /* El mismo agrupado que el plano del comprador: A, B, el fondo y Plata. Las
      mesas únicas viven en secciones propias pero físicamente están en la
-     columna del medio de la C, y por eso caen en su grupo.
-
-     Plata necesita su propia canasta. Sin ella, sus noventa mesas caían en la
-     de la C por el `|| por.C` de abajo, y como cada mesa se dibuja en la
-     `pos_x`/`pos_y` que trae, P1 aterrizaba encima de C1: la Sección C se
-     estiraba a seis filas y las mesas de Plata quedaban tapadas, imposibles de
-     tocar. Los dos problemas eran el mismo. */
+     columna del medio de la C, y por eso caen en su grupo. */
   function agrupar() {
     const por = { A: [], B: [], C: [], P: [] };
     for (const m of estado.mesas) {
@@ -115,23 +125,6 @@
   const columnasDe = (mesas) =>
     Math.max(1, ...mesas.map((m, i) => Number(m.pos_x) || ((i % 3) + 1)));
 
-  /* =========================================================
-     EL PLANO: la misma hoja que ve quien compra
-
-     El marcado copia js/app.js → pintarPlano() y mesaHTML(), y las clases
-     vienen de ../css/plano.css. Si se cambia uno, se cambia el otro: el admin
-     tiene que ver el salón exactamente como lo ve el comprador, con la tarima,
-     la pasarela entre A y B, las únicas en la columna del medio de la C y
-     Plata al fondo.
-
-     Antes este plano usaba las clases del editor del Salón (salon-*). Un ajuste
-     de ese editor para el teléfono les dio un ancho mínimo por columnas, y acá
-     sacaba la Sección C y Plata fuera de la tarjeta.
-
-     Diferencias con la web, a propósito:
-       · ninguna zona se apaga: el admin reserva en Oro y en Plata;
-       · una mesa tomada no está deshabilitada: tocarla ofrece liberarla.
-     ========================================================= */
   function pintarPlano() {
     const destino = $("planoReservas");
     if (!estado.mesas.length) {
@@ -179,18 +172,44 @@
         <ul class="hoja__leyenda">
           <li><i class="hoja__marca hoja__marca--libre"></i>Disponible</li>
           <li><i class="hoja__marca hoja__marca--elegida"></i>Elegida</li>
-          <li><i class="hoja__marca hoja__marca--tomada"></i>Tomada · toca para liberar</li>
+          <li><i class="hoja__marca hoja__marca--tomada"></i>Tomada · menú contextual / liberar</li>
           <li><i class="hoja__marca hoja__marca--unica"></i>Mesa única</li>
         </ul>
       </div>
       </div>`;
 
     destino.querySelectorAll("[data-code]").forEach((boton) => {
-      boton.addEventListener("click", () =>
-        alternar(boton.dataset.code, boton.dataset.available === "1"));
-      const leer = () => marcarLectura(boton.dataset.lectura);
-      boton.addEventListener("pointerenter", leer);
-      boton.addEventListener("focus", leer);
+      const code = boton.dataset.code;
+      const isAvailable = boton.dataset.available === "1";
+
+      boton.addEventListener("click", (e) => {
+        if (!isAvailable) {
+          // Si está tomada, abrir el menú contextual anclado
+          mostrarPopover(boton, code, true);
+        } else {
+          alternar(code, true);
+        }
+      });
+
+      // Menú contextual en clic derecho
+      boton.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        mostrarPopover(boton, code, true);
+      });
+
+      // Hover / foco para lectura y popover
+      const entrar = () => {
+        marcarLectura(boton.dataset.lectura);
+        mostrarPopover(boton, code, false);
+      };
+      const salir = () => {
+        programarOcultarPopover();
+      };
+
+      boton.addEventListener("pointerenter", entrar);
+      boton.addEventListener("pointerleave", salir);
+      boton.addEventListener("focus", entrar);
+      boton.addEventListener("blur", salir);
     });
 
     medirHoja();
@@ -380,6 +399,7 @@
     const nombre = unica ? mesa.label : mesa.code;
     const elegida = estado.elegidas.has(mesa.code);
     const libre = mesa.available;
+    const info = estado.mesasInfo[mesa.code];
 
     const clases = [
       "mesa",
@@ -388,7 +408,12 @@
       elegida ? "mesa--elegida" : "",
     ].filter(Boolean).join(" ");
 
-    const lectura = `${nombre} · ${mesa.seat_count} sillas${libre ? "" : " · tomada"}`;
+    let lectura = `${nombre} · ${mesa.seat_count} sillas`;
+    if (info) {
+      lectura = `${nombre} · ${info.comprador} · ${info.descripcion || (info.is_courtesy ? "Cortesía" : "Tomada")}`;
+    } else if (!libre) {
+      lectura += " · Tomada";
+    }
 
     return `
       <button type="button" class="${clases}"
@@ -397,54 +422,277 @@
               data-available="${libre ? "1" : "0"}"
               data-lectura="${P.esc(lectura)}"
               aria-pressed="${elegida ? "true" : "false"}"
-              title="${libre ? "Elegir mesa" : "Mesa tomada (toca para liberar)"}">
+              title="${libre ? "Elegir mesa" : `Mesa tomada (${info?.comprador ? P.esc(info.comprador) : "clic para ver"})`}">
         <span class="mesa__nombre">${P.esc(nombre)}</span>
-        <span class="mesa__sillas">${libre ? `${mesa.seat_count} sillas` : "tomada · liberar"}</span>
+        <span class="mesa__sillas">${libre ? `${mesa.seat_count} sillas` : (info?.comprador ? P.esc(info.comprador.split(" ")[0]) : "tomada")}</span>
       </button>`;
   }
 
-  /* El marcador de la cabecera del plano: dice qué mesa se está tocando, igual
-     que en la web. En un teléfono el `title` no se ve nunca. */
-  let lecturaReloj = null;
-  function marcarLectura(texto) {
-    const salida = $("planoLectura");
-    if (!salida || !texto) return;
-    salida.textContent = texto;
-    salida.classList.add("plano__lectura--viva");
-    clearTimeout(lecturaReloj);
-    lecturaReloj = setTimeout(() => salida.classList.remove("plano__lectura--viva"), 2600);
+  // =========================================================
+  // Menú Contextual / Tooltip flotante para mesas
+  // =========================================================
+
+  let popoverTimer = null;
+  let popoverFijo = false;
+
+  function programarOcultarPopover() {
+    if (popoverFijo) return;
+    clearTimeout(popoverTimer);
+    popoverTimer = setTimeout(() => {
+      ocultarPopover();
+    }, 180);
   }
 
-  async function alternar(code, available) {
-    if (!available) {
-      const evento = eventoActual();
-      if (!evento) return;
-      const seguro = confirm(
-        `⚠️ ¿LIBERAR MESA ${code}?\n\n` +
-        `Esta mesa actualmente está tomada/reservada.\n\n` +
-        `Al confirmarlo, sus sillas quedarán disponibles de inmediato en el plano para volver a venderse, ` +
-        `sin importar si hubo un pago asociado.\n\n` +
-        `¿Deseas liberar la mesa ${code}?`
-      );
-      if (!seguro) return;
+  function ocultarPopover() {
+    popoverFijo = false;
+    const pop = $("mesaPopover");
+    if (pop) {
+      pop.hidden = true;
+      pop.setAttribute("aria-hidden", "true");
+    }
+  }
 
-      try {
-        const res = await P.fn("operaciones", {
-          action: "liberar_mesa",
-          table_code: code,
-          event_id: evento.id,
-        });
-        alert(res.mensaje || `Mesa ${code} liberada con éxito.`);
-        await cargarSalon();
-      } catch (err) {
-        alert(`Error al liberar mesa: ${err.message}`);
+  function mostrarPopover(boton, code, fijar = false) {
+    clearTimeout(popoverTimer);
+    const pop = $("mesaPopover");
+    if (!pop) return;
+
+    if (fijar) popoverFijo = true;
+
+    const mesa = estado.mesas.find((m) => m.code === code);
+    if (!mesa) return;
+
+    const info = estado.mesasInfo[code];
+    const libre = mesa.available;
+    const seccion = estado.secciones.find((s) => s.id === mesa.section_id);
+
+    // Cabecera
+    $("popoverCodigo").textContent = `Mesa ${mesa.label || mesa.code}`;
+    $("popoverSeccion").textContent = `${seccion?.label || "Salón"} · ${mesa.seat_count} sillas`;
+
+    const badge = $("popoverEstadoBadge");
+    if (libre) {
+      badge.textContent = "Disponible";
+      badge.className = "badge badge--ok";
+    } else if (info?.is_courtesy) {
+      badge.textContent = "Cortesía";
+      badge.className = "badge badge--vip";
+    } else if (info?.estado === "paid") {
+      badge.textContent = "Pagada";
+      badge.className = "badge badge--ok";
+    } else if (info?.estado === "pending") {
+      badge.textContent = "Pendiente";
+      badge.className = "badge badge--espera";
+    } else {
+      badge.textContent = "Tomada";
+      badge.className = "badge";
+    }
+
+    // Cuerpo
+    const cuerpo = $("popoverCuerpo");
+    if (info) {
+      cuerpo.innerHTML = `
+        <div class="mesa-popover__fila">
+          <span class="mesa-popover__etiqueta">A nombre de</span>
+          <span class="mesa-popover__valor"><strong>${P.esc(info.comprador)}</strong></span>
+        </div>
+        ${info.motivo || info.descripcion ? `
+          <div class="mesa-popover__fila">
+            <span class="mesa-popover__etiqueta">Descripción / Motivo</span>
+            <div class="mesa-popover__motivo">${P.esc(info.motivo || info.descripcion)}</div>
+          </div>
+        ` : ""}
+        <div class="mesa-popover__fila">
+          <span class="mesa-popover__etiqueta">Detalle</span>
+          <span class="mesa-popover__valor">
+            ${info.personas || mesa.seat_count} personas
+            ${info.total_entradas ? `· ${info.total_entradas} entradas (${info.entradas_usadas || 0} validadas)` : ""}
+            ${info.order_number ? `· Orden #${P.esc(info.order_number)}` : ""}
+          </span>
+        </div>
+        ${info.documento || info.whatsapp ? `
+          <div class="mesa-popover__fila">
+            <span class="mesa-popover__etiqueta">Contacto</span>
+            <span class="mesa-popover__valor">${P.esc(info.documento ? `CI: ${info.documento}` : "")} ${P.esc(info.whatsapp ? `· WA: ${info.whatsapp}` : "")}</span>
+          </div>
+        ` : ""}
+      `;
+    } else if (!libre) {
+      cuerpo.innerHTML = `
+        <div class="mesa-popover__fila">
+          <span class="mesa-popover__etiqueta">Estado</span>
+          <span class="mesa-popover__valor">Mesa reservada o tomada en el sistema.</span>
+        </div>
+      `;
+    } else {
+      cuerpo.innerHTML = `
+        <div class="mesa-popover__fila">
+          <span class="mesa-popover__etiqueta">Estado</span>
+          <span class="mesa-popover__valor">Mesa libre para venta o cortesía.</span>
+        </div>
+        <div class="mesa-popover__fila">
+          <span class="mesa-popover__etiqueta">Capacidad</span>
+          <span class="mesa-popover__valor">${mesa.seat_count} personas</span>
+        </div>
+      `;
+    }
+
+    // Acciones
+    const acciones = $("popoverAcciones");
+    if (!libre) {
+      acciones.innerHTML = `
+        <button type="button" class="btn btn--sm btn--danger" id="popBtnLiberar">
+          🔓 Liberar mesa
+        </button>
+        <button type="button" class="btn btn--sm btn--ghost" id="popBtnCopiar">
+          📋 Copiar
+        </button>
+      `;
+      $("popBtnLiberar").onclick = () => alternar(code, false);
+      $("popBtnCopiar").onclick = () => {
+        const texto = `Mesa ${mesa.code}: ${info?.comprador || "Tomada"}${info?.motivo ? ` (${info.motivo})` : ""}`;
+        navigator.clipboard?.writeText(texto);
+        $("popBtnCopiar").textContent = "✓ Copiado";
+        setTimeout(() => { $("popBtnCopiar").textContent = "📋 Copiar"; }, 1500);
+      };
+    } else {
+      const elegida = estado.elegidas.has(code);
+      acciones.innerHTML = `
+        <button type="button" class="btn btn--sm ${elegida ? "btn--ghost" : "btn--primary"}" id="popBtnElegir">
+          ${elegida ? "✕ Deseleccionar" : "✓ Seleccionar mesa"}
+        </button>
+      `;
+      $("popBtnElegir").onclick = () => {
+        alternar(code, true);
+        ocultarPopover();
+      };
+    }
+
+    // Posicionamiento inteligente
+    pop.hidden = false;
+    pop.setAttribute("aria-hidden", "false");
+
+    const r = boton.getBoundingClientRect();
+    const caja = pop.querySelector(".mesa-popover__caja");
+    const popW = caja.offsetWidth || 280;
+    const popH = caja.offsetHeight || 180;
+
+    let left = r.left + r.width / 2 - popW / 2;
+    if (left < 12) left = 12;
+    if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+
+    let top = r.top - popH - 10;
+    if (top < 10) {
+      // Si no cabe arriba, ponerlo abajo de la mesa
+      top = r.bottom + 10;
+    }
+
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+  }
+
+  // =========================================================
+  // Buscador de mesas e invitados en el plano
+  // =========================================================
+
+  function prepararBuscadorPlano() {
+    const input = $("buscarMesaPlano");
+    const btnLimpiar = $("btnLimpiarBuscarMesa");
+    if (!input) return;
+
+    input.addEventListener("input", ejecutarBusquedaMesa);
+    btnLimpiar.addEventListener("click", () => {
+      input.value = "";
+      ejecutarBusquedaMesa();
+      input.focus();
+    });
+
+    // Cerrar popover al hacer clic fuera o presionar Escape
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#mesaPopover") && !e.target.closest(".mesa")) {
+        ocultarPopover();
       }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") ocultarPopover();
+    });
+
+    // Mantener popover si el puntero entra en él
+    const pop = $("mesaPopover");
+    if (pop) {
+      pop.addEventListener("pointerenter", () => clearTimeout(popoverTimer));
+      pop.addEventListener("pointerleave", programarOcultarPopover);
+    }
+  }
+
+  function normalizarCodigo(str) {
+    return (str || "").toLowerCase().replace(/\bmesa\s*/g, "").replace(/[-_ ]/g, "").trim();
+  }
+
+  function ejecutarBusquedaMesa() {
+    const input = $("buscarMesaPlano");
+    const resEl = $("resultadoBuscarMesa");
+    const btnLimpiar = $("btnLimpiarBuscarMesa");
+    if (!input || !resEl) return;
+
+    const raw = input.value.trim().toLowerCase();
+    const compact = normalizarCodigo(raw);
+    btnLimpiar.hidden = !raw;
+
+    const lienzo = $("planoReservas");
+    const hoja = lienzo?.querySelector(".hoja");
+    if (!hoja) return;
+
+    // Limpiar clases previas
+    hoja.querySelectorAll(".mesa").forEach((btn) => {
+      btn.classList.remove("mesa--busqueda-activa", "mesa--resaltada");
+    });
+
+    if (!raw) {
+      hoja.classList.remove("hoja--filtrada");
+      resEl.textContent = "";
+      ocultarPopover();
       return;
     }
 
-    if (estado.elegidas.has(code)) estado.elegidas.delete(code);
-    else estado.elegidas.add(code);
-    pintarPlano();
+    hoja.classList.add("hoja--filtrada");
+
+    const coincidencias = [];
+
+    hoja.querySelectorAll("[data-code]").forEach((boton) => {
+      const code = boton.dataset.code;
+      const codeCompact = normalizarCodigo(code);
+      const info = estado.mesasInfo[code];
+      const comprador = (info?.comprador || "").toLowerCase();
+      const motivo = (info?.motivo || info?.descripcion || "").toLowerCase();
+
+      // Coincidencia por código de mesa (ej. "p11", "P-11", "11", "p 11")
+      // o por nombre del comprador o motivo
+      const coincideCodigo = codeCompact === compact || codeCompact.includes(compact) || (code && code.toLowerCase().includes(raw));
+      const coincideComprador = comprador.includes(raw);
+      const coincideMotivo = motivo.includes(raw);
+
+      if (coincideCodigo || coincideComprador || coincideMotivo) {
+        boton.classList.add("mesa--busqueda-activa", "mesa--resaltada");
+        coincidencias.push({ boton, code, info });
+      }
+    });
+
+    if (!coincidencias.length) {
+      resEl.textContent = "0 mesas encontradas";
+      ocultarPopover();
+      return;
+    }
+
+    resEl.textContent = coincidencias.length === 1
+      ? `1 mesa encontrada (${coincidencias[0].code}${coincidencias[0].info?.comprador ? ` · ${coincidencias[0].info.comprador}` : ""})`
+      : `${coincidencias.length} mesas encontradas`;
+
+    // Hacer scroll suave hacia la primera coincidencia y mostrar su popover
+    const primera = coincidencias[0].boton;
+    primera.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    mostrarPopover(primera, coincidencias[0].code, false);
   }
 
   function pintarResumenMesas() {
@@ -566,6 +814,7 @@
     $("rEvento").addEventListener("change", () => cargarSalon().catch((e) => setError(e.message)));
     $("btnEmitir").addEventListener("click", emitir);
     prepararZoom();
+    prepararBuscadorPlano();
 
     await cargarEventos();
   })();

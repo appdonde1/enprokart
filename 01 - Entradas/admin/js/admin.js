@@ -1373,13 +1373,24 @@
   ui.filtroEstado.addEventListener("change", renderEntradas);
 
   function renderEntradas() {
-    const busqueda = ui.buscarEntrada.value.trim().toLowerCase();
+    const rawBusqueda = ui.buscarEntrada.value.trim().toLowerCase();
     const estado = ui.filtroEstado.value;
+    const compactBusqueda = rawBusqueda.replace(/\bmesa\s*/g, "").replace(/[-_ ]/g, "");
 
     const filas = state.tickets.filter((t) => {
       if (estado && t.status !== estado) return false;
-      if (!busqueda) return true;
-      return `${t.code} ${t.buyer_name} ${t.buyer_lastname}`.toLowerCase().includes(busqueda);
+      if (!rawBusqueda) return true;
+
+      const code = (t.code || "").toLowerCase();
+      const comprador = `${t.buyer_name || ""} ${t.buyer_lastname || ""}`.toLowerCase();
+      const seccion = (t.section_label || "").toLowerCase();
+      const mesa = (t.table_code || "").toLowerCase();
+      const mesaCompact = mesa.replace(/[-_ ]/g, "");
+
+      const coincideTexto = `${code} ${comprador} ${seccion} ${mesa}`.includes(rawBusqueda);
+      const coincideMesa = compactBusqueda && mesaCompact && (mesaCompact === compactBusqueda || mesaCompact.includes(compactBusqueda));
+
+      return coincideTexto || coincideMesa;
     });
 
     if (!filas.length) {

@@ -38,6 +38,101 @@ Deno.serve(async (req) => {
     return json({ eventos: data ?? [] });
   }
 
+  /* Información contextual de las mesas para el mapa de reservas */
+  if (body.action === "info_mesas") {
+    const eventId = typeof body.event_id === "string" ? body.event_id : null;
+    if (!eventId) return fail("Falta el identificador del evento");
+
+    // 1. Obtener órdenes activas (paid, pending)
+    const { data: ordenes, error: errOrd } = await db
+      .from("orders")
+      .select(`
+        id, order_number, buyer_name, buyer_lastname, buyer_document, buyer_whatsapp, buyer_email,
+        people, tables_count, amount_cents, status, is_courtesy, created_at, paid_at,
+        order_tables ( table_code ),
+        tickets ( id, code, status, table_code, used_at, used_by )
+      `)
+      .eq("event_id", eventId)
+      .neq("status", "canceled");
+
+    if (errOrd) return fail("Error consultando órdenes", 500);
+
+    // 2. Obtener courtesy_log para los tickets de cortesía
+    const ticketIds: string[] = [];
+    for (const ord of ordenes ?? []) {
+      for (const t of (ord as any).tickets ?? []) {
+        if (t.id) ticketIds.push(t.id);
+      }
+    }
+
+    const razonesMap = new Map<string, string>();
+    if (ticketIds.length) {
+      const { data: logs } = await db
+        .from("courtesy_log")
+        .select("ticket_id, reason")
+        .in("ticket_id", ticketIds);
+
+      for (const l of logs ?? []) {
+        if (l.ticket_id && l.reason) {
+          razonesMap.set(l.ticket_id, l.reason);
+        }
+      }
+    }
+
+    // 3. Mapear por table_code
+    const mesasMap: Record<string, any> = {};
+
+    for (const ord of ordenes ?? []) {
+      const comprador = `${ord.buyer_name || ""} ${ord.buyer_lastname || ""}`.trim() || "Invitado / Comprador";
+      const ordenTables = (ord.order_tables ?? []).map((ot: any) => ot.table_code).filter(Boolean);
+      const tickets = (ord.tickets ?? []);
+      const ticketTables = tickets.map((t: any) => t.table_code).filter(Boolean);
+      const todosCodigos = new Set([...ordenTables, ...ticketTables]);
+
+      let motivo = "";
+      for (const t of tickets) {
+        if (razonesMap.has(t.id)) {
+          motivo = razonesMap.get(t.id)!;
+          break;
+        }
+      }
+
+      let descripcion = "";
+      if (ord.is_courtesy) {
+        descripcion = motivo ? `Cortesía: ${motivo}` : "Cortesía de la casa";
+      } else if (ord.status === "paid") {
+        descripcion = `Compra confirmada · Orden #${ord.order_number}`;
+      } else {
+        descripcion = `En proceso de pago · Orden #${ord.order_number}`;
+      }
+
+      const entradasUsadas = tickets.filter((t: any) => t.status === "used").length;
+
+      for (const tableCode of todosCodigos) {
+        mesasMap[tableCode] = {
+          table_code: tableCode,
+          order_id: ord.id,
+          order_number: ord.order_number,
+          comprador,
+          documento: ord.buyer_document,
+          whatsapp: ord.buyer_whatsapp,
+          email: ord.buyer_email,
+          is_courtesy: ord.is_courtesy ?? false,
+          motivo,
+          descripcion,
+          monto_cents: ord.amount_cents,
+          estado: ord.status,
+          personas: ord.people,
+          total_entradas: tickets.length,
+          entradas_usadas: entradasUsadas,
+          fecha: ord.paid_at || ord.created_at,
+        };
+      }
+    }
+
+    return json({ info_mesas: mesasMap });
+  }
+
   /* Liberar una reserva completa, indiferente del dinero.
      Solo para admin y developer (garantizado por el check esAdmin al inicio).
      Libera inmediatamente todas las mesas y sillas asociadas para que vuelvan a estar

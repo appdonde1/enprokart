@@ -2817,3 +2817,215 @@ tr.fila-retirada:hover { opacity: 1; }
   .escaner__marco.escaner--ok,
   .escaner__marco.escaner--mal { animation: none; }
 }
+
+/* =========================================================
+   Buscador rápido de mesas y Menú Contextual en Reservas
+   ========================================================= */
+
+.plano-buscador-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.plano-buscador {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+  max-width: 440px;
+}
+
+.plano-buscador__icono {
+  position: absolute;
+  left: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.plano-buscador input {
+  width: 100%;
+  padding: 10px 36px 10px 38px;
+  background-color: var(--campo-bg);
+  border: 1px solid var(--campo-borde);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  transition: border-color var(--t-color) ease, box-shadow var(--t-color) ease;
+}
+
+.plano-buscador input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: var(--campo-bg-foco);
+  box-shadow: var(--campo-anillo);
+}
+
+.plano-buscador__limpiar {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--t-color) ease;
+}
+.plano-buscador__limpiar:hover { color: var(--text); }
+
+.plano-buscador__resultado {
+  font: 600 0.78rem/1 var(--mono);
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+/* Resaltado de mesa encontrada en la búsqueda */
+.mesa--resaltada,
+.mesa--busqueda-activa {
+  position: relative;
+  z-index: 5;
+  outline: 3px solid var(--accent) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 16px rgba(255, 89, 54, 0.85) !important;
+  animation: pulso-mesa 1.5s infinite ease-in-out;
+}
+
+@keyframes pulso-mesa {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Cuando hay una búsqueda activa, atenuar ligeramente las mesas que no coinciden */
+.hoja--filtrada .mesa:not(.mesa--busqueda-activa) {
+  opacity: 0.28;
+  filter: grayscale(0.5);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+/* =========================================================
+   Menú Contextual / Tooltip flotante de Mesa (.mesa-popover)
+   ========================================================= */
+
+.mesa-popover {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: auto;
+  animation: popover-aparece 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes popover-aparece {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mesa-popover__caja {
+  width: min(320px, calc(100vw - 32px));
+  background: rgba(18, 20, 18, 0.94);
+  border: 1px solid var(--line);
+  border-top-color: rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  backdrop-filter: blur(14px) saturate(130%);
+  padding: 14px 16px;
+}
+
+.mesa-popover__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
+  margin-bottom: 10px;
+}
+
+.mesa-popover__titulo-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mesa-popover__codigo {
+  color: var(--text);
+  font: 800 0.95rem/1.2 var(--display);
+  letter-spacing: -0.01em;
+}
+
+.mesa-popover__seccion {
+  color: var(--muted);
+  font: 600 0.72rem/1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mesa-popover__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.84rem;
+}
+
+.mesa-popover__fila {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mesa-popover__etiqueta {
+  color: var(--campo-etiqueta);
+  font: 600 0.68rem/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mesa-popover__valor {
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.mesa-popover__valor strong {
+  color: #fff;
+  font-weight: 700;
+}
+
+.mesa-popover__valor--destacado {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mesa-popover__motivo {
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 2px solid var(--accent);
+  padding: 6px 8px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--dim);
+  font-style: italic;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.mesa-popover__acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.mesa-popover__acciones .btn {
+  flex: 1;
+  font-size: 0.76rem;
+  padding: 6px 10px;
+}
+
