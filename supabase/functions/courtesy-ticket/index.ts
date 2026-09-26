@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
   if (!nombre || !apellido) return fail("Falta el nombre del invitado");
   if (!body.event_slug) return fail("Falta el evento");
 
-  const personas = Math.floor(Number(body.people ?? 1));
+  let personas = Math.floor(Number(body.people ?? 1));
   if (!Number.isFinite(personas) || personas < 1 || personas > MAX_PERSONAS) {
     return fail("Indica cuántas personas son");
   }
@@ -109,9 +109,8 @@ Deno.serve(async (req) => {
     }
 
     const lugares = delEvento.reduce((a: number, m: any) => a + m.seat_count, 0);
-    if (lugares < personas) {
-      return fail(`Con ${delEvento.length} mesa(s) entran ${lugares} personas y son ${personas}`);
-    }
+    // Solo mesas completas: se emiten todas las sillas de las mesas reservadas
+    personas = lugares;
 
     sectionId = (delEvento[0] as any).section_id;
     sectionCode = (delEvento[0] as any).sections.code;

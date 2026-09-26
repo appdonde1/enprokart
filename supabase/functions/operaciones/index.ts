@@ -1,5 +1,6 @@
 import { esAdmin, requireStaff, serviceClient } from "../_shared/supabase.ts";
 import { fail, json, preflight } from "../_shared/http.ts";
+import { generateTicketCode, signTicket } from "../_shared/tickets.ts";
 
 /* La tabla de operaciones: qué se vendió, a quién y quién lo validó.
 
@@ -15,9 +16,15 @@ Deno.serve(async (req) => {
   if (cors) return cors;
   if (req.method !== "POST") return fail("Método no permitido", 405);
 
-  const staff = await requireStaff(req);
-  if (!staff) return fail("Necesitas iniciar sesión", 401);
-  if (!esAdmin(staff.role)) return fail("Solo un administrador ve las operaciones", 403);
+  const adminSecret = req.headers.get("x-admin-secret");
+  const isCli = Boolean(adminSecret && adminSecret === Deno.env.get("ADMIN_CLI_SECRET"));
+
+  let staff: { userId: string; role: any } | null = null;
+  if (!isCli) {
+    staff = await requireStaff(req);
+    if (!staff) return fail("Necesitas iniciar sesión", 401);
+    if (!esAdmin(staff.role)) return fail("Solo un administrador ve las operaciones", 403);
+  }
 
   let body: Record<string, unknown>;
   try {
@@ -36,6 +43,183 @@ Deno.serve(async (req) => {
       .select("id, slug, name, event_date, status")
       .order("event_date", { ascending: false });
     return json({ eventos: data ?? [] });
+  }
+
+  /* Completar mesas a su capacidad completa: P a 4 personas y Oro a 6 personas */
+  if (body.action === "completar_mesas_a_4" || body.action === "completar_mesas_capacidad") {
+    const slug = typeof body.event_slug === "string" ? body.event_slug : "noche-vip-fest";
+    const { data: event } = await db
+      .from("events")
+      .select("id, slug, name")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (!event) return fail("Evento no encontrado");
+
+    // Cargar información de las mesas del evento
+    const { data: allTables } = await db
+      .from("tables")
+      .select("code, seat_count, section_id, sections!inner(event_id, code, label)")
+      .eq("sections.event_id", event.id);
+
+    const seatCountMap = new Map<string, number>();
+    const sectionOfTable = new Map<string, { code: string; label: string }>();
+    for (const t of allTables ?? []) {
+      if (t.code) {
+        seatCountMap.set(t.code, t.seat_count ?? (t.code.startsWith("P") ? 4 : (t.code.startsWith("U") ? 8 : 6)));
+        if (t.sections) {
+          sectionOfTable.set(t.code, t.sections as any);
+        }
+      }
+    }
+
+    const { data: orders, error: errOrd } = await db
+      .from("orders")
+      .select(`
+        id, order_number, buyer_name, buyer_lastname, buyer_document, buyer_whatsapp, buyer_email,
+        section_id, people, tables_count, status, is_courtesy, created_at,
+        sections ( id, code, label ),
+        order_tables ( table_id, table_code ),
+        tickets ( id, code, status, table_code, guest_index )
+      `)
+      .eq("event_id", event.id)
+      .neq("status", "canceled");
+
+    if (errOrd) return fail("Error buscando órdenes: " + errOrd.message, 500);
+
+    const resultados = [];
+
+    for (const ord of orders ?? []) {
+      const orderTables = (ord.order_tables ?? []).map((ot: any) => ot.table_code).filter(Boolean);
+      const tickets = (ord.tickets ?? []);
+      const ticketTables = tickets.map((t: any) => t.table_code).filter(Boolean);
+      const codigosMesa = [...new Set([...orderTables, ...ticketTables])];
+
+      const secCode = ord.sections?.code || "";
+      const esPlata = codigosMesa.some((c: string) => c.startsWith("P")) || secCode === "PLATA";
+      const esOro = codigosMesa.some((c: string) => /^[ABC]/.test(c)) || ["A", "B", "C"].includes(secCode);
+
+      if (codigosMesa.length > 0 || esPlata || esOro) {
+        // Calcular la meta exacta de personas según las mesas
+        let metaPersonas = 0;
+        const mesaSillas: { code: string; sillas: number; secCode: string; secLabel: string }[] = [];
+
+        if (codigosMesa.length > 0) {
+          for (const code of codigosMesa) {
+            let sillas = seatCountMap.get(code);
+            if (!sillas) {
+              if (code.startsWith("P")) sillas = 4;
+              else if (code.startsWith("U")) sillas = 8;
+              else sillas = 6;
+            }
+            const secInfo = sectionOfTable.get(code);
+            mesaSillas.push({
+              code,
+              sillas,
+              secCode: secInfo?.code ?? (code.startsWith("P") ? "PLATA" : "A"),
+              secLabel: secInfo?.label ?? (code.startsWith("P") ? "VIP Plata" : "VIP Oro"),
+            });
+            metaPersonas += sillas;
+          }
+        } else if (esPlata) {
+          const count = Math.max(1, ord.tables_count || 1);
+          metaPersonas = count * 4;
+        } else if (esOro) {
+          const count = Math.max(1, ord.tables_count || 1);
+          metaPersonas = count * 6;
+        }
+
+        if (ord.people < metaPersonas || tickets.length < metaPersonas) {
+          if (ord.people < metaPersonas) {
+            await db
+              .from("orders")
+              .update({ people: metaPersonas })
+              .eq("id", ord.id);
+          }
+
+          const ticketsCreados = [];
+          const cantExistente = tickets.length;
+
+          // Mapeo de cuál mesa le corresponde a cada índice
+          // Arma una lista plana de códigos de mesa por cada silla disponible
+          const listaMesasPorSilla: { code: string; secCode: string; secLabel: string }[] = [];
+          for (const ms of mesaSillas) {
+            for (let s = 0; s < ms.sillas; s++) {
+              listaMesasPorSilla.push({ code: ms.code, secCode: ms.secCode, secLabel: ms.secLabel });
+            }
+          }
+
+          for (let i = cantExistente; i < metaPersonas; i++) {
+            const mesaAsignada = listaMesasPorSilla[i] ?? listaMesasPorSilla[listaMesasPorSilla.length - 1];
+            const tCode = mesaAsignada?.code ?? codigosMesa[0] ?? null;
+            const tSecCode = mesaAsignada?.secCode ?? ord.sections?.code ?? (tCode?.startsWith("P") ? "PLATA" : "A");
+            const tSecLabel = mesaAsignada?.secLabel ?? ord.sections?.label ?? (tCode?.startsWith("P") ? "VIP Plata" : "VIP Oro");
+
+            const code = generateTicketCode(tSecCode);
+            const qr_signature = await signTicket(code);
+
+            const nuevoTicket = {
+              order_id: ord.id,
+              event_id: event.id,
+              section_id: ord.section_id,
+              code,
+              qr_signature,
+              section_code: tSecCode,
+              section_label: tSecLabel,
+              table_code: tCode,
+              table_number: null,
+              seat_number: null,
+              guest_index: i + 1,
+              buyer_name: ord.buyer_name,
+              buyer_lastname: ord.buyer_lastname,
+              buyer_document: ord.buyer_document,
+              buyer_whatsapp: ord.buyer_whatsapp,
+              is_courtesy: ord.is_courtesy,
+              issued_by: staff?.userId ?? null,
+              status: "valid",
+            };
+
+            const { data: insTicket, error: insErr } = await db
+              .from("tickets")
+              .insert(nuevoTicket)
+              .select("id, code, table_code, guest_index")
+              .single();
+
+            if (!insErr && insTicket) {
+              ticketsCreados.push(insTicket);
+
+              if (ord.is_courtesy) {
+                await db.from("courtesy_log").insert({
+                  ticket_id: insTicket.id,
+                  issued_by: staff?.userId ?? null,
+                  reason: `Ajuste a capacidad completa (${tSecCode}: ${metaPersonas} personas)`,
+                });
+              }
+            } else {
+              console.error("Error insertando ticket adicional:", insErr);
+            }
+          }
+
+          resultados.push({
+            order_id: ord.id,
+            order_number: ord.order_number,
+            comprador: `${ord.buyer_name} ${ord.buyer_lastname}`.trim(),
+            mesas: codigosMesa,
+            tipo: esOro ? "Oro (6 personas/mesa)" : "Plata (4 personas/mesa)",
+            personas_anterior: ord.people,
+            personas_nuevo: metaPersonas,
+            tickets_agregados: ticketsCreados.length,
+            codigos_tickets_nuevos: ticketsCreados.map((t: any) => t.code),
+          });
+        }
+      }
+    }
+
+    return json({
+      ok: true,
+      mensaje: `Se completaron ${resultados.length} órdenes: P a 4 personas y Oro a 6 personas`,
+      resultados,
+    });
   }
 
   /* Información contextual de las mesas para el mapa de reservas */

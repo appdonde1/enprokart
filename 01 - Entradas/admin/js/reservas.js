@@ -818,6 +818,36 @@
     pintarPlano();
   }
 
+  function sincronizarPersonasPlano() {
+    const inp = $("rPersonas");
+    const nota = $("rPersonasNota");
+    if (!inp) return;
+
+    if (!enPlano()) {
+      inp.readOnly = false;
+      inp.placeholder = "Ej: 1";
+      if (!inp.value || Number(inp.value) < 1) inp.value = "1";
+      if (nota) nota.textContent = "";
+      return;
+    }
+
+    const elegidas = [...estado.elegidas];
+    const lugares = elegidas.reduce((a, code) => {
+      const m = estado.mesas.find((x) => x.code === code);
+      return a + (m?.seat_count ?? 0);
+    }, 0);
+
+    inp.readOnly = true;
+    if (elegidas.length > 0) {
+      inp.value = lugares;
+      if (nota) nota.textContent = `(${lugares} sillas en ${elegidas.length} mesa/s · mesa completa)`;
+    } else {
+      inp.value = "";
+      inp.placeholder = "Selecciona mesa en el plano";
+      if (nota) nota.textContent = "(Se define por las sillas de la mesa)";
+    }
+  }
+
   function pintarResumenMesas() {
     const elegidas = [...estado.elegidas];
     const lugares = elegidas.reduce((a, code) => {
@@ -828,6 +858,8 @@
     $("resumenMesas").textContent = elegidas.length
       ? `${elegidas.length} mesa(s): ${elegidas.join(", ")} · entran ${lugares} personas`
       : "Ninguna mesa elegida todavía.";
+
+    sincronizarPersonasPlano();
   }
 
   // ---------- emitir ----------
@@ -845,8 +877,19 @@
     const apellido = $("rApellido").value.trim();
     if (!nombre || !apellido) return setError("Faltan el nombre y el apellido del invitado.");
 
-    const personas = Number($("rPersonas").value);
-    if (!Number.isFinite(personas) || personas < 1) return setError("Indica cuántas personas son.");
+    let personas = Number($("rPersonas").value);
+
+    if (enPlano()) {
+      if (!estado.elegidas.size) return setError("Elige al menos una mesa en el plano.");
+      const elegidas = [...estado.elegidas];
+      const lugares = elegidas.reduce((a, code) => {
+        const m = estado.mesas.find((x) => x.code === code);
+        return a + (m?.seat_count ?? 0);
+      }, 0);
+      personas = lugares; // Solo mesas completas: se emiten todas las sillas de las mesas
+    } else {
+      if (!Number.isFinite(personas) || personas < 1) return setError("Indica cuántas personas son.");
+    }
 
     const motivo = $("rMotivo").value.trim();
     if (motivo.length < 4) {
@@ -932,7 +975,8 @@
 
   (async () => {
     if (!await P.exigirAdmin("reservas.html")) return;
-    P.montarTabsDeModulo();
+    P.montarTabsDeModulo(() => sincronizarPersonasPlano());
+    sincronizarPersonasPlano();
 
     $("rEvento").addEventListener("change", () => cargarSalon().catch((e) => setError(e.message)));
     $("btnEmitir").addEventListener("click", emitir);

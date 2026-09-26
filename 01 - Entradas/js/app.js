@@ -1006,6 +1006,11 @@
         if (state.mesas.has(code)) state.mesas.delete(code);
         else state.mesas.set(code, { code, seats: mesa.seat_count, price_cents: precio });
 
+        const totalLugares = [...state.mesas.values()].reduce((acc, m) => acc + m.seats, 0);
+        if (totalLugares > 0) {
+          state.personas = totalLugares;
+        }
+
         const ahora = state.mesas.has(code);
         boton.classList.toggle("mesa--elegida", ahora);
         boton.setAttribute("aria-pressed", ahora ? "true" : "false");
@@ -1044,6 +1049,12 @@
   // ---------- modal ----------
   function abrirModal(despues) {
     alCerrarModal = despues || null;
+    const porMesa = mesaTipica();
+    if (vendePorMesa()) {
+      if (state.personas < porMesa || state.personas % porMesa !== 0) {
+        state.personas = Math.max(porMesa, Math.ceil(state.personas / porMesa) * porMesa);
+      }
+    }
     $("modal").hidden = false;
     pintarModal();
   }
@@ -1085,8 +1096,16 @@
     return state.seccion?.section?.label ?? "";
   }
 
-  $("mas").addEventListener("click", () => { state.personas = Math.min(60, state.personas + 1); pintarModal(); });
-  $("menos").addEventListener("click", () => { state.personas = Math.max(1, state.personas - 1); pintarModal(); });
+  $("mas").addEventListener("click", () => {
+    const paso = vendePorMesa() ? mesaTipica() : 1;
+    state.personas = Math.min(60, state.personas + paso);
+    pintarModal();
+  });
+  $("menos").addEventListener("click", () => {
+    const paso = vendePorMesa() ? mesaTipica() : 1;
+    state.personas = Math.max(paso, state.personas - paso);
+    pintarModal();
+  });
 
   $("modalOk").addEventListener("click", () => {
     state.grupoDefinido = true;
@@ -1294,10 +1313,14 @@
     btn.textContent = "Generando cobro...";
     setError("pago", "");
 
+    const totalLugares = state.seccion.conPlano
+      ? [...state.mesas.values()].reduce((acc, m) => acc + m.seats, 0)
+      : state.personas;
+
     const cuerpo = {
       // El del evento realmente cargado, no el de la configuración.
       event_slug: state.event?.slug || EVENT_SLUG,
-      people: state.personas,
+      people: totalLugares,
       buyer: {
         nombre: $("nombre").value.trim(),
         apellido: $("apellido").value.trim(),

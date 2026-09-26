@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
       buyer_whatsapp: whatsapp,
       buyer_email: email,
       amount_cents: montoCents,
-      people: personas,
+      people: lugares,
       tables_count: delEvento.length,
     })
     .select("id")
