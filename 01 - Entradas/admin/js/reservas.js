@@ -783,6 +783,41 @@
     mostrarPopover(primera, coincidencias[0].code, false);
   }
 
+  async function alternar(code, available) {
+    if (!available) {
+      const evento = eventoActual();
+      if (!evento) return;
+      const seguro = confirm(
+        `⚠️ ¿LIBERAR MESA ${code}?\n\n` +
+        `Esta mesa actualmente está tomada/reservada.\n\n` +
+        `Al confirmarlo, sus sillas quedarán disponibles de inmediato en el plano para volver a venderse, ` +
+        `sin importar si hubo un pago asociado.\n\n` +
+        `¿Deseas liberar la mesa ${code}?`
+      );
+      if (!seguro) return;
+
+      try {
+        const res = await P.fn("operaciones", {
+          action: "liberar_mesa",
+          table_code: code,
+          event_id: evento.id,
+        });
+        alert(res.mensaje || `Mesa ${code} liberada con éxito.`);
+        await cargarSalon();
+      } catch (err) {
+        alert(`Error al liberar mesa: ${err.message}`);
+      }
+      return;
+    }
+
+    if (estado.elegidas.has(code)) {
+      estado.elegidas.delete(code);
+    } else {
+      estado.elegidas.add(code);
+    }
+    pintarPlano();
+  }
+
   function pintarResumenMesas() {
     const elegidas = [...estado.elegidas];
     const lugares = elegidas.reduce((a, code) => {
