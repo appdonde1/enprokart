@@ -75,6 +75,11 @@
       ? sinPlano.map((s) => `<option value="${P.esc(s.code)}">${P.esc(s.label)}</option>`).join("")
       : `<option value="">Este evento no tiene secciones sin plano</option>`;
 
+    const destino = $("planoReservas");
+    if (destino && !estado.mesas.length) {
+      destino.innerHTML = `<p class="hint" style="padding: 2.5rem; text-align: center;">Cargando mapa del salón...</p>`;
+    }
+
     if (conPlano.length) {
       const { data: mesas } = await P.db
         .from("tables_public")
@@ -83,24 +88,29 @@
         .order("code");
       estado.mesas = mesas ?? [];
 
-      // Cargar información contextual de reservas (comprador, motivo, orden)
-      try {
-        const infoRes = await P.fn("operaciones", {
-          action: "info_mesas",
-          event_id: evento.id,
-        });
-        estado.mesasInfo = infoRes?.info_mesas ?? {};
-      } catch (err) {
+      // 1. PINTAR EL PLANO DE INMEDIATO para que aparezca al instante
+      pintarPlano();
+      ejecutarBusquedaMesa();
+
+      // 2. Cargar en segundo plano la info contextual (comprador, notas) sin congelar la pantalla
+      P.fn("operaciones", {
+        action: "info_mesas",
+        event_id: evento.id,
+      }).then((infoRes) => {
+        if (infoRes?.info_mesas) {
+          estado.mesasInfo = infoRes.info_mesas;
+          pintarPlano();
+          ejecutarBusquedaMesa();
+        }
+      }).catch((err) => {
         console.warn("operaciones/info_mesas:", err);
-        estado.mesasInfo = {};
-      }
+      });
     } else {
       estado.mesas = [];
       estado.mesasInfo = {};
+      pintarPlano();
+      ejecutarBusquedaMesa();
     }
-
-    pintarPlano();
-    ejecutarBusquedaMesa();
   }
 
   // ---------- plano ----------

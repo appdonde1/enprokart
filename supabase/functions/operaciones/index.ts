@@ -244,8 +244,10 @@ Deno.serve(async (req) => {
     // 2. Obtener courtesy_log para los tickets de cortesía
     const ticketIds: string[] = [];
     for (const ord of ordenes ?? []) {
-      for (const t of (ord as any).tickets ?? []) {
-        if (t.id) ticketIds.push(t.id);
+      if (ord.is_courtesy) {
+        for (const t of (ord as any).tickets ?? []) {
+          if (t.id) ticketIds.push(t.id);
+        }
       }
     }
 
