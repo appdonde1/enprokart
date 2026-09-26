@@ -69,10 +69,23 @@ Quedaron escritas en el chat de trabajo del 12/09 o en notas anteriores.
   monoespaciadas; revisar si conviene simplificarlo ahora que la barra tiene los
   destinos principales.
 
+## Para continuar en el otro ordenador
+
+- [ ] **Aplicar migración en Supabase:** Ejecutar [`supabase/migrations/20260926000001_plata_grid_6x11.sql`](../../supabase/migrations/20260926000001_plata_grid_6x11.sql) en el SQL Editor del proyecto `tgilgfwxtghcqskfyzif` para activar la nueva grilla de Plata 6x11 en la base de datos.
+- [ ] Verificar visualmente en https://enprokart.com y en `/admin/` el nuevo layout de Plata y los interruptores de venta.
+
 ## Próximo trabajo
 
 - [ ] **Rediseño premium editable por evento.** Definir qué cambia el admin en
   cada evento: color de acento, vídeo, artistas, patrocinadores, cuenta regresiva.
+
+## Hecho el 2026-09-26
+
+- [x] Controles de apertura y cierre para Plata y General en el panel de administración (`admin.js`, `admin.css`).
+- [x] Grilla de Plata ajustada a 6x11 (66 mesas = 264 lugares), manteniendo las 5 mesas vendidas (P7, P8, P9, P11, P12) en primera fila (`pos_y = 1`).
+- [x] Generación de migración SQL `20260926000001_plata_grid_6x11.sql`.
+- [x] Publicación y deploy en VPS por SSH (`./desplegar.sh`).
+- [x] Subida del repositorio completo y bóveda de documentación (Vault) a GitHub (`main`, `personal-y-nomina`, `master`).
 
 ## Hecho el 2026-09-12
 
