@@ -1,4 +1,4 @@
-﻿const http = require("http");
+const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
@@ -29,20 +29,27 @@ const server = http.createServer((req, res) => {
     return res.end("Forbidden");
   }
 
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-      return res.end("404 Not Found");
+  let targetPath = filePath;
+  fs.stat(targetPath, (err, stats) => {
+    if (!err && stats.isDirectory()) {
+      targetPath = path.join(targetPath, "index.html");
     }
 
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME[ext] || "application/octet-stream";
-    res.writeHead(200, {
-      "Content-Type": contentType,
-      "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "no-cache"
+    fs.stat(targetPath, (err2, stats2) => {
+      if (err2 || !stats2.isFile()) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        return res.end("404 Not Found: " + reqPath);
+      }
+
+      const ext = path.extname(targetPath).toLowerCase();
+      const contentType = MIME[ext] || "application/octet-stream";
+      res.writeHead(200, {
+        "Content-Type": contentType,
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache"
+      });
+      fs.createReadStream(targetPath).pipe(res);
     });
-    fs.createReadStream(filePath).pipe(res);
   });
 });
 
